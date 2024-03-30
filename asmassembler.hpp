@@ -36,7 +36,7 @@ namespace ECS
 	using Byte = std::uint8_t;
 }
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Assembler;
 
@@ -47,15 +47,15 @@ namespace ECS::Assembly
 
 	using Identifier = std::string;
 	using Instructions = std::vector<Instruction>;
-}
+}}
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	struct Binary;
 	struct Patch;
 
 	using Binaries = std::list<Binary>;
-}
+}}
 
 class ECS::Assembly::Assembler : Checker
 {

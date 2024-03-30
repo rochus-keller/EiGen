@@ -55,7 +55,9 @@ inline std::ostream& ECS::WriteFormatted (const int index, std::ostream& stream,
 template <typename... Values>
 std::string ECS::Format (const char* string, const Values&... values)
 {
-	assert (string); static_assert (sizeof... (values) < 10); std::ostringstream stream;
+    assert (string);
+    //static_assert (sizeof... (values) < 10);
+    std::ostringstream stream;
 	for (; *string; ++string) if (*string == '%' && *++string != '%') WriteFormatted (*string - '0', stream, values...); else stream.put (*string);
 	return stream.str ();
 }

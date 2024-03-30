@@ -24,16 +24,16 @@
 #include "code.hpp"
 #include "layout.hpp"
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Assembler;
 	class Generator;
-}
+}}
 
-namespace ECS::Debugging
+namespace ECS { namespace Debugging
 {
 	struct Information;
-}
+}}
 
 class ECS::Assembly::Generator
 {

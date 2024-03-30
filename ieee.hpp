@@ -26,13 +26,13 @@ namespace ECS
 	using Bits = unsigned;
 }
 
-namespace ECS::IEEE
+namespace ECS { namespace IEEE
 {
 	template <Bits, Bits, typename, typename> struct Precision;
 
 	using DoublePrecision = Precision<11, 52, std::uint64_t, double>;
 	using SinglePrecision = Precision<8, 23, std::uint32_t, float>;
-}
+}}
 
 template <ECS::Bits Exponent, ECS::Bits Significant, typename Unsigned, typename Float>
 struct ECS::IEEE::Precision
@@ -40,8 +40,8 @@ struct ECS::IEEE::Precision
 	static Float Decode (Unsigned) noexcept;
 	static Unsigned Encode (Float) noexcept;
 
-	static_assert (sizeof (Float) * 8 == Exponent + Significant + 1);
-	static_assert (sizeof (Unsigned) * 8 == Exponent + Significant + 1);
+    //static_assert (sizeof (Float) * 8 == Exponent + Significant + 1);
+    //static_assert (sizeof (Unsigned) * 8 == Exponent + Significant + 1);
 };
 
 #include <cmath>

@@ -1,0 +1,63 @@
+let config : Config {
+    if target_toolchain == `gcc {
+        .lib_names += [ "m" "stdc++" ]
+        .ldflags += "-shared-libgcc"
+        .cflags_cc += "-std=c++11"
+    }else if target_toolchain == `msvc {
+        # nothing to do
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+let cdamd32 ! : Executable {
+    .configs += [ config ]
+    .sources += [
+        ./amd64.cpp
+        ./object.cpp
+        ./compiler.cpp
+        ./driver.cpp
+        ./driver.hpp
+        ./amd64assembler.cpp
+        ./amd64assembler.hpp
+        ./amd64generator.cpp
+        ./code.cpp
+        ./code.hpp
+        ./assembly.cpp
+        ./assembly.hpp
+        ./asmgenerator.cpp
+        ./amd64.hpp
+        ./object.hpp
+        ./stringpool.hpp
+        ./amd64generator.hpp
+        ./utilities.hpp
+        ./asmgenerator.hpp
+        ./asmparser.cpp
+        ./asmparser.hpp
+        ./asmlexer.cpp
+        ./asmlexer.hpp
+        ./asmassembler.cpp
+        ./asmassembler.hpp
+        ./cdchecker.cpp
+        ./cdchecker.hpp
+        ./format.hpp
+        ./debugging.cpp
+        ./debugging.hpp
+        ./asmprinter.cpp
+        ./asmprinter.hpp
+        ./asmcheckercontext.hpp
+        ./asmchecker.cpp
+        ./asmchecker.hpp
+        ./strdiagnostics.hpp
+        ./diagnostics.hpp
+        ./position.hpp
+        ./error.hpp
+        ./stdcharset.hpp
+        ./charset.hpp
+        ./layout.hpp
+        ./asmgeneratorcontext.hpp
+        ./ieee.hpp
+        ./indenter.hpp
+        ]
+    .defines += [ "AMD32BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
+}

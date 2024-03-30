@@ -21,12 +21,12 @@
 
 #include "asmassembler.hpp"
 
-namespace ECS::AMD64
+namespace ECS { namespace AMD64
 {
 	enum OperatingMode : unsigned;
 
 	class Assembler;
-}
+}}
 
 class ECS::AMD64::Assembler : public Assembly::Assembler
 {

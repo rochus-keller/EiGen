@@ -30,7 +30,7 @@ namespace ECS
 	using Byte = std::uint8_t;
 }
 
-namespace ECS::AMD64
+namespace ECS { namespace AMD64
 {
 	enum OperatingMode : unsigned {RealMode = 16, ProtectedMode = 32, LongMode = 64};
 
@@ -56,12 +56,12 @@ namespace ECS::AMD64
 	std::ostream& operator << (std::ostream&, const Instruction&);
 	std::ostream& operator << (std::ostream&, const Operand&);
 	std::ostream& operator << (std::ostream&, Register);
-}
+}}
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	struct Patch;
-}
+}}
 
 class ECS::AMD64::Operand
 {
@@ -152,7 +152,7 @@ private:
 	friend std::ostream& operator << (std::ostream&, const Instruction&);
 };
 
-namespace ECS::AMD64
+namespace ECS { namespace AMD64
 {
 	template <Instruction::Mnemonic> struct InstructionMnemonic;
 
@@ -162,7 +162,7 @@ namespace ECS::AMD64
 	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
 	std::ostream& operator << (std::ostream&, Instruction::Prefix);
 	std::ostream& operator << (std::ostream&, Operand::Size);
-}
+}}
 
 template <ECS::AMD64::Instruction::Mnemonic>
 struct ECS::AMD64::InstructionMnemonic : Instruction

@@ -32,7 +32,7 @@ namespace ECS
 	using Source = std::string;
 }
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Parser;
 
@@ -40,7 +40,7 @@ namespace ECS::Assembly
 	struct Program;
 
 	using Instructions = std::vector<Instruction>;
-}
+}}
 
 class ECS::Assembly::Parser
 {

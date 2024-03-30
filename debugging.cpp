@@ -71,17 +71,17 @@ Enumerator::Enumerator (const Name& n, const Value& v) :
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Value& v) :
-	model {Constant}, name {n}, lifetime {l}, value {v}
+    model {Constant}, name {n}, lifetime(l), value {v}
 {
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Debugging::Register& r) :
-	model {Register}, name {n}, lifetime {l}, register_ {r}
+    model {Register}, name {n}, lifetime(l), register_ {r}
 {
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Debugging::Register& r, const Displacement d) :
-	model {Variable}, name {n}, lifetime {l}, register_ {r}, displacement {d}
+    model {Variable}, name {n}, lifetime(l), register_ {r}, displacement {d}
 {
 }
 
@@ -225,10 +225,25 @@ std::istream& Debugging::operator >> (std::istream& stream, Type& type)
 {
 	if (stream >> std::ws && stream.peek () == '"') type.model = Type::Name, ReadString (stream, type.name, '"'); else if (!ReadEnum (stream, type.model, types, IsAlpha)) return stream;
 	if (IsBasic (type) || IsArray (type) && stream >> type.index || IsRecord (type) || IsFunction (type)) stream >> type.size; type.enumerators.clear (); type.subtypes.clear ();
-	if (IsCompound (type)) stream >> type.subtypes.emplace_back ();
-	if (IsRecord (type)) while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') stream >> type.fields.emplace_back ();
-	if (IsFunction (type)) while (type.size--) stream >> type.subtypes.emplace_back ();
-	if (IsEnumeration (type)) while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') stream >> type.enumerators.emplace_back ();
+    if (IsCompound (type)) {
+        type.subtypes.emplace_back ();
+        stream >> type.subtypes.back();
+    }
+    if (IsRecord (type))
+        while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') {
+            type.fields.emplace_back ();
+            stream >> type.fields.back();
+        }
+    if (IsFunction (type))
+        while (type.size--) {
+            type.subtypes.emplace_back ();
+            stream >> type.subtypes.back();
+        }
+    if (IsEnumeration (type))
+        while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') {
+            type.enumerators.emplace_back ();
+            stream >> type.enumerators.back();
+        }
 	return stream;
 }
 
@@ -317,8 +332,14 @@ std::istream& Debugging::operator >> (std::istream& stream, Entry& entry)
 	ReadString (ReadEnum (stream, entry.model, entries, IsAlpha), entry.name, '"');
 	if (stream >> std::ws && std::isdigit (stream.peek ())) stream >> entry.location; else entry.location = {};
 	stream >> entry.type; if (!IsType (entry)) stream >> entry.size;
-	while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') stream >> entry.symbols.emplace_back ();
-	while (stream.good () && stream >> std::ws && stream.good () && std::isdigit (stream.peek ())) stream >> entry.breakpoints.emplace_back ();
+    while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') {
+        entry.symbols.emplace_back ();
+        stream >> entry.symbols.back();
+    }
+    while (stream.good () && stream >> std::ws && stream.good () && std::isdigit (stream.peek ())) {
+        entry.breakpoints.emplace_back ();
+        stream >> entry.breakpoints.back();
+    }
 	return stream;
 }
 
@@ -347,8 +368,14 @@ std::ostream& Debugging::operator << (std::ostream& stream, const Target& target
 std::istream& Debugging::operator >> (std::istream& stream, Information& information)
 {
 	stream >> information.target; information.sources.clear (); information.entries.clear ();
-	do ReadString (stream, information.sources.emplace_back (), '"'); while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"');
-	while (stream.good () && stream >> std::ws && stream.good ()) stream >> information.entries.emplace_back ();
+    do {
+        information.sources.emplace_back ();
+        ReadString (stream, information.sources.back(), '"');
+    }while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"');
+    while (stream.good () && stream >> std::ws && stream.good ()) {
+        information.entries.emplace_back ();
+        stream >> information.entries.back();
+    }
 	return stream;
 }
 

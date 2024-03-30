@@ -33,8 +33,9 @@ using namespace Assembly;
 using Context =
 	#include "asmgeneratorcontext.hpp"
 
-Generator::Generator (Diagnostics& d, StringPool& sp, Assembler& a, const Target t, const Name n, const Layout& l, const HasLinkRegister hlr) :
-	layout {l}, platform {layout, hlr}, assembler {a}, target {t}, name {n}, parser {d, sp, false}
+Generator::Generator (Diagnostics& d, StringPool& sp, Assembler& a, const Target t,
+    const Name n, const Layout& l, const HasLinkRegister hlr) :
+    layout {l}, platform {layout, hlr}, assembler(a), target {t}, name {n}, parser {d, sp, false}
 {
 	assert (target); assert (name);
 }
@@ -51,8 +52,10 @@ void Generator::Generate (const Code::Sections& sections, const Source& source, 
 	Process (sections, binaries, information, listing);
 }
 
-Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l, const InitializeData id) :
-	listing {l}, generator {g}, endianness {generator.assembler.endianness}, binaries {b}, information {i}	, initializeData {id}
+Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i,
+                  std::ostream& l, const InitializeData id) :
+    listing(l), generator(g), endianness {generator.assembler.endianness}, binaries(b),
+    information(i)	, initializeData {id}
 {
 }
 
@@ -75,7 +78,11 @@ try
 	this->section = &section;
 	if (IsAssembly (section)) return Batch (section.instructions, [this] (const Code::Instruction& instruction) {Assemble (instruction);});
 
-	binary = !IsType (section.type) ? &binaries.emplace_back (section) : nullptr;
+    if( !IsType (section.type) ) {
+        binaries.emplace_back (section);
+        binary =  &binaries.back();
+    }else
+        binary = nullptr;
 	labels.resize (section.instructions.size () + 1); currentDirective = Lexer::Invalid; entry = nullptr; currentInstruction = 0;
 
 	if (listing && binary)
@@ -309,7 +316,8 @@ try
 	case Code::Instruction::BREAK:
 		AddTypeableEntry (Debugging::Entry::Code);
 		if (location) EmitError ("missing source code location");
-		location = &entry->breakpoints.emplace_back (binary->bytes.size ()).location;
+        entry->breakpoints.emplace_back (binary->bytes.size ());
+        location = &entry->breakpoints.back().location;
 		break;
 
 	case Code::Instruction::SYM:
@@ -321,14 +329,16 @@ try
 	case Code::Instruction::FIELD:
 		if (location) EmitError ("missing source code location");
 		if (declarations.empty () || !IsRecord (*declarations.back ().type)) EmitError ("invalid field declaration");
-		location = &declarations.back ().type->fields.emplace_back (instruction.operand1.address, instruction.operand2.size, Convert (instruction.operand3)).location;
+        declarations.back ().type->fields.emplace_back (instruction.operand1.address, instruction.operand2.size, Convert (instruction.operand3));
+        location = &declarations.back ().type->fields.back().location;
 		types.push_back (&declarations.back ().type->fields.back ().type);
 		break;
 
 	case Code::Instruction::VALUE:
 		if (location) EmitError ("missing source code location");
 		if (declarations.empty () || !IsEnumeration (*declarations.back ().type)) EmitError ("invalid enumerator declaration");
-		location = &declarations.back ().type->enumerators.emplace_back (instruction.operand1.address, GetValue (instruction.operand2)).location;
+        declarations.back ().type->enumerators.emplace_back (instruction.operand1.address, GetValue (instruction.operand2));
+        location = &declarations.back ().type->enumerators.back().location;
 		break;
 
 	case Code::Instruction::VOID:
@@ -481,7 +491,8 @@ void Context::AddLink (const Object::Section::Name& name, Object::Patch& patch)
 
 void Context::AddSection (const Code::Section::Type type, const Code::Section::Name& name, const Code::Section::Required required, const Code::Section::Duplicable duplicable, const Code::Section::Replaceable replaceable)
 {
-	binary = &binaries.emplace_back (type, name, 1, required, duplicable, replaceable); if (!listing) return;
+    binaries.emplace_back (type, name, 1, required, duplicable, replaceable);
+    binary = &binaries.back(); if (!listing) return;
 	WriteIdentifier (listing << '\n' << '.' << type << ' ', name) << '\n';
 	if (required) listing << '\t' << Assembly::Lexer::Required << '\n';
 	if (duplicable) listing << '\t' << Assembly::Lexer::Duplicable << '\n';
@@ -512,7 +523,8 @@ Context::Label Context::DefineLocal (const Code::Operand& value, const Code::Siz
 	const auto limit = binary->bytes.size () + forward;
 	for (auto& definition: pendingDefinitions) if (definition.value == value) return definition.limit = std::min (definition.limit, limit), definition.label;
 	for (auto& definition: appliedDefinitions) if (definition.value == value && binary->bytes.size () - labels[definition.label.index] <= backward) return definition.label;
-	return pendingDefinitions.emplace_back (limit, *this, value).label;
+    pendingDefinitions.emplace_back (limit, *this, value);
+    return pendingDefinitions.back().label;
 }
 
 void Context::ApplyLocalDefinitions ()
@@ -642,13 +654,22 @@ Debugging::Index Context::Insert (const Source& source)
 Debugging::Type& Context::Declare (Debugging::Type&& type)
 {
 	if (IsCode (section->type)) AddTypeableEntry (Debugging::Entry::Code); else if (IsData (section->type)) AddTypeableEntry (Debugging::Entry::Data);
-	if (types.empty ()) if (!declarations.empty () && IsFunction (*declarations.back ().type)) types.push_back (&declarations.back ().type->subtypes.emplace_back ()); else EmitError ("invalid type declaration");
-	auto& result = *types.back (); result = std::move (type); types.pop_back (); for (auto& subtype: Reverse {result.subtypes}) types.push_back (&subtype); return result;
+    if (types.empty ())
+        if (!declarations.empty () && IsFunction (*declarations.back ().type)) {
+            declarations.back ().type->subtypes.emplace_back ();
+            types.push_back (&declarations.back ().type->subtypes.back());
+        }else EmitError ("invalid type declaration");
+    auto& result = *types.back ();
+    result = std::move (type); types.pop_back ();
+    for( auto i = result.subtypes.rbegin(); i != result.subtypes.rend(); ++i)
+        types.push_back(&(*i));
+    return result;
 }
 
 void Context::AddEntry (const Debugging::Entry::Model model)
 {
-	if (!entry) entry = &information.entries.emplace_back (model, section->name), entry->size = 0;
+    information.entries.emplace_back (model, section->name);
+    if (!entry) entry = &information.entries.back(), entry->size = 0;
 }
 
 void Context::AddTypeableEntry (const Debugging::Entry::Model model)
@@ -753,7 +774,8 @@ Context::LocalLabel::LocalLabel (LocalLabel&& label) noexcept :
 
 Context::LocalLabel::~LocalLabel ()
 {
-	if (!std::uncaught_exceptions ()) assert (!context);
+    //if (!std::uncaught_exceptions ())
+        assert (!context);
 }
 
 void Context::LocalLabel::operator () ()

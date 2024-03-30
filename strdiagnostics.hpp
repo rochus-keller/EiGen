@@ -34,7 +34,7 @@ namespace ECS
 class ECS::StreamDiagnostics : public Diagnostics
 {
 public:
-	explicit StreamDiagnostics (std::ostream& s) : stream {s} {}
+    explicit StreamDiagnostics (std::ostream& s) : stream (s) {}
 
 	void Emit (Type, const Source&, const Position&, const Message&) override;
 

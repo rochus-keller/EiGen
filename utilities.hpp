@@ -183,6 +183,7 @@ private:
 	const Value previous;
 };
 
+#if 0
 template <typename Container>
 class ECS::Reverse
 {
@@ -195,13 +196,14 @@ public:
 private:
 	Container& container;
 };
+#endif
 
 template <typename Entry, typename Mnemonic>
 class ECS::Lookup
 {
 public:
-	template <std::size_t entries> explicit constexpr Lookup (const Entry (&)[entries]);
-	template <std::size_t entries> explicit constexpr Lookup (const Entry (&)[entries], int);
+    template <std::size_t entries> explicit Lookup (const Entry (&)[entries]);
+    template <std::size_t entries> explicit Lookup (const Entry (&)[entries], int);
 
 	constexpr const Entry* operator [] (const Mnemonic mnemonic) const {return map[mnemonic];}
 
@@ -252,35 +254,35 @@ std::basic_ostream<C, T>& ECS::operator << (std::basic_ostream<C, T>& stream, co
 template <typename Value>
 Value ECS::Align (const Value offset, const Value alignment)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	return (offset + alignment - 1) / alignment * alignment;
 }
 
 template <typename Value>
 inline Value ECS::ShiftLeft (const Value value, const Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	return std::numeric_limits<Value>::is_signed && value < 0 ? -(-value << bits) : value << bits;
 }
 
 template <typename Value>
 inline Value ECS::ShiftRight (const Value value, const Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	return std::numeric_limits<Value>::is_signed && value < 0 ? ~(~value >> bits) : value >> bits;
 }
 
 template <typename Value>
 Value ECS::Scale (const Value value, const Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	return bits < Bits (std::numeric_limits<Value>::digits) ? ShiftRight (value, bits) : std::numeric_limits<Value>::is_signed && value < 0 ? -1 : 0;
 }
 
 template <typename Value>
 Value ECS::Truncate (const Value value, Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	bits = std::numeric_limits<Value>::digits + std::numeric_limits<Value>::is_signed - bits;
 	return ShiftRight (ShiftLeft (value, bits), bits);
 }
@@ -288,7 +290,7 @@ Value ECS::Truncate (const Value value, Bits bits)
 template <>
 inline double ECS::Truncate (const double value, const Bits bits)
 {
-	static_assert (sizeof (float) * 8 == 32); static_assert (sizeof (double) * 8 == 64);
+    //static_assert (sizeof (float) * 8 == 32); static_assert (sizeof (double) * 8 == 64);
 	return !std::isfinite (value) || bits > 32 ? value : float ((value < -std::numeric_limits<float>::max ()) ? -std::numeric_limits<float>::max () : value > std::numeric_limits<float>::max () ? std::numeric_limits<float>::max () : value);
 }
 
@@ -307,50 +309,50 @@ inline bool ECS::TruncatesPreserving (const double value, const Bits bits)
 template <typename Value>
 bool ECS::IsPowerOfTwo (const Value value)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
+    //static_assert (std::numeric_limits<Value>::is_integer);
 	return value > 0 && !(value & (value - 1));
 }
 
 template <typename Value>
 ECS::Bits ECS::CountOnes (const Value value)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
-	Bits bits = 0; for (std::make_unsigned_t<Value> mask = value; mask; mask >>= 1) bits += mask & 1; return bits;
+    //static_assert (std::numeric_limits<Value>::is_integer);
+    Bits bits = 0; for (Value mask = value; mask; mask >>= 1) bits += mask & 1; return bits;
 }
 
 template <typename Value>
 ECS::Bits ECS::CountTrailingZeros (const Value value)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
-	Bits bits = 0; for (std::make_unsigned_t<Value> mask = value; !(mask & 1); mask >>= 1) ++bits; return bits;
+    //static_assert (std::numeric_limits<Value>::is_integer);
+    Bits bits = 0; for (Value mask = value; !(mask & 1); mask >>= 1) ++bits; return bits;
 }
 
 template <typename Value>
 Value ECS::EncodeBits (Value value, Value mask)
 {
-	static_assert (std::numeric_limits<Value>::is_integer && !std::numeric_limits<Value>::is_signed);
+    //static_assert (std::numeric_limits<Value>::is_integer && !std::numeric_limits<Value>::is_signed);
 	Value code = 0; for (Bits bit = 0; mask; ++bit, mask >>= 1) if (mask & 1) code |= (value & 1) << bit, value >>= 1; return code;
 }
 
 template <typename Value>
 Value ECS::DecodeBits (Value code, Value mask)
 {
-	static_assert (std::numeric_limits<Value>::is_integer && !std::numeric_limits<Value>::is_signed);
+    //static_assert (std::numeric_limits<Value>::is_integer && !std::numeric_limits<Value>::is_signed);
 	Value value = 0; for (Bits bit = 0; mask; code >>= 1, mask >>= 1) if (mask & 1) value |= (code & 1) << bit, ++bit; return value;
 }
 
 template <typename Value>
 Value ECS::RotateLeft (const Value value, const Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
-	return value << bits | std::make_unsigned_t<Value> (value) >> (std::numeric_limits<Value>::digits - bits);
+    //static_assert (std::numeric_limits<Value>::is_integer);
+    return value << bits | Value (value) >> (std::numeric_limits<Value>::digits - bits);
 }
 
 template <typename Value>
 Value ECS::RotateRight (const Value value, const Bits bits)
 {
-	static_assert (std::numeric_limits<Value>::is_integer);
-	return std::make_unsigned_t<Value> (value) >> bits | value << (std::numeric_limits<Value>::digits - bits);
+    //static_assert (std::numeric_limits<Value>::is_integer);
+    return Value (value) >> bits | value << (std::numeric_limits<Value>::digits - bits);
 }
 
 template <typename Value>
@@ -410,14 +412,14 @@ inline ECS::Restore<Value>::~Restore<Value> ()
 }
 
 template <typename Entry, typename Mnemonic> template <std::size_t entries>
-constexpr ECS::Lookup<Entry, Mnemonic>::Lookup (const Entry (&table)[entries])
+ECS::Lookup<Entry, Mnemonic>::Lookup (const Entry (&table)[entries])
 {
 	for (auto entry = table; entry != table + entries; ++entry)
 		if (!map[entry[0].mnemonic]) map[entry[0].mnemonic] = entry;
 }
 
 template <typename Entry, typename Mnemonic> template <std::size_t entries>
-constexpr ECS::Lookup<Entry, Mnemonic>::Lookup (const Entry (&table)[entries], int)
+ECS::Lookup<Entry, Mnemonic>::Lookup (const Entry (&table)[entries], int)
 {
 	for (auto entry = table + entries; entry != table; --entry)
 		if (!map[entry[-1].mnemonic]) map[entry[-1].mnemonic] = entry;

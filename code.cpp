@@ -161,7 +161,9 @@ Size Instruction::Uses (const Register register_) const
 }
 
 Platform::Platform (Layout& l, const HasLinkRegister hasLinkRegister) :
-	integer (l.integer.size), float_ (l.float_.size), pointer (l.pointer.size), function (l.function.size), return_ (l.callStack ? l.function.size : 0), link (hasLinkRegister ? l.function.size : 0), stackDisplacement (l.stack.size), layout {l}
+    integer (l.integer.size), float_ (l.float_.size), pointer (l.pointer.size),
+    function (l.function.size), return_ (l.callStack ? l.function.size : 0),
+    link (hasLinkRegister ? l.function.size : 0), stackDisplacement (l.stack.size), layout(l)
 {
 }
 

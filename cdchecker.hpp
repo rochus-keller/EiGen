@@ -24,7 +24,7 @@
 #include <list>
 #include <vector>
 
-namespace ECS::Code
+namespace ECS { namespace Code
 {
 	class Checker;
 	class Platform;
@@ -33,16 +33,16 @@ namespace ECS::Code
 	struct Type;
 
 	using Sections = std::list<Section>;
-}
+}}
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	struct Instruction;
 	struct Program;
 	struct Section;
 
 	using Instructions = std::vector<Instruction>;
-}
+}}
 
 class ECS::Code::Checker : Assembly::Checker
 {

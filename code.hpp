@@ -28,7 +28,7 @@ namespace ECS
 	using Line = std::streamoff;
 }
 
-namespace ECS::Code
+namespace ECS { namespace Code
 {
 	enum Register {R0, R1, R2, R3, RMax = 7, RRes, RSP, RFP, RLink, RVoid, GeneralRegisters = RMax + 1, UserRegisters = RRes + 1, Registers = RLink + 1};
 
@@ -104,7 +104,7 @@ namespace ECS::Code
 	std::ostream& operator << (std::ostream&, const Operand&);
 	std::ostream& operator << (std::ostream&, const Type&);
 	std::ostream& operator << (std::ostream&, Register);
-}
+}}
 
 struct ECS::Code::Type
 {
@@ -116,10 +116,10 @@ struct ECS::Code::Type
 	Size size = 0;
 
 	constexpr Type () = default;
-	constexpr Type (Model, Size);
+    Type (Model, Size);
 };
 
-namespace ECS::Code
+namespace ECS { namespace Code
 {
 	template <Type::Model, typename> struct TypeModel;
 
@@ -128,7 +128,7 @@ namespace ECS::Code
 	using Pointer = TypeModel<Type::Pointer, std::uint64_t>;
 	using Signed = TypeModel<Type::Signed, std::int64_t>;
 	using Unsigned = TypeModel<Type::Unsigned, std::uint64_t>;
-}
+}}
 
 template <ECS::Code::Type::Model M, typename V>
 struct ECS::Code::TypeModel : Type
@@ -183,7 +183,7 @@ protected:
 	Operand (Model, const Code::Type&, const Object::Section::Name&);
 };
 
-namespace ECS::Code
+namespace ECS { namespace Code
 {
 	template <typename TM, typename TM::Value (Operand::*)> struct ImmediateModel;
 
@@ -194,7 +194,7 @@ namespace ECS::Code
 	using UImm = ImmediateModel<Unsigned, &Operand::uimm>;
 
 	Unsigned::Value Convert (const Operand&);
-}
+}}
 
 struct ECS::Code::Imm : Operand
 {
@@ -250,7 +250,7 @@ struct ECS::Code::Instruction
 	Size Uses (Register) const;
 };
 
-namespace ECS::Code
+namespace ECS { namespace Code
 {
 	template <Instruction::Mnemonic, Size> struct InstructionMnemonic;
 	template <Instruction::Mnemonic m> struct InstructionMnemonic<m, 0>;
@@ -277,7 +277,7 @@ namespace ECS::Code
 
 	std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
 	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}
+}}
 
 template <ECS::Code::Instruction::Mnemonic m>
 struct ECS::Code::InstructionMnemonic<m, 0> : Instruction
@@ -354,7 +354,7 @@ inline bool ECS::Code::operator != (const Instruction& a, const Instruction& b)
 	return !(a == b);
 }
 
-constexpr ECS::Code::Type::Type (const Model m, const Size s) :
+inline ECS::Code::Type::Type (const Model m, const Size s) :
 	model {m}, size {s}
 {
 	assert (model != Void);

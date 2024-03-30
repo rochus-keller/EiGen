@@ -32,12 +32,12 @@ using Context =
 	#include "asmcheckercontext.hpp"
 
 Checker::Checker (Diagnostics& d, Charset& c) :
-	diagnostics {d}, charset {c}
+    diagnostics(d), charset(c)
 {
 }
 
 Context::Context (const Checker& c, Object::Section& s, const Origin o, const Alignment a, const Inlined i) :
-	charset {c.charset}, inlined {i}, alignment {a}, diagnostics {c.diagnostics}, section {s}, origin {o}
+    charset(c.charset), inlined {i}, alignment {a}, diagnostics(c.diagnostics), section(s), origin {o}
 {
 	assert (IsPowerOfTwo (alignment));
 }
@@ -65,10 +65,12 @@ void Context::Label (const Instruction& instruction)
 	if (instruction.label.empty () || conditional != Including && conditional != IncludingElse) return;
 	if (instruction.directive == Lexer::Equals) CheckDefinition (instruction.label, instruction.operands.front ());
 
-	if (const auto definition = definitions.find (instruction.label); definition == definitions.end ())
-		if (Expression value; GetDefinition (instruction.label, value)) EmitError (Format ("reserved label '%0'", instruction.label));
+    const auto definition = definitions.find (instruction.label);
+    if (definition == definitions.end ()) {
+        Expression value;
+        if (GetDefinition (instruction.label, value)) EmitError (Format ("reserved label '%0'", instruction.label));
 		else definitions.emplace (instruction.label, instruction.directive == Lexer::Equals ? instruction.operands.front () : Expression {Expression::Label, 0});
-	else if (instruction.directive != Lexer::Equals || !Compare (definition->second, instruction.operands.front ()))
+    }else if (instruction.directive != Lexer::Equals || !Compare (definition->second, instruction.operands.front ()))
 		EmitError (Format ("duplicated label '%0'", instruction.label));
 }
 
@@ -246,10 +248,12 @@ void Context::CheckDefinition (const Identifier& identifier, const Expression& e
 	case Expression::NullaryOperation:
 		break;
 
-	case Expression::Identifier:
+    case Expression::Identifier:
+    {
 		if (expression.string == identifier) definitions.erase (identifier), EmitError (Format ("recursive definition of '%0'", identifier));
-		if (Expression definition; GetDefinition (expression.string, definition)) CheckDefinition (identifier, definition);
-		break;
+        Expression definition;
+        if (GetDefinition (expression.string, definition)) CheckDefinition (identifier, definition);
+    }	break;
 
 	case Expression::UnaryOperation:
 	case Expression::BinaryOperation:
@@ -271,7 +275,8 @@ void Context::Assemble (const Instruction& instruction)
 	for (auto& operand: instruction.operands)
 	{
 		if (operand.separated) stream << Lexer::Comma; stream << ' ';
-		if (Value value; GetOffset (operand, value)) stream << std::showpos << value << std::noshowpos;
+        Value value;
+        if (GetOffset (operand, value)) stream << std::showpos << value << std::noshowpos;
 		else if (IsIdentity (operand)) assert (!operand.operands.empty ()), Rewrite (stream << operand.operation, operand.operands.front ());
 		else if (link.name.empty ()) Rewrite (stream, operand, link); else Rewrite (stream, operand);
 	}
@@ -334,7 +339,16 @@ bool Context::Compare (const Expression& left, const Expression& right) const
 
 bool Context::Compare (const Expressions& left, const Expressions& right) const
 {
-	return std::equal (left.begin (), left.end (), right.begin (), right.end (), [this] (const Expression& left, const Expression& right) {return Compare (left, right);});
+    if( left.size() != right.size() )
+        return false;
+    auto l = left.begin();
+    auto r = right.begin();
+    for( ; l != left.end(); ++l, ++r )
+    {
+        if( !Compare((*l),(*r)) )
+            return false;
+    }
+    return true;
 }
 
 std::ostream& Context::Rewrite (std::ostream& stream, const Expression& expression, Link& link) const

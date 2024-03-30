@@ -21,8 +21,6 @@
 
 #include "strdiagnostics.hpp"
 
-#include <filesystem>
-
 namespace ECS
 {
 	class File;
@@ -37,7 +35,7 @@ namespace ECS
 class ECS::File
 {
 public:
-	File (const std::filesystem::path&, const std::filesystem::path&, std::ios_base::openmode = std::ios_base::out);
+    File (const std::string&, const std::string&, std::ios_base::openmode = std::ios_base::out);
 	~File () noexcept (false);
 
 	operator std::ostream& () {return file;}
@@ -45,8 +43,9 @@ public:
 	static constexpr auto cur = std::ios_base::cur;
 	static constexpr auto binary = std::ios_base::binary;
 
+    static bool is_directory(const std::string&);
 private:
-	const std::filesystem::path path;
+    const std::string path;
 	std::ofstream file;
 };
 
@@ -59,75 +58,5 @@ private:
 #include <stdexcept>
 #include <system_error>
 
-inline ECS::File::File (const std::filesystem::path& source, const std::filesystem::path& extension, const std::ios_base::openmode mode) :
-	path {source.filename ().replace_extension (extension)}, file {path, mode}
-{
-	if (!file.is_open ()) throw ProcessAborted {Format ("failed to open output file '%0'", path.string ())};
-}
-
-inline ECS::File::~File () noexcept (false)
-{
-	file.close (); if (!file || std::uncaught_exceptions ()) std::filesystem::remove (path);
-	if (!file && !std::uncaught_exceptions ()) throw ProcessAborted {Format ("failed to write output file '%0'", path.string ())};
-}
-
-inline int ECS::Drive (void (*const process) (std::istream&, const Source&, const Position&), const char*const name, const int argc, const char*const argv[], StreamDiagnostics& diagnostics, void (*const complete) (const Source&)) noexcept
-try
-{
-	std::ios_base::sync_with_stdio (false);
-
-	auto first = argv[argc];
-	for (auto argument = argv + 1; argument < argv + argc; ++argument)
-	{
-		if (!*argument) continue; if (!first) first = *argument; const Source source {*argument}; std::ifstream file;
-		if (std::error_code error; !std::filesystem::is_directory (source, error)) file.open (source, file.binary);
-		if (!file.is_open ()) throw ProcessAborted {Format ("failed to open input file '%0'", source)};
-		process (file, source, {file, source, 1, 1});
-	}
-
-	if (!first)
-	{
-		std::cout << name << " Version 0.0.40 Build " __DATE__ " Copyright (C) Florian Negele\n"
-		"This is free software; see the source for copying conditions. There is NO\n"
-		"WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n";
-		process (std::cin, first = "stdin", {1, 1}); std::cin.clear ();
-	}
-
-	if (complete) complete (first);
-
-	return EXIT_SUCCESS;
-}
-catch (const ErrorLimit& error)
-{
-	return diagnostics.Emit (Diagnostics::Note, name, {}, Format ("exiting after %0 errors", error.messages)), EXIT_FAILURE;
-}
-catch (const InvalidInput& error)
-{
-	return diagnostics.Emit (Diagnostics::Error, error.source, {}, error.message), EXIT_FAILURE;
-}
-catch (const ProcessFailed& error)
-{
-	return diagnostics.Emit (Diagnostics::Error, name, {}, error.message), EXIT_FAILURE;
-}
-catch (const ProcessAborted& error)
-{
-	return diagnostics.Emit (Diagnostics::FatalError, name, {}, error.message), EXIT_FAILURE;
-}
-catch (const std::system_error&)
-{
-	return diagnostics.Emit (Diagnostics::FatalError, name, {}, "system error"), EXIT_FAILURE;
-}
-catch (const std::length_error&)
-{
-	return diagnostics.Emit (Diagnostics::FatalError, name, {}, "out of memory"), EXIT_FAILURE;
-}
-catch (const std::bad_alloc&)
-{
-	return diagnostics.Emit (Diagnostics::FatalError, name, {}, "out of memory"), EXIT_FAILURE;
-}
-catch (const Error&)
-{
-	return EXIT_FAILURE;
-}
 
 #endif // ECS_DRIVER_HEADER_INCLUDED

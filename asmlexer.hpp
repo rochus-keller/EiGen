@@ -29,7 +29,7 @@ namespace ECS
 	using Line = std::streamoff;
 }
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Lexer;
 
@@ -42,7 +42,7 @@ namespace ECS::Assembly
 	std::ostream& WriteIdentifier (std::ostream&, const Identifier&);
 	std::ostream& WriteLine (std::ostream&, Line);
 	std::ostream& WriteLine (std::ostream&, Line, const Source&);
-}
+}}
 
 struct ECS::Assembly::Location
 {
@@ -85,13 +85,13 @@ struct ECS::Assembly::Lexer::Token
 	Token (Symbol, const Location&);
 };
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	auto GetMode (Lexer::Symbol) -> Object::Patch::Mode;
 	auto GetFunction (Object::Patch::Mode) -> const char*;
 
 	std::ostream& operator << (std::ostream&, const Lexer::Token&);
 	std::ostream& operator << (std::ostream&, Lexer::Symbol);
-}
+}}
 
 #endif // ECS_ASSEMBLY_LEXER_HEADER_INCLUDED

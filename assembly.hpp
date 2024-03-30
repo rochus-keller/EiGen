@@ -21,7 +21,7 @@
 
 #include "asmlexer.hpp"
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	struct Expression;
 	struct Instruction;
@@ -44,7 +44,7 @@ namespace ECS::Assembly
 
 	std::ostream& operator << (std::ostream&, const Expression&);
 	std::ostream& operator << (std::ostream&, const Expressions&);
-}
+}}
 
 struct ECS::Assembly::Expression
 {

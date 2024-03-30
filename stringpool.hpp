@@ -20,7 +20,6 @@
 #define ECS_STRINGPOOL_HEADER_INCLUDED
 
 #include <string>
-#include <string_view>
 #include <unordered_set>
 
 namespace ECS
@@ -35,20 +34,20 @@ public:
 	StringPool (StringPool&&) = default;
 	StringPool& operator = (StringPool&&) = default;
 
-	const std::string* Insert (std::string_view);
-	const std::u32string* Insert (std::u32string_view);
+    const std::string* Insert (const std::string&);
+    const std::u32string* Insert (const std::u32string&);
 
 private:
 	std::unordered_set<std::string> strings;
 	std::unordered_set<std::u32string> u32strings;
 };
 
-inline const std::string* ECS::StringPool::Insert (const std::string_view string)
+inline const std::string* ECS::StringPool::Insert (const std::string &string)
 {
 	return &*strings.emplace (string).first;
 }
 
-inline const std::u32string* ECS::StringPool::Insert (const std::u32string_view string)
+inline const std::u32string* ECS::StringPool::Insert (const std::u32string &string)
 {
 	return &*u32strings.emplace (string).first;
 }

@@ -22,10 +22,10 @@
 #include "amd64assembler.hpp"
 #include "asmgenerator.hpp"
 
-namespace ECS::AMD64
+namespace ECS { namespace AMD64
 {
 	class Generator;
-}
+}}
 
 class ECS::AMD64::Generator : public Assembly::Generator
 {

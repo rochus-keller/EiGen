@@ -22,7 +22,7 @@
 #include <iosfwd>
 #include <vector>
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Printer;
 
@@ -30,7 +30,7 @@ namespace ECS::Assembly
 	struct Program;
 
 	using Instructions = std::vector<Instruction>;
-}
+}}
 
 class ECS::Assembly::Printer
 {

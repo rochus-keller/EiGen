@@ -25,10 +25,10 @@ namespace ECS
 	class Diagnostics;
 }
 
-namespace ECS::Assembly
+namespace ECS { namespace Assembly
 {
 	class Checker;
-}
+}}
 
 class ECS::Assembly::Checker
 {

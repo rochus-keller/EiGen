@@ -68,7 +68,7 @@ private:
 	void UndefineMacro ();
 	void Parse (Operand&, Lexer::Symbol);
 	void Expand (Lexer::Token&, const Operands&);
-	void Expand (const Tokens&, const Operands&, Tokens::const_iterator);
+    void Expand (const Tokens&, const Operands&, Tokens::iterator);
 
 	void Parse (Section&);
 	void Parse (Instruction&);
@@ -113,7 +113,7 @@ private:
 };
 
 Parser::Parser (Diagnostics& d, StringPool& sp, const SpecialSections ss) :
-	diagnostics {d}, stringPool {sp}, specialSections {ss}
+    diagnostics(d), stringPool(sp), specialSections {ss}
 {
 }
 
@@ -128,7 +128,7 @@ void Parser::Parse (std::istream& stream, const Source& source, const Line line,
 }
 
 Context::Context (const Parser& p, std::istream& s, const Source& source, const Line line) :
-	parser {p}, stream {s}, current {Lexer::Invalid, {source, line}}
+    parser {p}, stream(s), current {Lexer::Invalid, {source, line}}
 {
 	SkipCurrent ();
 }
@@ -174,18 +174,30 @@ void Context::Parse (const Lexer::Symbol symbol)
 
 void Context::Parse (Sections& sections)
 {
-	if (SkipWhiteSpace () && !IsSection (current.symbol) && sections.empty ()) ParseSection (sections.emplace_back (Section::Code, Section::EntryPoint).instructions);
-	while (SkipWhiteSpace ()) Parse (sections.emplace_back ());
+    if (SkipWhiteSpace () && !IsSection (current.symbol) && sections.empty ()) {
+        sections.emplace_back (Section::Code, Section::EntryPoint);
+        ParseSection (sections.back().instructions);
+    }
+    while (SkipWhiteSpace ()) {
+        sections.emplace_back ();
+        Parse (sections.back());
+    }
 }
 
 void Context::Parse (Instructions& instructions)
 {
-	while (SkipWhiteSpace ()) Parse (instructions.emplace_back (current.location));
+    while (SkipWhiteSpace ()) {
+        instructions.emplace_back (current.location);
+        Parse (instructions.back());
+    }
 }
 
 void Context::ParseSection (Instructions& instructions)
 {
-	while (SkipWhiteSpace () && !IsSection (current.symbol)) Parse (instructions.emplace_back (current.location));
+    while (SkipWhiteSpace () && !IsSection (current.symbol)) {
+        instructions.emplace_back (current.location);
+        Parse (instructions.back());
+    }
 }
 
 void Context::DefineMacro ()
@@ -241,14 +253,23 @@ void Context::RepeatCode ()
 	SkipCurrent ();
 }
 
-void Context::Expand (const Tokens& tokens, const Operands& operands, const Tokens::const_iterator position)
+void Context::Expand (const Tokens& tokens, const Operands& operands, Tokens::iterator position)
 {
 	for (auto& token: tokens)
 		switch (token.symbol)
 		{
-		case Lexer::Identifier: if (token.string.size () == 2) if (const auto operand = GetOperand (token.string, 0, operands)) {this->tokens.insert (position, operand->begin (), operand->end ()); break;}
-		case Lexer::String: case Lexer::Address: case Lexer::Character: Expand (*this->tokens.insert (position, token), operands); break;
-		default: this->tokens.insert (position, token);
+        case Lexer::Identifier:
+            if (token.string.size () == 2)
+                if (const auto operand = GetOperand (token.string, 0, operands)) {
+                    this->tokens.insert (position, operand->begin (), operand->end ());
+                    break;
+                }
+        case Lexer::String:
+        case Lexer::Address:
+        case Lexer::Character:
+            Expand (*this->tokens.insert (position, token), operands); break;
+        default:
+            this->tokens.insert (position, token);
 		}
 }
 
@@ -363,7 +384,8 @@ void Context::ParseDirective (Instruction& instruction, void (Context::*const pa
 
 void Context::ParseSingle (Expressions& operands)
 {
-	Parse (operands.emplace_back ());
+    operands.emplace_back ();
+    Parse (operands.back());
 }
 
 void Context::ParseOptional (Expressions& operands)
@@ -457,13 +479,21 @@ void Context::ParseMultiplicative (Expression& expression)
 void Context::ParseBinary (Expression& expression, void (Context::*const parse) (Expression&))
 {
 	Expression operand {std::move (expression)}; expression.model = Expression::BinaryOperation; expression.operation = current.symbol; expression.string.clear ();
-	expression.operands.clear (); expression.operands.push_back (std::move (operand)); SkipCurrent (); (this->*parse) (expression.operands.emplace_back ());
+    expression.operands.clear ();
+    expression.operands.push_back (std::move (operand));
+    SkipCurrent ();
+    expression.operands.emplace_back ();
+    (this->*parse) (expression.operands.back());
 }
 
 void Context::ParseUnary (Expression& expression)
 {
 	if (!IsCurrent (Lexer::LogicalNot) && !IsCurrent (Lexer::BitwiseNot) && !IsCurrent (Lexer::Plus) && !IsCurrent (Lexer::Minus)) return ParsePrimary (expression), ParsePostfix (expression);
-	expression.model = Expression::UnaryOperation; expression.operation = current.symbol; SkipCurrent (); ParseUnary (expression.operands.emplace_back ());
+    expression.model = Expression::UnaryOperation;
+    expression.operation = current.symbol;
+    SkipCurrent ();
+    expression.operands.emplace_back ();
+    ParseUnary (expression.operands.back());
 }
 
 void Context::ParsePostfix (Expression& expression)

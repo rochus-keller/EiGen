@@ -143,7 +143,7 @@ const char*const Instruction::mnemonics[] {
 const Register Format::base16[8] {BX, BX, BP, BP, SI, DI, BP, BX};
 const Register Format::index16[8] {SI, DI, SI, DI, RVoid, RVoid, RVoid, RVoid};
 
-constexpr Format::Entry Format::table[] {
+const Format::Entry Format::table[] = {
 	#define INSTR(mnem, type1, type2, type3, type4, exprefix, opcode, code1, code2, suffix, flags) \
 		{opcode, Instruction::mnem, type1, type2, type3, type4, code1, code2, \
 		Flags (flags | HASTYPE (type1, type2, type3, type4, mem, mem256) * HasMem | HASTYPE (type1, type2, type3, type4, moffset, moffset) * HasMOffset | \
@@ -164,7 +164,8 @@ const Byte Format::prefixBytes[] {0,
 	#include "amd64.def"
 };
 
-constexpr Lookup<Format::Entry, Instruction::Mnemonic> Format::first {table}, Format::last {table, 0};
+const Lookup<Format::Entry, Instruction::Mnemonic> Format::first = Lookup<Format::Entry, Instruction::Mnemonic>(table),
+    Format::last = Lookup<Format::Entry, Instruction::Mnemonic>(table, 0);
 
 Operand::Operand (const AMD64::Register r) :
 	model {Register}, register_ {r}

@@ -52,7 +52,7 @@ private:
 };
 
 Checker::Checker (Diagnostics& d, Charset& c, Platform& p) :
-	Assembly::Checker {d, c}, platform {p}
+    Assembly::Checker {d, c}, platform(p)
 {
 }
 
@@ -68,11 +68,15 @@ void Checker::Check (const Assembly::Instructions& instructions, Section& sectio
 
 void Checker::Check (const Assembly::Section& section, Sections& sections) const
 {
-	Context {*this, IsAssembly (section) ? sections.emplace_back () : sections.emplace_back (section.type, section.name), IsAssembly (section)}.Process (section.instructions);
+    if( IsAssembly (section) )
+        sections.emplace_back ();
+    else
+        sections.emplace_back (section.type, section.name);
+    Context {*this, sections.back(), IsAssembly (section)}.Process (section.instructions);
 }
 
 Context::Context (const Code::Checker& c, Section& s, const Inlined i) :
-	Assembly::Checker::Context {c, s, s.instructions.size (), 1, i}, section {s}, platform {c.platform}
+    Assembly::Checker::Context {c, s, s.instructions.size (), 1, i}, section(s), platform(c.platform)
 {
 }
 

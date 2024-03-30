@@ -34,7 +34,7 @@ namespace ECS
 	using Byte = std::uint8_t;
 }
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	class Pattern;
 
@@ -74,7 +74,7 @@ namespace ECS::Object
 	std::ostream& operator << (std::ostream&, const Mask&);
 	std::ostream& operator << (std::ostream&, const Patch&);
 	std::ostream& operator << (std::ostream&, const Pattern&);
-}
+}}
 
 struct ECS::Object::Mask
 {
@@ -182,7 +182,7 @@ struct ECS::Object::Binary : Section
 	static Span<const Byte> FindSegment (Span<const Byte>, Size);
 };
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	bool HasConditionals (const Section::Name&);
 	bool IsAssembly (const Section&);
@@ -200,7 +200,7 @@ namespace ECS::Object
 	std::istream& operator >> (std::istream&, Section::Type&);
 	std::ostream& operator << (std::ostream&, Patch::Mode);
 	std::ostream& operator << (std::ostream&, Section::Type);
-}
+}}
 
 inline ECS::Object::Pattern::Pattern (const std::initializer_list<Mask> masks)
 {

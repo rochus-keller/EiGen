@@ -34,7 +34,7 @@ namespace ECS
 	using Source = std::string;
 }
 
-namespace ECS::Debugging
+namespace ECS { namespace Debugging
 {
 	struct Breakpoint;
 	struct Entry;
@@ -105,7 +105,7 @@ namespace ECS::Debugging
 	std::ostream& operator << (std::ostream&, const Target&);
 	std::ostream& operator << (std::ostream&, const Type&);
 	std::ostream& operator << (std::ostream&, const Value&);
-}
+}}
 
 struct ECS::Debugging::Location
 {

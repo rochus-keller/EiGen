@@ -22,9 +22,9 @@
 #include "error.hpp"
 #include "format.hpp"
 #include "utilities.hpp"
+#include "driver.hpp" // because File::is_directory
 
 #include <algorithm>
-#include <filesystem>
 #include <fstream>
 
 using namespace ECS;
@@ -90,12 +90,13 @@ void Assembler::Assemble (const Instructions& instructions, Binary& binary) cons
 
 void Assembler::Assemble (const Section& section, Binaries& binaries) const
 {
-	Context {*this, binaries.emplace_back (section), false}.Process (section.instructions); Align (binaries.back ());
+    binaries.emplace_back (section);
+    Context (*this, binaries.back(), false).Process (section.instructions); Align (binaries.back ());
 }
 
 Context::Context (const Assembler& a, Binary& b, const Inlined i) :
 	Checker::Context {a, b, b.bytes.size (), IsCode (b.type) ? a.codeAlignment : a.dataAlignment, i},
-	assembler {a}, binary {b}, endianness {assembler.endianness}, bitmode {assembler.bitmode}
+    assembler(a), binary(b), endianness {assembler.endianness}, bitmode {assembler.bitmode}
 {
 }
 
@@ -326,7 +327,9 @@ void Context::ProcessRequireDirective (const Expression& expression)
 void Context::ProcessEmbedDirective (const Expression& expression)
 {
 	String string; if (!GetString (expression, string)) EmitError ("invalid filename");
-	std::ifstream file; if (std::error_code error; !std::filesystem::is_directory (string, error)) file.open (string, file.binary | file.ate);
+    std::ifstream file;
+    if (!File::is_directory (string))
+        file.open (string, file.binary | file.ate);
 	if (!file.is_open ()) EmitError (Format ("failed to open binary file '%0'", string));
 	const Size size = file.tellg (); if (file) Reserve (size);
 	if (!parsing && file.seekg (0)) file.read (reinterpret_cast<char*> (binary.bytes.data () + offset - size), size);

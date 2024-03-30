@@ -31,7 +31,7 @@ namespace ECS
 	using Byte = std::uint8_t;
 }
 
-namespace ECS::ARM
+namespace ECS { namespace ARM
 {
 	enum ConditionCode {No, AL, CC, CS, EQ, GE, GT, HI, HS, LE, LO, LS, LT, MI, NE, NV, PL, VC, VS};
 
@@ -107,12 +107,12 @@ namespace ECS::ARM
 
 	template <Register First, Register Last> std::istream& operator >> (std::istream&, List<First, Last>&);
 	template <Register First, Register Last> std::ostream& operator << (std::ostream&, List<First, Last>);
-}
+}}
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	struct Patch;
-}
+}}
 
 class ECS::ARM::Operand
 {
@@ -224,10 +224,10 @@ private:
 	friend std::ostream& operator << <> (std::ostream&, List);
 };
 
-namespace ECS::ARM
+namespace ECS { namespace ARM
 {
 	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}
+}}
 
 inline ECS::ARM::BasicList::BasicList (const RegisterSet s) :
 	registerSet {s}

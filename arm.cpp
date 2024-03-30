@@ -270,7 +270,10 @@ std::ostream& ARM::operator << (std::ostream& stream, CoprocessorRegister regist
 
 std::istream& ARM::operator >> (std::istream& stream, Operand& operand)
 {
-	char peek[4] {}; stream >> std::ws; stream.get (peek, sizeof peek); for (auto c: Reverse {peek}) if (c) stream.putback (c);
+    char peek[4] {}; stream >> std::ws; stream.get (peek, sizeof peek);
+    for (int i = 3; i >= 0; i-- )
+        if (peek[i])
+            stream.putback (peek[i]);
 	ShiftMode mode; ConditionCode code; Immediate immediate; std::uint32_t value; Register register_; RegisterList registerList; DoubleRegisterList doubleRegisterList;
 	SingleRegisterList singleRegisterList; InterruptMask mask; BarrierOperation barrier; Coprocessor coprocessor; CoprocessorRegister coregister;
 	if (peek[0] == '[' && stream.ignore () >> std::ws)

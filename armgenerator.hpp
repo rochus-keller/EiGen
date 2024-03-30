@@ -1,4 +1,4 @@
-// ARM T32 machine code generator
+// ARM machine code generator
 // Copyright (C) Florian Negele
 
 // This file is part of the Eigen Compiler Suite.
@@ -16,28 +16,27 @@
 // You should have received a copy of the GNU General Public License
 // along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ECS_ARM_T32_GENERATOR_HEADER_INCLUDED
-#define ECS_ARM_T32_GENERATOR_HEADER_INCLUDED
+#ifndef ECS_ARM_GENERATOR_HEADER_INCLUDED
+#define ECS_ARM_GENERATOR_HEADER_INCLUDED
 
-#include "armgenerator.hpp"
-#include "armt32assembler.hpp"
+#include "asmgenerator.hpp"
 
-namespace ECS::ARM::T32
+namespace ECS { namespace ARM
 {
 	class Generator;
-}
+}}
 
-class ECS::ARM::T32::Generator : public ARM::Generator
+class ECS::ARM::Generator : public Assembly::Generator
 {
 public:
-	Generator (Diagnostics&, StringPool&, Charset&, FloatingPointExtension);
+	using FloatingPointExtension = bool;
 
-private:
+protected:
 	class Context;
 
-	Assembler assembler;
+	Generator (Diagnostics&, StringPool&, Assembly::Assembler&, Target, Name, FloatingPointExtension);
 
-	void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
+	const FloatingPointExtension floatingPointExtension;
 };
 
-#endif // ECS_ARM_T32_GENERATOR_HEADER_INCLUDED
+#endif // ECS_ARM_GENERATOR_HEADER_INCLUDED

@@ -37,7 +37,7 @@ struct A32::Instruction::Entry
 	bool Match (const std::string&, ConditionCode&) const;
 };
 
-constexpr A32::Instruction::Entry A32::Instruction::table[] {
+const A32::Instruction::Entry A32::Instruction::table[] = {
 	#define INSTR(mnem, code, mask, type0, type1, type2, type3, type4, type5, type6, type7, type8) \
 		{Instruction::mnem, code, mask, {Operand::type0, Operand::type1, Operand::type2, Operand::type3, Operand::type4, Operand::type5, Operand::type6, Operand::type7, Operand::type8}},
 	#include "arma32.def"
@@ -48,7 +48,9 @@ const char*const A32::Instruction::mnemonics[] {
 	#include "arma32.def"
 };
 
-constexpr Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic> A32::Instruction::first {table}, A32::Instruction::last {table, 0};
+const Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic> A32::Instruction::first =
+        Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic>(table),
+    A32::Instruction::last = Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic>(table, 0);
 
 A32::Operand::Operand (const ARM::Immediate i) :
 	model {Immediate}, immediate {i}

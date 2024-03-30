@@ -1,4 +1,4 @@
-// ARM A32 machine code generator
+// ARM A64 machine code generator
 // Copyright (C) Florian Negele
 
 // This file is part of the Eigen Compiler Suite.
@@ -16,28 +16,31 @@
 // You should have received a copy of the GNU General Public License
 // along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ECS_ARM_A32_GENERATOR_HEADER_INCLUDED
-#define ECS_ARM_A32_GENERATOR_HEADER_INCLUDED
+#ifndef ECS_ARM_A64_GENERATOR_HEADER_INCLUDED
+#define ECS_ARM_A64_GENERATOR_HEADER_INCLUDED
 
-#include "arma32assembler.hpp"
-#include "armgenerator.hpp"
+#include "arma64assembler.hpp"
+#include "asmgenerator.hpp"
 
-namespace ECS::ARM::A32
+namespace ECS { namespace ARM { namespace A64
 {
 	class Generator;
-}
+}}}
 
-class ECS::ARM::A32::Generator : public ARM::Generator
+class ECS::ARM::A64::Generator : public Assembly::Generator
 {
 public:
-	Generator (Diagnostics&, StringPool&, Charset&, FloatingPointExtension);
+	using FullAddressSpace = bool;
+
+	Generator (Diagnostics&, StringPool&, Charset&, FullAddressSpace);
 
 private:
 	class Context;
 
 	Assembler assembler;
+	const FullAddressSpace fullAddressSpace;
 
 	void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
 };
 
-#endif // ECS_ARM_A32_GENERATOR_HEADER_INCLUDED
+#endif // ECS_ARM_A64_GENERATOR_HEADER_INCLUDED

@@ -1,4 +1,4 @@
-// ARM A64 machine code generator
+// ARM A64 assembler
 // Copyright (C) Florian Negele
 
 // This file is part of the Eigen Compiler Suite.
@@ -16,31 +16,26 @@
 // You should have received a copy of the GNU General Public License
 // along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ECS_ARM_A64_GENERATOR_HEADER_INCLUDED
-#define ECS_ARM_A64_GENERATOR_HEADER_INCLUDED
+#ifndef ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED
+#define ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED
 
-#include "arma64assembler.hpp"
-#include "asmgenerator.hpp"
+#include "arma32assembler.hpp"
 
-namespace ECS::ARM::A64
+namespace ECS { namespace ARM { namespace A64
 {
-	class Generator;
-}
+	class Assembler;
+}}}
 
-class ECS::ARM::A64::Generator : public Assembly::Generator
+class ECS::ARM::A64::Assembler : public A32::Assembler
 {
 public:
-	using FullAddressSpace = bool;
-
-	Generator (Diagnostics&, StringPool&, Charset&, FullAddressSpace);
+	Assembler (Diagnostics&, Charset&);
 
 private:
-	class Context;
-
-	Assembler assembler;
-	const FullAddressSpace fullAddressSpace;
-
-	void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
+	bool Validate (BitMode) const override;
+	Size GetDisplacement (Size, BitMode) const override;
+	Size ParseInstruction (std::istream&, BitMode, State&) const override;
+	Size EmitInstruction (std::istream&, BitMode, Endianness, Span<Byte>, Object::Patch&, State&) const override;
 };
 
-#endif // ECS_ARM_A64_GENERATOR_HEADER_INCLUDED
+#endif // ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED

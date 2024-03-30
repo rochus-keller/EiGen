@@ -1,4 +1,4 @@
-// ARM A64 assembler
+// ARM A32 assembler
 // Copyright (C) Florian Negele
 
 // This file is part of the Eigen Compiler Suite.
@@ -16,26 +16,27 @@
 // You should have received a copy of the GNU General Public License
 // along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED
-#define ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED
+#ifndef ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED
+#define ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED
 
-#include "arma32assembler.hpp"
+#include "asmassembler.hpp"
 
-namespace ECS::ARM::A64
+namespace ECS { namespace ARM { namespace A32
 {
 	class Assembler;
-}
+}}}
 
-class ECS::ARM::A64::Assembler : public A32::Assembler
+class ECS::ARM::A32::Assembler : public Assembly::Assembler
 {
 public:
 	Assembler (Diagnostics&, Charset&);
 
-private:
-	bool Validate (BitMode) const override;
+protected:
+	using Assembly::Assembler::Assembler;
+
 	Size GetDisplacement (Size, BitMode) const override;
 	Size ParseInstruction (std::istream&, BitMode, State&) const override;
 	Size EmitInstruction (std::istream&, BitMode, Endianness, Span<Byte>, Object::Patch&, State&) const override;
 };
 
-#endif // ECS_ARM_A64_ASSEMBLER_HEADER_INCLUDED
+#endif // ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED

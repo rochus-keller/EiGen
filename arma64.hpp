@@ -28,7 +28,7 @@ namespace ECS
 	using Bits = unsigned;
 }
 
-namespace ECS::ARM::A64
+namespace ECS { namespace ARM { namespace A64
 {
 	enum Register
 	{
@@ -87,7 +87,7 @@ namespace ECS::ARM::A64
 	std::ostream& operator << (std::ostream&, Register);
 	std::ostream& operator << (std::ostream&, Symbol);
 	std::ostream& operator << (std::ostream&, Width);
-}
+}}}
 
 class ECS::ARM::A64::Operand
 {
@@ -221,7 +221,7 @@ private:
 	friend std::ostream& operator << (std::ostream&, const Instruction&);
 };
 
-namespace ECS::ARM::A64
+namespace ECS { namespace ARM { namespace A64
 {
 	template <Instruction::Mnemonic> struct InstructionMnemonic;
 
@@ -230,7 +230,7 @@ namespace ECS::ARM::A64
 
 	std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
 	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}
+}}}
 
 template <ECS::ARM::A64::Instruction::Mnemonic>
 struct ECS::ARM::A64::InstructionMnemonic : Instruction

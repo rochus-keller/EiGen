@@ -1,4 +1,4 @@
-// ARM A32 assembler
+// ARM A32 machine code generator
 // Copyright (C) Florian Negele
 
 // This file is part of the Eigen Compiler Suite.
@@ -16,27 +16,28 @@
 // You should have received a copy of the GNU General Public License
 // along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED
-#define ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED
+#ifndef ECS_ARM_A32_GENERATOR_HEADER_INCLUDED
+#define ECS_ARM_A32_GENERATOR_HEADER_INCLUDED
 
-#include "asmassembler.hpp"
+#include "arma32assembler.hpp"
+#include "armgenerator.hpp"
 
-namespace ECS::ARM::A32
+namespace ECS { namespace ARM { namespace A32
 {
-	class Assembler;
-}
+	class Generator;
+}}}
 
-class ECS::ARM::A32::Assembler : public Assembly::Assembler
+class ECS::ARM::A32::Generator : public ARM::Generator
 {
 public:
-	Assembler (Diagnostics&, Charset&);
+	Generator (Diagnostics&, StringPool&, Charset&, FloatingPointExtension);
 
-protected:
-	using Assembly::Assembler::Assembler;
+private:
+	class Context;
 
-	Size GetDisplacement (Size, BitMode) const override;
-	Size ParseInstruction (std::istream&, BitMode, State&) const override;
-	Size EmitInstruction (std::istream&, BitMode, Endianness, Span<Byte>, Object::Patch&, State&) const override;
+	Assembler assembler;
+
+	void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
 };
 
-#endif // ECS_ARM_A32_ASSEMBLER_HEADER_INCLUDED
+#endif // ECS_ARM_A32_GENERATOR_HEADER_INCLUDED

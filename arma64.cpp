@@ -58,7 +58,7 @@ const char*const A64::Operand::registers[] {"wsp", "sp", "wzr", "xzr"};
 const char*const A64::Operand::formats[] {"2h", "8b", "4h", "2s", "1d", "16b", "8h", "4s", "2d", "1q"};
 const char*const A64::Operand::extensions[] {"uxtb", "uxth", "uxtw", "uxtx", "sxtb", "sxth", "sxtw", "sxtx"};
 
-constexpr A64::Instruction::Entry A64::Instruction::table[] {
+const A64::Instruction::Entry A64::Instruction::table[] = {
 	#define INSTR(mnem, code, mask, type0, type1, type2, type3, type4) \
 		{Instruction::mnem, code, mask, {Operand::type0, Operand::type1, Operand::type2, Operand::type3, Operand::type4}},
 	#include "arma64.def"
@@ -69,7 +69,9 @@ const char*const A64::Instruction::mnemonics[] {
 	#include "arma64.def"
 };
 
-constexpr Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic> A64::Instruction::first {table}, A64::Instruction::last {table, 0};
+const Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic> A64::Instruction::first =
+        Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic>(table),
+    A64::Instruction::last = Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic>(table, 0);
 
 A64::Operand::Operand (const A64::Immediate i) :
 	model {Immediate}, immediate {i}
@@ -682,7 +684,10 @@ std::ostream& A64::operator << (std::ostream& stream, const Extension extension)
 
 std::istream& A64::operator >> (std::istream& stream, Operand& operand)
 {
-	char peek[5] {}; stream >> std::ws; stream.get (peek, sizeof peek); for (auto c: Reverse {peek}) if (c) stream.putback (c);
+    char peek[5] {}; stream >> std::ws; stream.get (peek, sizeof peek);
+    for (int i = 4; i >= 0; i-- )
+        if (peek[i])
+            stream.putback (peek[i]);
 	Register register_; Immediate immediate; FloatImmediate floatImmediate; union {Width width; Format format; ShiftMode shiftmode; Extension extension; ConditionCode code; CoprocessorRegister coregister; Symbol symbol;};
 	if (std::isdigit (peek[0]) || peek[0] == '+' || peek[0] == '-')
 		if (stream >> immediate) if (stream.good () && stream.peek () == '.') if (stream >> floatImmediate) operand = immediate < 0 ? immediate - floatImmediate : immediate + floatImmediate; else; else operand = immediate; else;

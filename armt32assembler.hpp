@@ -21,10 +21,10 @@
 
 #include "arma32assembler.hpp"
 
-namespace ECS::ARM::T32
+namespace ECS { namespace ARM { namespace T32
 {
 	class Assembler;
-}
+}}}
 
 class ECS::ARM::T32::Assembler : public A32::Assembler
 {

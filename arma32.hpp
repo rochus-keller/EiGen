@@ -23,7 +23,7 @@
 
 #include <array>
 
-namespace ECS::ARM::A32
+namespace ECS { namespace ARM { namespace A32
 {
 	enum CoprocessorOption : std::uint8_t {};
 
@@ -46,7 +46,7 @@ namespace ECS::ARM::A32
 	std::ostream& operator << (std::ostream&, CoprocessorOption);
 	std::ostream& operator << (std::ostream&, const Instruction&);
 	std::ostream& operator << (std::ostream&, const Operand&);
-}
+}}}
 
 class ECS::ARM::A32::Operand
 {
@@ -138,7 +138,7 @@ private:
 	friend std::ostream& operator << (std::ostream&, const Instruction&);
 };
 
-namespace ECS::ARM::A32
+namespace ECS { namespace ARM { namespace A32
 {
 	template <Instruction::Mnemonic> struct InstructionMnemonic;
 
@@ -146,7 +146,7 @@ namespace ECS::ARM::A32
 	#include "arma32.def"
 
 	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}
+}}}
 
 template <ECS::ARM::A32::Instruction::Mnemonic>
 struct ECS::ARM::A32::InstructionMnemonic : Instruction

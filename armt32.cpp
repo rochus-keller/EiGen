@@ -38,13 +38,15 @@ struct T32::Instruction::Entry
 	ConditionCode Decode (Opcode, ConditionCode) const;
 };
 
-constexpr T32::Instruction::Entry T32::Instruction::table[] {
+const T32::Instruction::Entry T32::Instruction::table[] = {
 	#define INSTR(mnem, code, mask, type0, type1, type2, type3, type4, type5, flags) \
 		{Instruction::mnem, code, mask, {Operand::type0, Operand::type1, Operand::type2, Operand::type3, Operand::type4, Operand::type5}, Flags (flags)},
 	#include "armt32.def"
 };
 
-constexpr Lookup<T32::Instruction::Entry, T32::Instruction::Mnemonic> T32::Instruction::first {table}, T32::Instruction::last {table, 0};
+const Lookup<T32::Instruction::Entry, T32::Instruction::Mnemonic> T32::Instruction::first =
+        Lookup<T32::Instruction::Entry, T32::Instruction::Mnemonic>(table),
+    T32::Instruction::last = Lookup<T32::Instruction::Entry, T32::Instruction::Mnemonic>(table, 0);
 
 bool T32::Operand::Decode (const Opcode opcode, const Type type)
 {

@@ -23,7 +23,7 @@
 
 #include <array>
 
-namespace ECS::ARM::T32
+namespace ECS { namespace ARM { namespace T32
 {
 	class Instruction;
 	class Operand;
@@ -36,7 +36,7 @@ namespace ECS::ARM::T32
 
 	std::istream& operator >> (std::istream&, Instruction&);
 	std::ostream& operator << (std::ostream&, const Instruction&);
-}
+}}}
 
 class ECS::ARM::T32::Operand : public ARM::Operand
 {
@@ -89,13 +89,13 @@ private:
 	friend std::ostream& operator << (std::ostream&, const Instruction&);
 };
 
-namespace ECS::ARM::T32
+namespace ECS { namespace ARM { namespace T32
 {
 	template <Instruction::Mnemonic> struct InstructionMnemonic;
 
 	#define MNEM(name, mnem, ...) using mnem = InstructionMnemonic<Instruction::mnem>;
 	#include "arm.def"
-}
+}}}
 
 template <ECS::ARM::T32::Instruction::Mnemonic>
 struct ECS::ARM::T32::InstructionMnemonic : Instruction

@@ -54,6 +54,8 @@ let common : SourceSet {
         ]
 }
 
+#################### AMD #########################
+
 let amd64 : SourceSet {
     .configs += config;
     .sources += [
@@ -75,6 +77,15 @@ let cdamd16 : Executable {
     .defines += [ "AMD16BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
 }
 
+let amd16asm : Executable {
+    .configs += config;
+    .deps += [ common amd64 ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "AMD16ARCHITECTURE"
+}
+
 let cdamd32 : Executable {
     .configs += config;
     .deps += [ common amd64 ]
@@ -82,6 +93,15 @@ let cdamd32 : Executable {
         ./compiler.cpp
         ]
     .defines += [ "AMD32BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
+}
+
+let amd32asm : Executable {
+    .configs += config;
+    .deps += [ common amd64 ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "AMD32ARCHITECTURE"
 }
 
 let cdamd64 : Executable {
@@ -92,6 +112,17 @@ let cdamd64 : Executable {
         ]
     .defines += [ "AMD64BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
 }
+
+let amd64asm : Executable {
+    .configs += config;
+    .deps += [ common amd64 ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "AMD64ARCHITECTURE"
+}
+
+################ ARM ###################
 
 let arm : SourceSet {
     .configs += config;
@@ -114,22 +145,35 @@ let arm32 : SourceSet {
         ]
 }
 
-let cdarma32 : Executable {
+let arma32 : SourceSet {
     .configs += config;
-    .deps += [ common arm arm32 ]
     .sources += [
-        ./compiler.cpp
         ./arma32generator.cpp
         ./arma32generator.hpp
+        ]
+}
+
+let cdarma32 : Executable {
+    .configs += config;
+    .deps += [ common arm arm32 arma32 ]
+    .sources += [
+        ./compiler.cpp
         ]
     .defines += [ "ARMA32BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
 }
 
-let cdarma64 : Executable {
+let arma32asm : Executable {
     .configs += config;
-    .deps += [ common arm arm32 ]
+    .deps += [ common arm arm32 arma32 ]
     .sources += [
-        ./compiler.cpp
+        ./assembler.cpp
+        ]
+    .defines += "ARMA32ARCHITECTURE"
+}
+
+let arma64 : SourceSet {
+    .configs += config;
+    .sources += [
         ./arma64generator.cpp
         ./arma64generator.hpp
         ./arma64.cpp
@@ -137,7 +181,24 @@ let cdarma64 : Executable {
         ./arma64assembler.cpp
         ./arma64assembler.hpp
         ]
+}
+
+let cdarma64 : Executable {
+    .configs += config;
+    .deps += [ common arm arm32 arma64 ]
+    .sources += [
+        ./compiler.cpp
+        ]
     .defines += [ "ARMA64BACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
+}
+
+let arma64asm : Executable {
+    .configs += config;
+    .deps += [ common arm arm32 arma64 ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "ARMA64ARCHITECTURE"
 }
 
 let armt32 : SourceSet {
@@ -170,6 +231,35 @@ let cdarmt32fpe : Executable {
     .defines += [ "ARMT32FPEBACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
 }
 
+let armt32asm : Executable {
+    .configs += config;
+    .deps += [ common arm armt32 arm32 ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "ARMT32ARCHITECTURE"
+}
+
+############# Linker #################################
+
+let linkbin : Executable {
+    # NOTE: compiles but crashes!
+    .configs += config;
+    .deps += common;
+    .sources += [
+        ./linker.cpp
+        ./objlinker.cpp
+        ./objlinker.hpp
+        ./rangeset.hpp
+        ./objmap.cpp
+        ./objmap.hpp
+        ]
+    .defines += "BINARYLINKFILEFORMAT"
+}
+
+############# All tools ##############################
+
 let tools ! : Group {
-    .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe ]
+    .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe
+                amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
 }

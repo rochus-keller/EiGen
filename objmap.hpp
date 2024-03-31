@@ -23,7 +23,7 @@
 
 #include <set>
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	struct MapEntry;
 
@@ -35,7 +35,7 @@ namespace ECS::Object
 	std::istream& operator >> (std::istream&, MapEntry&);
 	std::ostream& operator << (std::ostream&, const Map&);
 	std::ostream& operator << (std::ostream&, const MapEntry&);
-}
+}}
 
 struct ECS::Object::MapEntry
 {

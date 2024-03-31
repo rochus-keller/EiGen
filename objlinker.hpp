@@ -28,7 +28,7 @@ namespace ECS
 	class Diagnostics;
 }
 
-namespace ECS::Object
+namespace ECS { namespace Object
 {
 	class Linker;
 
@@ -38,7 +38,7 @@ namespace ECS::Object
 
 	auto GetContents (const Binary::Name&, const Binaries&, Charset&, const char* = nullptr) -> std::string;
 	auto WriteBinary (std::ostream&, const Bytes&) -> std::ostream&;
-}
+}}
 
 class ECS::Object::Linker
 {
@@ -76,7 +76,11 @@ protected:
 
 private:
 	Offset placement = 0;
-	RangeSet<Offset> layout;
+#if 0
+    RangeSet<Offset> layout;
+#else
+    std::set<Range<Offset>> layout;
+#endif
 
 	Offset NextFit (Size, Binary::Alignment) const;
 

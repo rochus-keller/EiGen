@@ -101,7 +101,7 @@ private:
 };
 
 Linker::Linker (Diagnostics& d) :
-	diagnostics {d}
+    diagnostics (d)
 {
 }
 
@@ -127,11 +127,48 @@ void Linker::Link (const Binaries& binaries, Arrangement& code, Arrangement& dat
 	Context {*this, code, data, const_}.Process (binaries);
 }
 
+static bool contains( const std::set<Range<Offset>>& set, const Range<Offset>& range)
+{
+    auto iterator = set.upper_bound (range.lower);
+    return iterator != set.end () && iterator->lower <= range.upper || iterator != set.begin () && (--iterator)->upper >= range.lower;
+}
+
+static Offset increment (Offset value) {return ++value;}
+
+static void insert(std::set<Range<Offset>>& set, const Range<Offset>& range)
+{
+    if (range.lower > range.upper) return;
+    auto iterator = set.upper_bound (range.lower);
+    auto lower = range.lower, upper = range.upper;
+
+    if (iterator != set.begin ()) if (lower <= increment ((--iterator)->upper))
+        lower = iterator->lower, iterator = set.erase (iterator); else ++iterator;
+
+    while (iterator != set.end () && iterator->upper <= upper)
+        iterator = set.erase (iterator);
+
+    if (iterator != set.end () && iterator->lower <= increment (upper))
+        upper = iterator->upper, iterator = set.erase (iterator);
+
+    set.emplace_hint (iterator, lower, upper);
+}
+
 Offset ByteArrangement::Allocate (const Binary& binary, const Size size)
 {
 	if (layout.empty () && binary.fixed && binary.origin) layout.insert ({0, (placement = origin = binary.origin) - 1});
 	const auto begin = binary.fixed ? binary.origin : size ? NextFit (size, binary.alignment) : Align (origin + bytes.size (), binary.alignment), end = begin + binary.bytes.size ();
-	if (end > begin) {const Range<Offset> range {begin, end - 1}; if (layout[range]) return !binary.origin; layout.insert (range);}
+    if (end > begin) {
+        const Range<Offset> range {begin, end - 1};
+#if 0
+        if (layout[range])
+            return !binary.origin;
+        layout.insert (range);
+#else
+        if( contains(layout,range) )
+            return !binary.origin;
+        insert(layout,range);
+#endif
+    }
 	if (end - origin > bytes.size ()) bytes.resize (end - origin); if (!binary.fixed) placement = end; return begin;
 }
 
@@ -234,7 +271,7 @@ void Context::Reference (Block& block)
 {
 	if (block.referenced) return; block.used = block.referenced = true;
 	if (block.group) block.group->second.block = &block, block.group->second.group.size += block.binary.bytes.size ();
-	const Restore restoreBlock {currentBlock, &block}; Batch (block.binary.links, [this] (const struct Link& link) {Resolve (link);});
+    const Restore<Block*> restoreBlock {currentBlock, &block}; Batch (block.binary.links, [this] (const struct Link& link) {Resolve (link);});
 }
 
 void Context::Resolve (const struct Link& link)

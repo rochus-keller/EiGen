@@ -27,37 +27,40 @@ namespace ECS
 
 	template <typename> struct Range;
 
-	template <typename Value> bool operator < (const Range<Value>&, const Range<Value>&);
+    template <typename Value> bool operator < (const Range<Value>&, const Range<Value>&);
 }
 
 template <typename Value>
 struct ECS::Range
 {
-	Value lower, upper;
+    Value lower, upper;
 
-	Range () = default;
-	Range (const Value&);
-	Range (const Value&, const Value&);
+    Range () = default;
+    Range (const Value&);
+    Range (const Value&, const Value&);
 
-	bool operator [] (const Value&) const;
+    bool operator [] (const Value&) const;
 };
 
+#if 0
+// GCC 4.8: rangeset.hpp:47:12: internal compiler error: in gen_type_die_with_usage, at dwarf2out.c:19486 class ECS::RangeSet
 template <typename Value>
 class ECS::RangeSet
 {
 public:
-	void insert (const Range<Value>&);
-	bool operator [] (const Range<Value>&) const;
+    void insert (const Range<Value>&);
+    bool operator [] (const Range<Value>&) const;
 
-	auto begin () const {return set.begin ();}
-	auto end () const {return set.end ();}
-	auto empty () const {return set.empty ();}
+    auto begin () const {return set.begin ();}
+    auto end () const {return set.end ();}
+    auto empty () const {return set.empty ();}
 
 private:
-	std::set<Range<Value>> set;
+    std::set<Range<Value>> set;
 
-	static Value increment (Value value) {return ++value;}
+    static Value increment (Value value) {return ++value;}
 };
+#endif
 
 template <typename Value>
 ECS::Range<Value>::Range (const Value& v) :
@@ -83,6 +86,7 @@ bool ECS::operator < (const Range<Value>& a, const Range<Value>& b)
 	return a.lower < b.lower;
 }
 
+#if 0
 template <typename Value>
 void ECS::RangeSet<Value>::insert (const Range<Value>& range)
 {
@@ -108,5 +112,6 @@ bool ECS::RangeSet<Value>::operator [] (const Range<Value>& range) const
 	auto iterator = set.upper_bound (range.lower);
 	return iterator != set.end () && iterator->lower <= range.upper || iterator != set.begin () && (--iterator)->upper >= range.lower;
 }
+#endif
 
 #endif // ECS_RANGESET_HEADER_INCLUDED

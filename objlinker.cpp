@@ -226,7 +226,10 @@ void Context::Add (const Binary& binary)
 {
 	Block block {binary, binary.group.empty () ? nullptr : &*directory.insert ({binary.group, {}}).first};
 	currentBlock = &*blocks.insert (std::upper_bound (blocks.begin (), blocks.end (), block), block);
-	Enter ({binary.name, 0}); for (auto& alias: binary.aliases) if (!currentBlock->replaced) Enter (alias);
+    Enter ({binary.name, 0});
+    for (auto& alias: binary.aliases)
+      if (!currentBlock->replaced)
+         Enter (alias);
 	if (!block.group) return; if (!block.group->second.isGroup) EmitError (binary.group, "reserved group name");
 	if (binary.fixed || block.group->second.block && block.placement != block.group->second.block->placement) EmitError (binary.name, "invalid group member");
 	if (block.group->second.block && binary.alignment != block.group->second.block->binary.alignment) EmitError (binary.name, "invalid group member alignment");
@@ -251,7 +254,9 @@ void Context::Replace (Block& block, const Linker::Reference& reference)
 {
 	assert (!block.replaced); block.replaced = true;
 	auto iterator = directory.find (block.binary.name); if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
-	for (auto& alias: block.binary.aliases) if (iterator = directory.find (alias.name), iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
+    for (auto& alias: block.binary.aliases)
+        if (iterator = directory.find (alias.name), iterator != directory.end () && &iterator->second != &reference)
+            directory.erase (iterator);
 }
 
 void Context::Use (Block& block)

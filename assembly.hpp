@@ -48,7 +48,9 @@ namespace ECS { namespace Assembly
 
 struct ECS::Assembly::Expression
 {
-	enum Model {Label, Number, Character, String, Address, Identity, Identifier, NullaryOperation, UnaryOperation, BinaryOperation, PostfixOperation, FunctionalOperation, Parenthesized, Unreachable = 0};
+    enum Model {Label, Number, Character, String, Address, Identity, Identifier,
+                NullaryOperation, UnaryOperation, BinaryOperation, PostfixOperation,
+                FunctionalOperation, Parenthesized, Unreachable = 0};
 
 	using Operation = Lexer::Symbol;
 	using Value = std::uint64_t;

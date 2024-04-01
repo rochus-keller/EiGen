@@ -245,7 +245,6 @@ let armt32asm : Executable {
 let linkbin : Executable {
     # NOTE: compiles but crashes!
     .configs += config;
-    .deps += common;
     .sources += [
         ./linker.cpp
         ./objlinker.cpp
@@ -253,6 +252,10 @@ let linkbin : Executable {
         ./rangeset.hpp
         ./objmap.cpp
         ./objmap.hpp
+
+        # the only things we need from common
+        ./driver.cpp
+        ./object.cpp
         ]
     .defines += "BINARYLINKFILEFORMAT"
 }
@@ -262,4 +265,5 @@ let linkbin : Executable {
 let tools ! : Group {
     .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe
                 amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
+    .deps += linkbin
 }

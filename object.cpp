@@ -171,23 +171,42 @@ bool Object::operator == (const Pattern& a, const Pattern& b)
 
 std::istream& Object::operator >> (std::istream& stream, Binary& binary)
 {
-	binary.bytes.clear (); binary.aliases.clear (); binary.links.clear (); Size size; if (stream >> binary.type >> size) binary.bytes.resize (size);
-	ReadString (ReadOptions (stream, {&binary.required, &binary.duplicable, &binary.replaceable}, options, IsAlpha), binary.name, '"');
+    binary.bytes.clear (); binary.aliases.clear (); binary.links.clear ();
+    Size size;
+    if (stream >> binary.type >> size)
+        binary.bytes.resize (size);
+    ReadString (ReadOptions (stream, {&binary.required, &binary.duplicable,
+                                      &binary.replaceable}, options, IsAlpha), binary.name, '"');
     while (stream >> std::ws && std::isdigit (stream.peek ())) {
         binary.aliases.emplace_back ();
         stream >> binary.aliases.back ();
     }
-	for (auto& alias: binary.aliases) if (alias.offset > binary.bytes.size ()) return stream.setstate (stream.failbit), stream;
-	if (stream >> std::ws && stream.peek () == '"') ReadString (stream, binary.group, '"'); else binary.group.clear ();
+    for (auto& alias: binary.aliases)
+        if (alias.offset > binary.bytes.size ())
+            return stream.setstate (stream.failbit), stream;
+    if (stream >> std::ws && stream.peek () == '"')
+        ReadString (stream, binary.group, '"');
+    else
+        binary.group.clear ();
 	ReadBool (stream, binary.fixed, placements, IsAlpha) >> (binary.fixed ? binary.origin : binary.alignment);
-	if (IsType (binary.type) || !binary.fixed && !IsPowerOfTwo (binary.alignment)) return stream.setstate (stream.failbit), stream;
-	for (Offset offset; stream.good () && stream >> std::ws && stream.good () && std::isdigit (stream.peek ()) && stream >> offset;)
-		do if (offset < binary.bytes.size () && ReadByte (stream, binary.bytes[offset])) ++offset; else stream.setstate (stream.failbit); while (stream.good () && std::isxdigit (stream.peek ()));
+    if (IsType (binary.type) || !binary.fixed && !IsPowerOfTwo (binary.alignment))
+        return stream.setstate (stream.failbit), stream;
+    for (Offset offset; stream.good () && stream >> std::ws && stream.good () &&
+                        std::isdigit (stream.peek ()) && stream >> offset;)
+        do {
+            if (offset < binary.bytes.size () && ReadByte (stream, binary.bytes[offset]))
+                ++offset;
+            else
+                stream.setstate (stream.failbit);
+        } while (stream.good () && std::isxdigit (stream.peek ()));
     while (stream.good () && stream >> std::ws && stream.good () && stream.peek () == '"') {
         binary.links.emplace_back ();
         stream >> binary.links.back();
     }
-	for (auto& link: binary.links) for (auto& patch: link.patches) if (patch.offset + GetSize (patch.pattern) > binary.bytes.size ()) return stream.setstate (stream.failbit), stream;
+    for (auto& link: binary.links)
+        for (auto& patch: link.patches)
+            if (patch.offset + GetSize (patch.pattern) > binary.bytes.size ())
+                return stream.setstate (stream.failbit), stream;
 	return stream;
 }
 

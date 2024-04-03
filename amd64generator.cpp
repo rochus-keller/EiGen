@@ -19,6 +19,7 @@
 #include "amd64.hpp"
 #include "amd64generator.hpp"
 #include "asmgeneratorcontext.hpp"
+#include "stdlayout.hpp"
 
 using namespace ECS;
 using namespace AMD64;
@@ -210,6 +211,7 @@ private:
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const OperatingMode m, const MediaFloat mf, const DirectAddressing da) :
     Assembly::Generator {d, sp, assembler, "amd", "AMD64",
+#if 1
         {
             {m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u},
             {8, 4, 8},
@@ -217,7 +219,11 @@ Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const Operatin
             m >> 3,
             {0, m >> 3, 8},
             true
-        }, false},
+        }
+#else
+        StandardLayout()
+#endif
+        , false},
 	assembler {d, c, m}, mode {m}, mediaFloat {mf}, directAddressing {da}
 {
 }

@@ -130,32 +130,6 @@ void Linker::Link (const Binaries& binaries, Arrangement& code, Arrangement& dat
     ctx.Process (binaries);
 }
 
-static bool contains( const std::set<Range<Offset>>& set, const Range<Offset>& range)
-{
-    auto iterator = set.upper_bound (range.lower);
-    return iterator != set.end () && iterator->lower <= range.upper || iterator != set.begin () && (--iterator)->upper >= range.lower;
-}
-
-static Offset increment (Offset value) {return ++value;}
-
-static void insert(std::set<Range<Offset>>& set, const Range<Offset>& range)
-{
-    if (range.lower > range.upper) return;
-    auto iterator = set.upper_bound (range.lower);
-    auto lower = range.lower, upper = range.upper;
-
-    if (iterator != set.begin ()) if (lower <= increment ((--iterator)->upper))
-        lower = iterator->lower, iterator = set.erase (iterator); else ++iterator;
-
-    while (iterator != set.end () && iterator->upper <= upper)
-        iterator = set.erase (iterator);
-
-    if (iterator != set.end () && iterator->lower <= increment (upper))
-        upper = iterator->upper, iterator = set.erase (iterator);
-
-    set.emplace_hint (iterator, lower, upper);
-}
-
 Offset ByteArrangement::Allocate (const Binary& binary, const Size size)
 {
 	if (layout.empty () && binary.fixed && binary.origin) layout.insert ({0, (placement = origin = binary.origin) - 1});

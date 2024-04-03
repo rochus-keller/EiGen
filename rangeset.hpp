@@ -23,8 +23,6 @@
 
 namespace ECS
 {
-	template <typename> class RangeSet;
-
 	template <typename> struct Range;
 
     template <typename Value> bool operator < (const Range<Value>&, const Range<Value>&);
@@ -41,7 +39,7 @@ namespace ECS
         bool operator [] (const Value&) const;
     };
 
-    #if 0
+#if 0
     // GCC 4.8: rangeset.hpp:47:12: internal compiler error: in gen_type_die_with_usage, at dwarf2out.c:19486 class ECS::RangeSet
     template <typename Value>
     class RangeSet
@@ -59,7 +57,10 @@ namespace ECS
 
         static Value increment (Value value) {return ++value;}
     };
-    #endif
+#else
+    template<typename T>
+    using RangeSet = std::set<Range<T>>;
+#endif
 
     template <typename Value>
     Range<Value>::Range (const Value& v) :
@@ -85,7 +86,7 @@ namespace ECS
         return a.lower < b.lower;
     }
 
-    #if 0
+#if 0
     template <typename Value>
     void RangeSet<Value>::insert (const Range<Value>& range)
     {
@@ -111,7 +112,38 @@ namespace ECS
         auto iterator = set.upper_bound (range.lower);
         return iterator != set.end () && iterator->lower <= range.upper || iterator != set.begin () && (--iterator)->upper >= range.lower;
     }
-    #endif
+#else
+    template<typename T>
+    T increment (T value) {return ++value;}
+
+    template<typename T>
+    void insert(RangeSet<T>& set, const Range<T>& range)
+    {
+        if (range.lower > range.upper) return;
+        auto iterator = set.upper_bound (range.lower);
+        auto lower = range.lower, upper = range.upper;
+
+        if (iterator != set.begin ()) if (lower <= increment ((--iterator)->upper))
+            lower = iterator->lower, iterator = set.erase (iterator); else ++iterator;
+
+        while (iterator != set.end () && iterator->upper <= upper)
+            iterator = set.erase (iterator);
+
+        if (iterator != set.end () && iterator->lower <= increment (upper))
+            upper = iterator->upper, iterator = set.erase (iterator);
+
+        set.emplace_hint (iterator, lower, upper);
+    }
+
+    template<typename T>
+    bool contains( const RangeSet<T>& set, const Range<T>& range)
+    {
+        auto iterator = set.upper_bound (range.lower);
+        return iterator != set.end () && iterator->lower <= range.upper ||
+                iterator != set.begin () && (--iterator)->upper >= range.lower;
+    }
+
+#endif
 
 }
 

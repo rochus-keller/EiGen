@@ -73,11 +73,7 @@ namespace ECS {
 
         private:
             Offset placement = 0;
-        #if 0
-            RangeSet<Offset> layout; // original
-        #else
-            std::set<Range<Offset>> layout;
-        #endif
+            RangeSet<Offset> layout;
 
             Offset NextFit (Size, Binary::Alignment) const;
 

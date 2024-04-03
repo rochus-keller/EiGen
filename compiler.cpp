@@ -48,7 +48,10 @@ static StreamDiagnostics diagnostics {std::cerr};
 	#include "amd64generator.hpp"
 
 	#define NAMESUFFIX "amd32"
-	static AMD64::Generator generator {diagnostics, stringPool, charset, AMD64::ProtectedMode, false, true};
+    static AMD64::Generator generator {diagnostics, stringPool, charset, AMD64::ProtectedMode, true, true};
+    // RK: was false, true
+    // use media instead of legacy float instructions, see https://software.openbrace.org/boards/3/topics/44?r=60#message-60
+    // speed-up is factor 10
 
 #elif defined AMD64BACKEND
 

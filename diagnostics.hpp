@@ -23,21 +23,21 @@
 
 namespace ECS
 {
-	class Diagnostics;
 	class Position;
 
-	using Message = std::string;
+    using Message = std::string;
 	using Source = std::string;
+
+    class Diagnostics
+    {
+    public:
+        enum Type {Error, FatalError, Warning, Note};
+
+        virtual ~Diagnostics () = default;
+
+        virtual void Emit (Type, const Source&, const Position&, const Message&) = 0;
+    };
 }
 
-class ECS::Diagnostics
-{
-public:
-	enum Type {Error, FatalError, Warning, Note};
-
-	virtual ~Diagnostics () = default;
-
-	virtual void Emit (Type, const Source&, const Position&, const Message&) = 0;
-};
 
 #endif // ECS_DIAGNOSTICS_HEADER_INCLUDED

@@ -255,7 +255,17 @@ let linkbin : Executable {
 
         # the only things we need from common
         ./driver.cpp
+        ./driver.hpp
         ./object.cpp
+        ./object.hpp
+        ./charset.hpp
+        ./strdiagnostics.hpp
+        ./diagnostics.hpp
+        ./position.hpp
+        ./error.hpp
+        ./format.hpp
+        ./utilities.hpp
+        ./stdcharset.hpp
         ]
     .defines += "BINARYLINKFILEFORMAT"
 }

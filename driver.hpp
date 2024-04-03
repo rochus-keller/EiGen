@@ -20,35 +20,6 @@
 #define ECS_DRIVER_HEADER_INCLUDED
 
 #include "strdiagnostics.hpp"
-
-namespace ECS
-{
-	class File;
-
-	struct InvalidInput final {Source source; Message message;};
-	struct ProcessAborted final {Message message;};
-	struct ProcessFailed final {Message message;};
-
-	int Drive (void (*) (std::istream&, const Source&, const Position&), const char*, int, const char*const [], StreamDiagnostics&, void (*) (const Source&) = nullptr) noexcept;
-}
-
-class ECS::File
-{
-public:
-    File (const std::string&, const std::string&, std::ios_base::openmode = std::ios_base::out);
-	~File () noexcept (false);
-
-	operator std::ostream& () {return file;}
-
-	static constexpr auto cur = std::ios_base::cur;
-	static constexpr auto binary = std::ios_base::binary;
-
-    static bool is_directory(const std::string&);
-private:
-    const std::string path;
-	std::ofstream file;
-};
-
 #include "error.hpp"
 #include "format.hpp"
 
@@ -58,5 +29,33 @@ private:
 #include <stdexcept>
 #include <system_error>
 
+namespace ECS
+{
+	class File;
+
+	struct InvalidInput final {Source source; Message message;};
+	struct ProcessAborted final {Message message;};
+	struct ProcessFailed final {Message message;};
+
+    int Drive (void (*) (std::istream&, const Source&, const Position&), const char*, int,
+               const char*const [], StreamDiagnostics&, void (*) (const Source&) = nullptr) noexcept;
+
+    class File
+    {
+    public:
+        File (const std::string&, const std::string&, std::ios_base::openmode = std::ios_base::out);
+        ~File () noexcept (false);
+
+        operator std::ostream& () {return file;}
+
+        static constexpr auto cur = std::ios_base::cur;
+        static constexpr auto binary = std::ios_base::binary;
+
+        static bool is_directory(const std::string&);
+    private:
+        const std::string path;
+        std::ofstream file;
+    };
+}
 
 #endif // ECS_DRIVER_HEADER_INCLUDED

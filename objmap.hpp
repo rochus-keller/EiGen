@@ -23,8 +23,9 @@
 
 #include <set>
 
-namespace ECS { namespace Object
-{
+namespace ECS {
+namespace Object {
+
 	struct MapEntry;
 
 	using Map = std::multiset<MapEntry>;
@@ -35,26 +36,29 @@ namespace ECS { namespace Object
 	std::istream& operator >> (std::istream&, MapEntry&);
 	std::ostream& operator << (std::ostream&, const Map&);
 	std::ostream& operator << (std::ostream&, const MapEntry&);
-}}
 
-struct ECS::Object::MapEntry
-{
-	Offset offset = 0;
-	Binary::Type type = Binary::Code;
-	Binary::Name name;
-	Size size = 0;
-	const Binary* binary = nullptr;
+    struct MapEntry
+    {
+        Offset offset = 0;
+        Binary::Type type = Binary::Code;
+        Binary::Name name;
+        Size size = 0;
+        const Binary* binary = nullptr;
 
-	MapEntry () = default;
-	explicit MapEntry (Offset);
-	MapEntry (Offset, const Binary&);
+        MapEntry () = default;
+        explicit MapEntry (Offset);
+        MapEntry (Offset, const Binary&);
 
-	bool Covers (const Binary&) const;
-};
+        bool Covers (const Binary&) const;
+    };
 
-inline bool ECS::Object::operator < (const MapEntry& a, const MapEntry& b)
-{
-	return a.offset < b.offset;
-}
+    inline bool operator < (const MapEntry& a, const MapEntry& b)
+    {
+        return a.offset < b.offset;
+    }
+
+} // Object
+} // ECS
+
 
 #endif // ECS_OBJECT_MAP_HEADER_INCLUDED

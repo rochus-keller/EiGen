@@ -24,14 +24,15 @@ namespace ECS
 	struct Error final {};
 
 	template <typename Container, typename Process> void Batch (Container&, Process);
-}
 
-template <typename Container, typename Process>
-void ECS::Batch (Container& container, const Process process)
-{
-	auto failed = false;
-	for (auto& element: container) try {process (element);} catch (const Error&) {failed = true;}
-	if (failed) throw Error {};
+    template <typename Container, typename Process>
+    void Batch (Container& container, const Process process)
+    {
+        auto failed = false;
+        for (auto& element: container) try {process (element);} catch (const Error&) {failed = true;}
+        if (failed) throw Error();
+    }
+
 }
 
 #endif // ECS_ERROR_HEADER_INCLUDED

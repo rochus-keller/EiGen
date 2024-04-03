@@ -29,33 +29,34 @@ namespace ECS
 	struct ErrorLimit final {std::size_t messages;};
 
 	std::ostream& EmitMessage (std::ostream&, Diagnostics::Type, const Source&, const Position&);
+
+    class StreamDiagnostics : public Diagnostics
+    {
+    public:
+        explicit StreamDiagnostics (std::ostream& s) : stream (s) {}
+
+        void Emit (Type, const Source&, const Position&, const Message&) override;
+
+    private:
+        std::size_t errors = 0;
+        std::ostream& stream;
+    };
+
+    inline void StreamDiagnostics::Emit (const Type type, const Source& source, const Position& position, const Message& message)
+    {
+        position.Indicate (EmitMessage (stream, type, source, position) << message << '\n').flush ();
+        if (type >= Error && type <= FatalError && ++errors >= 10) throw ErrorLimit {errors};
+    }
+
+    inline std::ostream& EmitMessage (std::ostream& stream, const Diagnostics::Type type, const Source& source, const Position& position)
+    {
+        stream << source;
+        if (const auto line = GetLine (position)) stream << ':' << line;
+        if (const auto column = GetColumn (position)) stream << ':' << column;
+        static const char*const types[] {"error", "fatal error", "warning", "note"};
+        return stream << ": " << types[type] << ": ";
+    }
 }
 
-class ECS::StreamDiagnostics : public Diagnostics
-{
-public:
-    explicit StreamDiagnostics (std::ostream& s) : stream (s) {}
-
-	void Emit (Type, const Source&, const Position&, const Message&) override;
-
-private:
-	std::size_t errors = 0;
-	std::ostream& stream;
-};
-
-inline void ECS::StreamDiagnostics::Emit (const Type type, const Source& source, const Position& position, const Message& message)
-{
-	position.Indicate (EmitMessage (stream, type, source, position) << message << '\n').flush ();
-	if (type >= Error && type <= FatalError && ++errors >= 10) throw ErrorLimit {errors};
-}
-
-inline std::ostream& ECS::EmitMessage (std::ostream& stream, const Diagnostics::Type type, const Source& source, const Position& position)
-{
-	stream << source;
-	if (const auto line = GetLine (position)) stream << ':' << line;
-	if (const auto column = GetColumn (position)) stream << ':' << column;
-	static const char*const types[] {"error", "fatal error", "warning", "note"};
-	return stream << ": " << types[type] << ": ";
-}
 
 #endif // ECS_STREAMDIAGNOSTICS_HEADER_INCLUDED

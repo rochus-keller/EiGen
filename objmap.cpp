@@ -19,8 +19,8 @@
 #include "objmap.hpp"
 #include "utilities.hpp"
 
-using namespace ECS;
-using namespace Object;
+namespace ECS {
+namespace Object {
 
 MapEntry::MapEntry (const Offset o) :
 	offset {o}
@@ -37,23 +37,26 @@ bool MapEntry::Covers (const Binary& binary) const
 	return type == binary.type && size == binary.bytes.size () && name == binary.name;
 }
 
-std::istream& Object::operator >> (std::istream& stream, Map& map)
+std::istream& operator >> (std::istream& stream, Map& map)
 {
 	for (MapEntry entry; stream.good () && stream >> std::ws && stream.good () && stream >> entry;) map.insert (entry);
 	return stream;
 }
 
-std::ostream& Object::operator << (std::ostream& stream, const Map& map)
+std::ostream& operator << (std::ostream& stream, const Map& map)
 {
 	for (auto& entry: map) stream << entry; return stream;
 }
 
-std::istream& Object::operator >> (std::istream& stream, MapEntry& entry)
+std::istream& operator >> (std::istream& stream, MapEntry& entry)
 {
 	return ReadString (ReadOffset (stream, entry.offset) >> entry.type, entry.name, '"') >> entry.size;
 }
 
-std::ostream& Object::operator << (std::ostream& stream, const MapEntry& entry)
+std::ostream& operator << (std::ostream& stream, const MapEntry& entry)
 {
 	return WriteString (WriteOffset (stream, entry.offset) << '\t' << entry.type << ' ', entry.name, '"') << ' ' << entry.size << '\n';
 }
+
+} // Object
+} // ECS

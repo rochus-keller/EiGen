@@ -20,12 +20,12 @@
 #include "objlinker.hpp"
 #include "stdcharset.hpp"
 
-using namespace ECS;
+namespace ECS {
 
 static ASCIICharset charset;
 static Object::Binaries binaries;
-static StreamDiagnostics diagnostics {std::cerr};
-static Object::Linker linker {diagnostics};
+static StreamDiagnostics diagnostics(std::cerr);
+static Object::Linker linker(diagnostics);
 
 static void Read (std::istream& stream, const Source& source, const Position&)
 {
@@ -52,9 +52,9 @@ static void Read (std::istream& stream, const Source& source, const Position&)
 	{
 		Object::MappedByteArrangement arrangement;
 		linker.Link (binaries, arrangement);
-		File file {target, GetContents ("_extension", binaries, charset, ".bin"), file.binary};
+        File file(target, GetContents ("_extension", binaries, charset, ".bin"), file.binary);
 		Object::WriteBinary (file, arrangement.bytes);
-		File map {target, ".map"};
+        File map(target, ".map");
 		map << arrangement.map;
 	}
 
@@ -124,7 +124,9 @@ static void Read (std::istream& stream, const Source& source, const Position&)
 
 #endif
 
+} // ECS
+
 int main (int argc, char* argv[])
 {
-	return Drive (Read, "link" NAMESUFFIX, argc, argv, diagnostics, Link);
+    return ECS::Drive (ECS::Read, "link" NAMESUFFIX, argc, argv, ECS::diagnostics, ECS::Link);
 }

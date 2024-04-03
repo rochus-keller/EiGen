@@ -23,7 +23,8 @@
 #else
   #include <sys/stat.h>
 #endif
-using namespace ECS;
+
+namespace ECS {
 
 static inline std::string replace_extension(const std::string &source, const std::string &extension)
 {
@@ -46,14 +47,14 @@ bool File::is_directory( const std::string& path )
     return S_ISDIR(path_stat.st_mode);
 }
 
-ECS::File::File (const std::string &source, const std::string &extension, const std::ios_base::openmode mode) :
-    path {replace_extension(source,extension)}, file {path, mode}
+File::File (const std::string &source, const std::string &extension, const std::ios_base::openmode mode) :
+    path (replace_extension(source,extension)), file(path, mode)
 {
     if (!file.is_open ())
-        throw ProcessAborted {Format ("failed to open output file '%0'", path)};
+        throw ProcessAborted { Format ("failed to open output file '%0'", path) };
 }
 
-ECS::File::~File () noexcept (false)
+File::~File () noexcept (false)
 {
     file.close ();
     if (!file ) // || std::uncaught_exceptions ())
@@ -62,10 +63,9 @@ ECS::File::~File () noexcept (false)
     //    throw ProcessAborted {Format ("failed to write output file '%0'", path)};
 }
 
-int ECS::Drive (void (*const process) (std::istream&, const Source&, const Position&),
+int Drive (void (*const process) (std::istream&, const Source&, const Position&),
                 const char*const name, const int argc, const char*const argv[],
                 StreamDiagnostics& diagnostics, void (*const complete) (const Source&)) noexcept
-{
 try
 {
     std::ios_base::sync_with_stdio (false);
@@ -77,13 +77,13 @@ try
             continue;
         if (!first)
             first = *argument;
-        const Source source {*argument};
+        const Source source(*argument);
         std::ifstream file;
         if (!File::is_directory (source))
             file.open (source, file.binary);
         if (!file.is_open ())
-            throw ProcessAborted {Format ("failed to open input file '%0'", source)};
-        process (file, source, {file, source, 1, 1});
+            throw ProcessAborted{Format ("failed to open input file '%0'", source)};
+        process (file, source, Position(file, source, 1, 1));
     }
 
     if (!first)
@@ -91,7 +91,7 @@ try
         std::cout << name << " Version 0.0.40 Build " __DATE__ " Copyright (C) Florian Negele\n"
         "This is free software; see the source for copying conditions. There is NO\n"
         "WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n";
-        process (std::cin, first = "stdin", {1, 1}); std::cin.clear ();
+        process (std::cin, first = "stdin", Position(1, 1)); std::cin.clear ();
     }
 
     if (complete) complete (first);
@@ -100,34 +100,35 @@ try
 }
 catch (const ErrorLimit& error)
 {
-    return diagnostics.Emit (Diagnostics::Note, name, {}, Format ("exiting after %0 errors", error.messages)), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::Note, name, Position(), Format ("exiting after %0 errors", error.messages)), EXIT_FAILURE;
 }
 catch (const InvalidInput& error)
 {
-    return diagnostics.Emit (Diagnostics::Error, error.source, {}, error.message), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::Error, error.source, Position(), error.message), EXIT_FAILURE;
 }
 catch (const ProcessFailed& error)
 {
-    return diagnostics.Emit (Diagnostics::Error, name, {}, error.message), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::Error, name, Position(), error.message), EXIT_FAILURE;
 }
 catch (const ProcessAborted& error)
 {
-    return diagnostics.Emit (Diagnostics::FatalError, name, {}, error.message), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::FatalError, name, Position(), error.message), EXIT_FAILURE;
 }
 catch (const std::system_error&)
 {
-    return diagnostics.Emit (Diagnostics::FatalError, name, {}, "system error"), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::FatalError, name, Position(), "system error"), EXIT_FAILURE;
 }
 catch (const std::length_error&)
 {
-    return diagnostics.Emit (Diagnostics::FatalError, name, {}, "out of memory"), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::FatalError, name, Position(), "out of memory"), EXIT_FAILURE;
 }
 catch (const std::bad_alloc&)
 {
-    return diagnostics.Emit (Diagnostics::FatalError, name, {}, "out of memory"), EXIT_FAILURE;
+    return diagnostics.Emit (Diagnostics::FatalError, name, Position(), "out of memory"), EXIT_FAILURE;
 }
 catch (const Error&)
 {
     return EXIT_FAILURE;
 }
-}
+
+} // ECS

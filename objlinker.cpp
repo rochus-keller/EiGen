@@ -26,8 +26,8 @@
 
 #include <map>
 
-using namespace ECS;
-using namespace Object;
+namespace ECS {
+namespace Object {
 
 struct Linker::Block
 {
@@ -64,7 +64,7 @@ struct Linker::Reference
 	Reference (Block*, Offset);
 };
 
-using Context = class Linker::Context
+class Linker::Context
 {
 public:
 	Context (const Linker&, Arrangement&, Arrangement&, Arrangement&);
@@ -78,12 +78,12 @@ private:
 	std::list<Block> blocks;
 	std::set<Binary::Name> unresolved;
 	const Block* previousCode = nullptr;
-	Offset values[Object::Patch::Count + 1];
+    Offset values[Patch::Count + 1];
 	Arrangement* arrangements[Section::Trailer + 1];
 	std::map<Binary::Name, Linker::Reference> directory;
 
 	bool IsRequired (const Binary::Name&) const;
-	void EmitError [[noreturn]] (const Binary::Name&, const Message&) const;
+    void EmitError /*[[noreturn]]*/ (const Binary::Name&, const Message&) const;
 
 	void Use (Block&);
 	void Link (Block&);
@@ -91,12 +91,12 @@ private:
 	void Reference (Block&);
 	void Add (const Binary&);
 	void Enter (const Alias&);
-	void Patch (const struct Link&);
+    void patch (const struct Link&);
 	void Touch (const struct Link&);
 	void Apply (const struct Patch&);
 	void Reset (const struct Patch&);
 	void Resolve (const struct Link&);
-	void Patch (Offset, const Pattern&, Offset);
+    void patch (Offset, const Pattern&, Offset);
 	void Replace (Block&, const Linker::Reference&);
 };
 
@@ -114,17 +114,20 @@ void Linker::Combine (Binaries& binaries) const
 
 void Linker::Link (const Binaries& binaries, Arrangement& arrangement) const
 {
-	Context {*this, arrangement, arrangement, arrangement}.Process (binaries);
+    Context ctx(*this, arrangement, arrangement, arrangement);
+    ctx.Process (binaries);
 }
 
 void Linker::Link (const Binaries& binaries, Arrangement& code, Arrangement& data) const
 {
-	Context {*this, code, data, data}.Process (binaries);
+    Context ctx(*this, code, data, data);
+    ctx.Process (binaries);
 }
 
 void Linker::Link (const Binaries& binaries, Arrangement& code, Arrangement& data, Arrangement& const_) const
 {
-	Context {*this, code, data, const_}.Process (binaries);
+    Context ctx(*this, code, data, const_);
+    ctx.Process (binaries);
 }
 
 static bool contains( const std::set<Range<Offset>>& set, const Range<Offset>& range)
@@ -158,7 +161,7 @@ Offset ByteArrangement::Allocate (const Binary& binary, const Size size)
 	if (layout.empty () && binary.fixed && binary.origin) layout.insert ({0, (placement = origin = binary.origin) - 1});
 	const auto begin = binary.fixed ? binary.origin : size ? NextFit (size, binary.alignment) : Align (origin + bytes.size (), binary.alignment), end = begin + binary.bytes.size ();
     if (end > begin) {
-        const Range<Offset> range {begin, end - 1};
+        const Range<Offset> range(begin, end - 1);
 #if 0
         if (layout[range])
             return !binary.origin;
@@ -190,17 +193,17 @@ Offset MappedByteArrangement::Allocate (const Binary& binary, const Size size)
 	return map.emplace (ByteArrangement::Allocate (binary, size), binary)->offset;
 }
 
-Context::Context (const Linker& l, Arrangement& code, Arrangement& data, Arrangement& const_) :
-	linker {l}, arrangements {&code, &code, &code, &data, &const_, &const_, &const_}
+Linker::Context::Context (const Linker& l, Arrangement& code, Arrangement& data, Arrangement& const_) :
+    linker(l), arrangements{&code, &code, &code, &data, &const_, &const_, &const_}
 {
 }
 
-void Context::EmitError (const Binary::Name& name, const Message& message) const
+void Linker::Context::EmitError (const Binary::Name& name, const Message& message) const
 {
-	linker.diagnostics.Emit (Diagnostics::Error, name, {}, message); throw Error {};
+    linker.diagnostics.Emit (Diagnostics::Error, name, Position(), message); throw Error {};
 }
 
-bool Context::IsRequired (const Binary::Name& name) const
+bool Linker::Context::IsRequired (const Binary::Name& name) const
 {
 	Binary::Name::size_type begin = 0;
 	for (auto next = name.find ('?'); next != name.npos; begin = next + 1, next = name.find ('?', begin))
@@ -211,7 +214,7 @@ bool Context::IsRequired (const Binary::Name& name) const
 	return begin == 0;
 }
 
-void Context::Process (const Binaries& binaries)
+void Linker::Context::Process (const Binaries& binaries)
 {
 	Batch (binaries, [this] (const Binary& binary) {Add (binary);}); const auto entryPoint = directory.find (Section::EntryPoint);
 	if (entryPoint == directory.end () || entryPoint->second.block->replaced) EmitError (Section::EntryPoint, "missing entry point");
@@ -222,9 +225,9 @@ void Context::Process (const Binaries& binaries)
 	for (auto& block: blocks) if (block.used) Link (block);
 }
 
-void Context::Add (const Binary& binary)
+void Linker::Context::Add (const Binary& binary)
 {
-	Block block {binary, binary.group.empty () ? nullptr : &*directory.insert ({binary.group, {}}).first};
+    Block block(binary, binary.group.empty () ? nullptr : &*directory.insert ({binary.group, {}}).first);
 	currentBlock = &*blocks.insert (std::upper_bound (blocks.begin (), blocks.end (), block), block);
     Enter ({binary.name, 0});
     for (auto& alias: binary.aliases)
@@ -236,7 +239,7 @@ void Context::Add (const Binary& binary)
 	if (!currentBlock->replaced) block.group->second.block = currentBlock;
 }
 
-void Context::Enter (const Alias& alias)
+void Linker::Context::Enter (const Alias& alias)
 {
 	const auto result = directory.insert ({alias.name, {currentBlock, alias.offset}});
 	if (result.second) return; auto& reference = result.first->second; if (reference.isGroup) EmitError (alias.name, "reserved group name");
@@ -250,7 +253,7 @@ void Context::Enter (const Alias& alias)
 	else EmitError (alias.name, "duplicated section");
 }
 
-void Context::Replace (Block& block, const Linker::Reference& reference)
+void Linker::Context::Replace (Block& block, const Linker::Reference& reference)
 {
 	assert (!block.replaced); block.replaced = true;
 	auto iterator = directory.find (block.binary.name); if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
@@ -259,27 +262,27 @@ void Context::Replace (Block& block, const Linker::Reference& reference)
             directory.erase (iterator);
 }
 
-void Context::Use (Block& block)
+void Linker::Context::Use (Block& block)
 {
 	if (block.used) return; block.used = true;
 	for (auto& link: block.binary.links) Touch (link);
 }
 
-void Context::Touch (const struct Link& link)
+void Linker::Context::Touch (const struct Link& link)
 {
 	if (HasConditionals (link.name)) return;
 	const auto entry = directory.find (link.name);
 	if (entry != directory.end () && !entry->second.isGroup) Use (*entry->second.block);
 }
 
-void Context::Reference (Block& block)
+void Linker::Context::Reference (Block& block)
 {
 	if (block.referenced) return; block.used = block.referenced = true;
 	if (block.group) block.group->second.block = &block, block.group->second.group.size += block.binary.bytes.size ();
     const Restore<Block*> restoreBlock {currentBlock, &block}; Batch (block.binary.links, [this] (const struct Link& link) {Resolve (link);});
 }
 
-void Context::Resolve (const struct Link& link)
+void Linker::Context::Resolve (const struct Link& link)
 {
 	const auto strippedName = StripConditionals (link.name, IsRequired (link.name));
 	if (strippedName.empty ()) return; const auto entry = directory.find (strippedName);
@@ -287,7 +290,7 @@ void Context::Resolve (const struct Link& link)
 	else if (!entry->second.isGroup) Reference (*entry->second.block);
 }
 
-void Context::Arrange (Block& block)
+void Linker::Context::Arrange (Block& block)
 {
 	block.address = arrangements[block.binary.type]->Allocate (block.binary, block.group ? block.group->second.group.size : block.binary.bytes.size ());
 	if (block.binary.fixed && block.address != block.binary.origin) EmitError (block.binary.name, "invalid origin");
@@ -299,13 +302,13 @@ void Context::Arrange (Block& block)
 	if (IsCode (block.binary.type)) previousCode = &block;
 }
 
-void Context::Link (Block& block)
+void Linker::Context::Link (Block& block)
 {
 	if (!block.binary.bytes.empty ()) std::copy (block.binary.bytes.begin (), block.binary.bytes.end (), arrangements[block.binary.type]->Designate (block.address, block.binary.bytes.size ()).begin ());
-	currentBlock = &block; for (auto& link: block.binary.links) Patch (link);
+    currentBlock = &block; for (auto& link: block.binary.links) patch (link);
 }
 
-void Context::Patch (const struct Link& link)
+void Linker::Context::patch (const struct Link& link)
 {
 	const auto strippedName = StripConditionals (link.name, IsRequired (link.name));
 	if (strippedName.empty ()) {for (auto& patch: link.patches) Reset (patch); return;}
@@ -318,25 +321,25 @@ void Context::Patch (const struct Link& link)
 	for (auto& patch: link.patches) Apply (patch);
 }
 
-void Context::Apply (const struct Patch& patch)
+void Linker::Context::Apply (const struct Patch& patch_)
 {
-	if (patch.mode != Patch::Relative) Patch (Scale (values[patch.mode] + patch.displacement, patch.scale), patch.pattern, patch.offset);
-	else Patch (Scale (Patch::Displacement (values[Patch::Absolute] - currentBlock->address - patch.offset) + patch.displacement, patch.scale), patch.pattern, patch.offset);
+    if (patch_.mode != Patch::Relative) patch (Scale (values[patch_.mode] + patch_.displacement, patch_.scale), patch_.pattern, patch_.offset);
+    else patch (Scale (Patch::Displacement (values[Patch::Absolute] - currentBlock->address - patch_.offset) + patch_.displacement, patch_.scale), patch_.pattern, patch_.offset);
 }
 
-void Context::Reset (const struct Patch& patch)
+void Linker::Context::Reset (const struct Patch& patch_)
 {
-	Patch (Scale (patch.displacement, patch.scale), patch.pattern, patch.offset);
+    patch (Scale (patch_.displacement, patch_.scale), patch_.pattern, patch_.offset);
 }
 
-void Context::Patch (const Offset value, const Pattern& pattern, const Offset offset)
+void Linker::Context::patch (const Offset value, const Pattern& pattern, const Offset offset)
 {
 	assert (offset < currentBlock->binary.bytes.size ());
 	pattern.Patch (value, arrangements[currentBlock->binary.type]->Designate (currentBlock->address + offset, currentBlock->binary.bytes.size () - offset));
 }
 
 Linker::Block::Block (const Binary& b, Entry*const g) :
-	binary {b}, placement {GetPlacement (binary)}, group {g}
+    binary(b), placement(GetPlacement (binary)), group(g)
 {
 }
 
@@ -363,24 +366,27 @@ Linker::Block::Placement Linker::Block::GetPlacement (const Binary& binary)
 }
 
 Linker::Reference::Reference () :
-	isGroup {true}, group {0, 0}
+    isGroup(true), group{0, 0}
 {
 }
 
 Linker::Reference::Reference (Block*const b, const Offset o) :
-	block {b}, offset {o}
+    block(b), offset(o)
 {
 	assert (block);
 }
 
-std::ostream& Object::WriteBinary (std::ostream& stream, const Bytes& bytes)
+std::ostream& WriteBinary (std::ostream& stream, const Bytes& bytes)
 {
 	return stream.write (reinterpret_cast<const char*> (bytes.data ()), std::streamsize (bytes.size ()));
 }
 
-std::string Object::GetContents (const Binary::Name& name, const Binaries& binaries, Charset& charset, const char*const defaultValue)
+std::string GetContents (const Binary::Name& name, const Binaries& binaries, Charset& charset, const char*const defaultValue)
 {
 	for (auto& binary: binaries) if (binary.type == Binary::Const && binary.name == name && !binary.replaceable && binary.links.empty ())
 		{std::string value; for (char character: binary.bytes) value.push_back (charset.Decode (character)); return value;}
 	return defaultValue;
 }
+
+} // Object
+} // ECS

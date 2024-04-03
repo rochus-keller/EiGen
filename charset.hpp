@@ -21,16 +21,14 @@
 
 namespace ECS
 {
-	class Charset;
+    class Charset
+    {
+    public:
+        virtual ~Charset () = default;
+
+        virtual char Decode (unsigned char) const = 0;
+        virtual unsigned char Encode (char) const = 0;
+    };
 }
-
-class ECS::Charset
-{
-public:
-	virtual ~Charset () = default;
-
-	virtual char Decode (unsigned char) const = 0;
-	virtual unsigned char Encode (char) const = 0;
-};
 
 #endif // ECS_CHARSET_HEADER_INCLUDED

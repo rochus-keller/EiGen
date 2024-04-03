@@ -21,6 +21,8 @@
 
 #include <iosfwd>
 #include <string>
+#include <cassert>
+#include <sstream>
 
 namespace ECS
 {
@@ -29,37 +31,34 @@ namespace ECS
 	template <typename Value> std::ostream& WriteFormatted (std::ostream&, const Value&);
 	template <typename Value> std::ostream& WriteFormatted (int, std::ostream&, const Value&);
 	template <typename Value, typename... Values> std::ostream& WriteFormatted (int, std::ostream&, const Value&, const Values&...);
-}
 
-#include <cassert>
-#include <sstream>
+    template <typename Value>
+    inline std::ostream& WriteFormatted (std::ostream& stream, const Value& value)
+    {
+        return stream << value;
+    }
 
-template <typename Value>
-inline std::ostream& ECS::WriteFormatted (std::ostream& stream, const Value& value)
-{
-	return stream << value;
-}
+    template <typename Value>
+    inline std::ostream& WriteFormatted (const int index, std::ostream& stream, const Value& value)
+    {
+        assert (!index); return WriteFormatted (stream, value);
+    }
 
-template <typename Value>
-inline std::ostream& ECS::WriteFormatted (const int index, std::ostream& stream, const Value& value)
-{
-	assert (!index); return WriteFormatted (stream, value);
-}
+    template <typename Value, typename... Values>
+    inline std::ostream& WriteFormatted (const int index, std::ostream& stream, const Value& value, const Values&... values)
+    {
+        return index ? WriteFormatted (index - 1, stream, values...) : WriteFormatted (stream, value);
+    }
 
-template <typename Value, typename... Values>
-inline std::ostream& ECS::WriteFormatted (const int index, std::ostream& stream, const Value& value, const Values&... values)
-{
-	return index ? WriteFormatted (index - 1, stream, values...) : WriteFormatted (stream, value);
-}
-
-template <typename... Values>
-std::string ECS::Format (const char* string, const Values&... values)
-{
-    assert (string);
-    //static_assert (sizeof... (values) < 10);
-    std::ostringstream stream;
-	for (; *string; ++string) if (*string == '%' && *++string != '%') WriteFormatted (*string - '0', stream, values...); else stream.put (*string);
-	return stream.str ();
+    template <typename... Values>
+    std::string Format (const char* string, const Values&... values)
+    {
+        assert (string);
+        //static_assert (sizeof... (values) < 10);
+        std::ostringstream stream;
+        for (; *string; ++string) if (*string == '%' && *++string != '%') WriteFormatted (*string - '0', stream, values...); else stream.put (*string);
+        return stream.str ();
+    }
 }
 
 #endif // ECS_FORMAT_HEADER_INCLUDED

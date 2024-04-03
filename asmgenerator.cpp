@@ -27,11 +27,10 @@
 
 #include <cstring>
 
-using namespace ECS;
-using namespace Assembly;
+#include "asmgeneratorcontext.hpp"
 
-using Context =
-	#include "asmgeneratorcontext.hpp"
+namespace ECS {
+namespace Assembly {
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Assembler& a, const Target t,
     const Name n, const Layout& l, const HasLinkRegister hlr) :
@@ -52,19 +51,19 @@ void Generator::Generate (const Code::Sections& sections, const Source& source, 
 	Process (sections, binaries, information, listing);
 }
 
-Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i,
+Generator::Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i,
                   std::ostream& l, const InitializeData id) :
     listing(l), generator(g), endianness {generator.assembler.endianness}, binaries(b),
     information(i)	, initializeData {id}
 {
 }
 
-void Context::EmitError (const Message& message) const
+void Generator::Context::EmitError (const Message& message) const
 {
 	generator.assembler.diagnostics.Emit (Diagnostics::Error, section->name, currentInstruction + 1, message); throw Error {};
 }
 
-void Context::Process (const Code::Sections& sections)
+void Generator::Context::Process (const Code::Sections& sections)
 {
 	if (initializeData) for (auto& section: sections) Initialize (section);
 	Batch (sections, [this] (const Code::Section& section) {Process (section);});
@@ -72,7 +71,7 @@ void Context::Process (const Code::Sections& sections)
 	for (auto& section: globalDefinitions) Process (section);
 }
 
-void Context::Process (const Code::Section& section)
+void Generator::Context::Process (const Code::Section& section)
 try
 {
 	this->section = &section;
@@ -129,7 +128,7 @@ catch (const Error&)
 	for (auto& fixed: fixes) fixed = 0; for (auto& used: uses) if (used) Release (Code::Register (&used - uses), used); throw;
 }
 
-void Context::Initialize (const Code::Section& section)
+void Generator::Context::Initialize (const Code::Section& section)
 {
 	if (!IsData (section.type) || !HasDefinitions (section)) return;
 
@@ -178,23 +177,23 @@ void Context::Initialize (const Code::Section& section)
 	Process (initDataSection);
 }
 
-void Context::Check (const Code::Operand& operand) const
+void Generator::Context::Check (const Code::Operand& operand) const
 {
 	if (HasRegister (operand) && IsGeneral (operand.register_) && !uses[operand.register_]) EmitError ("unmapped register");
 }
 
-void Context::Acquire (const Code::Register register_, const Types& types, const Code::Size count)
+void Generator::Context::Acquire (const Code::Register register_, const Types& types, const Code::Size count)
 {
 	assert (count); if (!uses[register_]) if (uses[register_] = count, !fixes[register_]) Acquire (register_, types);
 }
 
-void Context::AcquireRegister (const Code::Instruction& instruction)
+void Generator::Context::AcquireRegister (const Code::Instruction& instruction)
 {
 	Acquire (GetModifiedRegister (instruction), GetModifiedRegisterType (instruction), instruction);
 	Check (instruction.operand1); Check (instruction.operand2); Check (instruction.operand3);
 }
 
-void Context::Acquire (const Code::Register register_, const Code::Type& type, const Code::Instruction& instruction)
+void Generator::Context::Acquire (const Code::Register register_, const Code::Type& type, const Code::Instruction& instruction)
 {
 	if (!IsUser (register_) || uses[register_]) return;
 	Code::Size uses = instruction.Uses (register_), fixes = 0; Types types {type};
@@ -211,38 +210,38 @@ void Context::Acquire (const Code::Register register_, const Code::Type& type, c
 	Acquire (register_, types, uses);
 }
 
-void Context::AddType (const Code::Register register_, const Code::Operand& operand, Types& types) const
+void Generator::Context::AddType (const Code::Register register_, const Code::Operand& operand, Types& types) const
 {
 	if (HasRegister (operand) && operand.register_ == register_) InsertUnique (IsMemory (operand) ? generator.platform.pointer : operand.type, types);
 }
 
-void Context::ReleaseRegisters (const Code::Instruction& instruction)
+void Generator::Context::ReleaseRegisters (const Code::Instruction& instruction)
 {
 	for (auto register_ = Code::R0; register_ <= Code::RRes; register_ = Code::Register (register_ + 1)) Release (register_, instruction.Uses (register_));
 }
 
-void Context::Release (const Code::Register register_, const Code::Size count)
+void Generator::Context::Release (const Code::Register register_, const Code::Size count)
 {
 	if (!IsUser (register_) || !count || !uses[register_]) return; assert (uses[register_] >= count);
 	if (!(uses[register_] -= count)) if (!fixes[register_]) Release (register_);
 }
 
-bool Context::IsLastUseOf (const Code::Register register_) const
+bool Generator::Context::IsLastUseOf (const Code::Register register_) const
 {
 	return IsUser (register_) && uses[register_] == 1 && !fixes[register_];
 }
 
-void Context::Fix (const Code::Register register_)
+void Generator::Context::Fix (const Code::Register register_)
 {
 	if (IsUser (register_)) ++fixes[register_];
 }
 
-void Context::Unfix (const Code::Register register_)
+void Generator::Context::Unfix (const Code::Register register_)
 {
 	if (IsUser (register_) && !--fixes[register_] && !uses[register_]) Release (register_);
 }
 
-void Context::List (const Code::Instruction& instruction)
+void Generator::Context::List (const Code::Instruction& instruction)
 {
 	if (instruction.mnemonic == Code::Instruction::DEF && instruction.comment.empty ()) return;
 	if (currentDirective) listing << '\n', currentDirective = Lexer::Invalid;
@@ -257,7 +256,7 @@ void Context::List (const Code::Instruction& instruction)
 	if (instruction.mnemonic == Code::Instruction::ASM) listing << instruction.mnemonic << '\n'; else listing << instruction << '\n';
 }
 
-void Context::Emit (const Code::Instruction& instruction)
+void Generator::Context::Emit (const Code::Instruction& instruction)
 try
 {
 	assert (IsValid (instruction, *section, generator.platform));
@@ -387,14 +386,14 @@ catch (const RegisterShortage&)
 	EmitError ("register shortage");
 }
 
-Code::Size Context::Push (const Code::Operand& operand)
+Code::Size Generator::Context::Push (const Code::Operand& operand)
 {
 	assert (HasType (operand));
 	Check (operand); Generate (Code::PUSH {operand});
 	return generator.platform.GetStackSize (operand.type);
 }
 
-void Context::Encode (const Code::Instruction& instruction)
+void Generator::Context::Encode (const Code::Instruction& instruction)
 {
 	const auto modified = GetModifiedRegister (instruction);
 	const auto type = GetModifiedRegisterType (instruction);
@@ -440,56 +439,56 @@ void Context::Encode (const Code::Instruction& instruction)
 	if (HasRegister (instruction.operand1)) Release (instruction.operand1.register_, 1);
 }
 
-void Context::AddFixup (const Label& label, const FixupCode code, const Code::Size size)
+void Generator::Context::AddFixup (const Label& label, const FixupCode code, const Code::Size size)
 {
 	assert (label.index < labels.size ()); assert (size);
 	fixups.emplace_back (binary->bytes.size (), label.index, code, size); Reserve (size);
 }
 
-Code::Offset Context::GetOffset (const Byte*const byte) const
+Code::Offset Generator::Context::GetOffset (const Byte*const byte) const
 {
 	const Code::Size offset = byte - binary->bytes.data (); assert (offset < binary->bytes.size ()); return offset;
 }
 
-Code::Offset Context::GetBranchOffset (const Label& label, const Code::Offset defaultOffset) const
+Code::Offset Generator::Context::GetBranchOffset (const Label& label, const Code::Offset defaultOffset) const
 {
 	assert (label.index < labels.size ());
 	return label.index <= currentInstruction ? labels[label.index] - binary->bytes.size () : defaultOffset;
 }
 
-const Code::Instruction* Context::GetPreviousInstruction () const
+const Code::Instruction* Generator::Context::GetPreviousInstruction () const
 {
 	return currentInstruction ? &section->instructions[currentInstruction - 1] : nullptr;
 }
 
-Code::Operand Context::DisplaceStackPointer (const Code::Operand& operand, const Code::Displacement displacement)
+Code::Operand Generator::Context::DisplaceStackPointer (const Code::Operand& operand, const Code::Displacement displacement)
 {
 	auto result = operand; if (result.Uses (Code::RSP)) result.displacement += displacement; return result;
 }
 
-void Context::Require (const Object::Section::Name& name)
+void Generator::Context::Require (const Object::Section::Name& name)
 {
 	if (binary->AddRequirement (name) && listing) WriteIdentifier (listing << '\t' << Lexer::Require << '\t', name) << '\n';
 }
 
-void Context::SetGroup (const Object::Section::Name& name)
+void Generator::Context::SetGroup (const Object::Section::Name& name)
 {
 	assert (binary->group.empty ()); binary->group = name;
 	if (listing) WriteIdentifier (listing << '\t' << Lexer::Group << '\t', name) << '\n';
 }
 
-void Context::AddAlias (const Code::Section::Name& name)
+void Generator::Context::AddAlias (const Code::Section::Name& name)
 {
 	binary->aliases.emplace_back (name, binary->bytes.size ());
 	if (listing) WriteIdentifier (listing << '\t' << Lexer::Alias << '\t', name) << '\n';
 }
 
-void Context::AddLink (const Object::Section::Name& name, Object::Patch& patch)
+void Generator::Context::AddLink (const Object::Section::Name& name, Object::Patch& patch)
 {
 	patch.offset += binary->bytes.size (); binary->AddLink (name, patch);
 }
 
-void Context::AddSection (const Code::Section::Type type, const Code::Section::Name& name, const Code::Section::Required required, const Code::Section::Duplicable duplicable, const Code::Section::Replaceable replaceable)
+void Generator::Context::AddSection (const Code::Section::Type type, const Code::Section::Name& name, const Code::Section::Required required, const Code::Section::Duplicable duplicable, const Code::Section::Replaceable replaceable)
 {
     binaries.emplace_back (type, name, 1, required, duplicable, replaceable);
     binary = &binaries.back(); if (!listing) return;
@@ -499,17 +498,17 @@ void Context::AddSection (const Code::Section::Type type, const Code::Section::N
 	if (replaceable) listing << '\t' << Assembly::Lexer::Replaceable << '\n';
 }
 
-Context::LocalLabel Context::CreateLabel ()
+Generator::Context::LocalLabel Generator::Context::CreateLabel ()
 {
 	const auto index = labels.size (); labels.push_back (0); return {*this, index};
 }
 
-Context::Label Context::GetLabel (const Code::Offset offset) const
+Generator::Context::Label Generator::Context::GetLabel (const Code::Offset offset) const
 {
 	const auto index = currentInstruction + offset + 1; assert (index <= section->instructions.size ()); return Label {index};
 }
 
-Code::Section::Name Context::DefineGlobal (const Code::Operand& value)
+Code::Section::Name Generator::Context::DefineGlobal (const Code::Operand& value)
 {
 	std::ostringstream stream; stream << '_' << value.type << '_' << std::hex << Convert (value);
 	const auto name = stream.str (); for (auto& section: globalDefinitions) if (section.name == name) return name;
@@ -518,7 +517,7 @@ Code::Section::Name Context::DefineGlobal (const Code::Operand& value)
 	globalDefinitions.back ().instructions.emplace_back (Code::Instruction::DEF, value); return name;
 }
 
-Context::Label Context::DefineLocal (const Code::Operand& value, const Code::Size forward, const Code::Size backward)
+Generator::Context::Label Generator::Context::DefineLocal (const Code::Operand& value, const Code::Size forward, const Code::Size backward)
 {
 	const auto limit = binary->bytes.size () + forward;
 	for (auto& definition: pendingDefinitions) if (definition.value == value) return definition.limit = std::min (definition.limit, limit), definition.label;
@@ -527,7 +526,7 @@ Context::Label Context::DefineLocal (const Code::Operand& value, const Code::Siz
     return pendingDefinitions.back().label;
 }
 
-void Context::ApplyLocalDefinitions ()
+void Generator::Context::ApplyLocalDefinitions ()
 {
 	assert (!pendingDefinitions.empty ()); if (listing) listing << "\n\t; local definitions\n";
 	if (!IsSink (section->instructions[currentInstruction].mnemonic)) Generate (Code::BR {Code::Offset (0)});
@@ -535,20 +534,20 @@ void Context::ApplyLocalDefinitions ()
 	appliedDefinitions.splice (appliedDefinitions.end (), pendingDefinitions);
 }
 
-void Context::Apply (LocalDefinition& definition)
+void Generator::Context::Apply (LocalDefinition& definition)
 {
 	const auto alignment = generator.platform.GetAlignment (definition.value.type); AddAlignment (alignment);
 	Align (alignment); definition.label (); Define (definition.value); currentDirective = Lexer::Invalid; if (listing) listing << '\n';
 }
 
-void Context::Assemble (const Code::Instruction& instruction)
+void Generator::Context::Assemble (const Code::Instruction& instruction)
 {
 	assert (IsValid (instruction, *section, generator.platform)); if (listing && listing.tellp ()) listing << '\n';
 	if (!instruction.comment.empty () && listing) listing << "; " << instruction.comment << '\n';
 	Assemble (instruction.operand1.address, instruction.operand2.size, instruction.operand3.address);
 }
 
-void Context::Assemble (const Source& source, const Line line, const Code::String& code)
+void Generator::Context::Assemble (const Source& source, const Line line, const Code::String& code)
 {
 	Program program {source}; std::istringstream assembly {code};
 	generator.parser.Parse (assembly, line, program);
@@ -556,7 +555,7 @@ void Context::Assemble (const Source& source, const Line line, const Code::Strin
 	if (listing) generator.printer.Print (program, listing);
 }
 
-void Context::AssembleInline (const Source& source, const Line line, const Code::String& code)
+void Generator::Context::AssembleInline (const Source& source, const Line line, const Code::String& code)
 {
 	std::stringstream assembly;
 	for (auto symbol: symbols) if (symbol) Define (*symbol, assembly);
@@ -567,7 +566,7 @@ void Context::AssembleInline (const Source& source, const Line line, const Code:
 	if (listing) generator.printer.Print (instructions, listing);
 }
 
-void Context::Define (const Debugging::Symbol& symbol, std::ostream& assembly)
+void Generator::Context::Define (const Debugging::Symbol& symbol, std::ostream& assembly)
 {
 	switch (symbol.model)
 	{
@@ -588,19 +587,19 @@ void Context::Define (const Debugging::Symbol& symbol, std::ostream& assembly)
 	}
 }
 
-void Context::DefineRegister (const Code::Operand& operand, const Debugging::Name& name, std::ostream& assembly)
+void Generator::Context::DefineRegister (const Code::Operand& operand, const Debugging::Name& name, std::ostream& assembly)
 {
 	assert (HasRegister (operand)); const auto parts = GetRegisterParts (operand);
 	for (Part part = 0; part != parts; ++part) DefineRegister (operand, name, part, assembly);
 }
 
-void Context::DefineRegister (const Code::Operand& operand, const Debugging::Name& name, const Part part, std::ostream& assembly)
+void Generator::Context::DefineRegister (const Code::Operand& operand, const Debugging::Name& name, const Part part, std::ostream& assembly)
 {
 	if (const auto suffix = GetRegisterSuffix (operand, part)) WriteIdentifier (assembly, name + '.' + suffix); else WriteIdentifier (assembly, name);
 	WriteRegister (WriteDefinition (assembly), operand, part) << '\n';
 }
 
-void Context::Define (const Code::Operand& operand)
+void Generator::Context::Define (const Code::Operand& operand)
 {
 	const auto size = operand.type.size;
 	assert (generator.platform.IsAligned (*section, operand.type));
@@ -618,40 +617,40 @@ void Context::Define (const Code::Operand& operand)
 	else Define (GetAddress (operand), GetPatchMode (operand.type), operand.displacement, GetPatchScale (operand.type), size);
 }
 
-void Context::Define (const Object::Section::Name& name, const Object::Patch::Mode mode, const Object::Patch::Displacement displacement, const Object::Patch::Scale scale, const Code::Type::Size size)
+void Generator::Context::Define (const Object::Section::Name& name, const Object::Patch::Mode mode, const Object::Patch::Displacement displacement, const Object::Patch::Scale scale, const Code::Type::Size size)
 {
 	Object::Patch patch {0, mode, displacement, scale}; patch.pattern = {size, endianness}; AddLink (name, patch); Reserve (size);
 	if (listing) WriteAddress (listing, GetFunction (mode), name, displacement, scale);
 }
 
-void Context::Define (const Code::Unsigned::Value value, const Code::Type::Size size)
+void Generator::Context::Define (const Code::Unsigned::Value value, const Code::Type::Size size)
 {
 	Object::Pattern {size, endianness}.Patch (value, Reserve (size)); if (listing) listing << value;
 }
 
-Span<Byte> Context::Reserve (const Code::Size size)
+Span<Byte> Generator::Context::Reserve (const Code::Size size)
 {
 	const auto previous = binary->bytes.size (); binary->bytes.resize (previous + size); return {binary->bytes.data () + previous, size};
 }
 
-void Context::Align (const Code::Section::Alignment alignment)
+void Generator::Context::Align (const Code::Section::Alignment alignment)
 {
 	if (listing && binary->bytes.size () % alignment) listing << '\t' << Lexer::Align << '\t' << alignment << '\n';
 	Reserve (ECS::Align (binary->bytes.size (), Code::Size (alignment)) - binary->bytes.size ());
 }
 
-void Context::AddAlignment (const Code::Section::Alignment alignment)
+void Generator::Context::AddAlignment (const Code::Section::Alignment alignment)
 {
 	assert (IsPowerOfTwo (alignment)); if (alignment > generator.assembler.codeAlignment && !binary->fixed && alignment > binary->alignment) binary->alignment = alignment;
 }
 
-Debugging::Index Context::Insert (const Source& source)
+Debugging::Index Generator::Context::Insert (const Source& source)
 {
 	for (auto& element: information.sources) if (element == source) return GetIndex (element, information.sources);
 	information.sources.emplace_back (source); return information.sources.size () - 1;
 }
 
-Debugging::Type& Context::Declare (Debugging::Type&& type)
+Debugging::Type& Generator::Context::Declare (Debugging::Type&& type)
 {
 	if (IsCode (section->type)) AddTypeableEntry (Debugging::Entry::Code); else if (IsData (section->type)) AddTypeableEntry (Debugging::Entry::Data);
     if (types.empty ())
@@ -666,18 +665,18 @@ Debugging::Type& Context::Declare (Debugging::Type&& type)
     return result;
 }
 
-void Context::AddEntry (const Debugging::Entry::Model model)
+void Generator::Context::AddEntry (const Debugging::Entry::Model model)
 {
     information.entries.emplace_back (model, section->name);
     if (!entry) entry = &information.entries.back(), entry->size = 0;
 }
 
-void Context::AddTypeableEntry (const Debugging::Entry::Model model)
+void Generator::Context::AddTypeableEntry (const Debugging::Entry::Model model)
 {
 	if (!entry) AddEntry (model), location = &entry->location, types.push_back (&entry->type);
 }
 
-void Context::Declare (const Code::Offset offset, const Code::String& name, const Code::Operand& operand)
+void Generator::Context::Declare (const Code::Offset offset, const Code::String& name, const Code::Operand& operand)
 {
 	const Debugging::Lifetime lifetime = {offset < 0 ? currentInstruction + offset + 1 : currentInstruction, offset < 0 ? currentInstruction : currentInstruction + offset};
 	if (IsImmediate (operand)) Declare ({name, lifetime, GetValue (operand)});
@@ -687,34 +686,34 @@ void Context::Declare (const Code::Offset offset, const Code::String& name, cons
 	if (IsRegister (operand)) Fix (operand.register_);
 }
 
-void Context::Declare (Debugging::Symbol&& symbol)
+void Generator::Context::Declare (Debugging::Symbol&& symbol)
 {
 	if (IsCode (section->type)) AddTypeableEntry (Debugging::Entry::Code);
 	if (location) EmitError ("missing source code location"); entry->symbols.push_back (std::move (symbol));
 	location = &entry->symbols.back ().location; types.push_back (&entry->symbols.back ().type); symbols.push_back (&entry->symbols.back ());
 }
 
-void Context::Undeclare (Debugging::Symbol& symbol)
+void Generator::Context::Undeclare (Debugging::Symbol& symbol)
 {
 	assert (symbol.lifetime.end == currentInstruction);
 	if (IsRegister (symbol)) Unfix (GetDeclaration (symbol).operand3.register_);
 	if (binary) symbol.lifetime = {labels[symbol.lifetime.begin], binary->bytes.size ()};
 }
 
-const Code::Instruction& Context::GetDeclaration (const Debugging::Symbol& symbol) const
+const Code::Instruction& Generator::Context::GetDeclaration (const Debugging::Symbol& symbol) const
 {
 	assert (IsRegister (symbol));
 	return section->instructions[std::min (symbol.lifetime.begin, symbol.lifetime.end)];
 }
 
-Debugging::Name Context::GetRegisterName (const Code::Operand& operand)
+Debugging::Name Generator::Context::GetRegisterName (const Code::Operand& operand)
 {
 	assert (HasRegister (operand)); const auto parts = GetRegisterParts (operand); std::ostringstream stream;
 	for (Part part = 0; part != parts; ++part) WriteRegister (part ? stream << ':' : stream, operand, part);
 	return stream.str ();
 }
 
-Debugging::Type Context::GetType (const Code::Operand& operand)
+Debugging::Type Generator::Context::GetType (const Code::Operand& operand)
 {
 	if (IsString (operand)) return operand.address;
 
@@ -735,7 +734,7 @@ Debugging::Type Context::GetType (const Code::Operand& operand)
 	}
 }
 
-Debugging::Value Context::GetValue (const Code::Operand& operand)
+Debugging::Value Generator::Context::GetValue (const Code::Operand& operand)
 {
 	assert (IsImmediate (operand));
 
@@ -756,29 +755,29 @@ Debugging::Value Context::GetValue (const Code::Operand& operand)
 	}
 }
 
-Context::Label::Label (const Code::Size i) :
+Generator::Context::Label::Label (const Code::Size i) :
 	index {i}
 {
 }
 
-Context::LocalLabel::LocalLabel (Context& c, const Code::Size i) :
+Generator::Context::LocalLabel::LocalLabel (Context& c, const Code::Size i) :
 	Label {i}, context {&c}
 {
 }
 
-Context::LocalLabel::LocalLabel (LocalLabel&& label) noexcept :
+Generator::Context::LocalLabel::LocalLabel (LocalLabel&& label) noexcept :
 	Label {label.index}, context {label.context}
 {
 	label.context = nullptr;
 }
 
-Context::LocalLabel::~LocalLabel ()
+Generator::Context::LocalLabel::~LocalLabel ()
 {
     //if (!std::uncaught_exceptions ())
         assert (!context);
 }
 
-void Context::LocalLabel::operator () ()
+void Generator::Context::LocalLabel::operator () ()
 {
 	assert (context); assert (index < context->labels.size ());
 	assert (index > context->section->instructions.size ());
@@ -787,17 +786,19 @@ void Context::LocalLabel::operator () ()
 	context = nullptr;
 }
 
-Context::LocalDefinition::LocalDefinition (const Code::Size l, Context& context, const Code::Operand& v) :
+Generator::Context::LocalDefinition::LocalDefinition (const Code::Size l, Context& context, const Code::Operand& v) :
 	limit {l}, label {context.CreateLabel ()}, value {v}
 {
 }
 
-Context::InstructionFixup::InstructionFixup (const Code::Size o, const Code::Size i, const FixupCode c, const Code::Size s) :
+Generator::Context::InstructionFixup::InstructionFixup (const Code::Size o, const Code::Size i, const FixupCode c, const Code::Size s) :
 	offset {o}, index {i}, code {c}, size {s}
 {
 }
 
-Context::TypeDeclaration::TypeDeclaration (const Code::Size e, Debugging::Type& t) :
+Generator::Context::TypeDeclaration::TypeDeclaration (const Code::Size e, Debugging::Type& t) :
 	extent {e}, type {&t}
 {
 }
+
+}} // ECS::Assembly

@@ -344,10 +344,10 @@ static bool convert_pp_int(Token *tok) {
 
   // Read a binary, octal, decimal or hexadecimal number.
   int base = 10;
-  if (!strncasecmp(p, "0x", 2) && isxdigit(p[2])) {
+  if ( p[0] == '0' && ( p[1] == 'x' || p[1] == 'X') && isxdigit(p[2])) {
     p += 2;
     base = 16;
-  } else if (!strncasecmp(p, "0b", 2) && (p[2] == '0' || p[2] == '1')) {
+  } else if (p[0] == '0' && ( p[1] == 'b' || p[1] == 'B') && (p[2] == '0' || p[2] == '1')) {
     p += 2;
     base = 2;
   } else if (*p == '0') {
@@ -360,13 +360,17 @@ static bool convert_pp_int(Token *tok) {
   bool l = false;
   bool u = false;
 
+  char tmp[3] = "xy";
+  tmp[0] = tolower(p[0]);
+  tmp[1] = tolower(p[1]);
+
   if (startswith(p, "LLU") || startswith(p, "LLu") ||
       startswith(p, "llU") || startswith(p, "llu") ||
       startswith(p, "ULL") || startswith(p, "Ull") ||
       startswith(p, "uLL") || startswith(p, "ull")) {
     p += 3;
     l = u = true;
-  } else if (!strncasecmp(p, "lu", 2) || !strncasecmp(p, "ul", 2)) {
+  } else if (startswith(p, "lu") || startswith(p, "ul")) {
     p += 2;
     l = u = true;
   } else if (startswith(p, "LL") || startswith(p, "ll")) {
@@ -641,36 +645,31 @@ static char *read_file(char *path) {
   FILE *fp;
 
   if (strcmp(path, "-") == 0) {
-    // By convention, read from stdin if a given filename is "-".
-    fp = stdin;
+      error("cannot read from stdin");
   } else {
     fp = fopen(path, "r");
     if (!fp)
       return NULL;
   }
 
-  char *buf;
-  size_t buflen;
-  FILE *out = open_memstream(&buf, &buflen);
+  fseek(fp,0,SEEK_END);
+  const int len = ftell(fp);
+  fseek(fp,0,SEEK_SET);
+
+  char *buf = (char*)malloc(len+2);
 
   // Read the entire file.
+  int n = 0;
   for (;;) {
-    char buf2[4096];
-    int n = fread(buf2, 1, sizeof(buf2), fp);
-    if (n == 0)
+    n += fread(buf + n, 1, len, fp);
+    if (n == len)
       break;
-    fwrite(buf2, 1, n, out);
   }
 
-  if (fp != stdin)
-    fclose(fp);
-
   // Make sure that the last line is properly terminated with '\n'.
-  fflush(out);
-  if (buflen == 0 || buf[buflen - 1] != '\n')
-    fputc('\n', out);
-  fputc('\0', out);
-  fclose(out);
+  buf[len] = '\n';
+  buf[len+1] = 0;
+
   return buf;
 }
 

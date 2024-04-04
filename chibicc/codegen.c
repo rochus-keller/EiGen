@@ -705,7 +705,7 @@ static void gen_expr(Node *node) {
     }
     case TY_DOUBLE: {
       union { double f64; uint64_t u64; } u = { node->fval };
-      println("  mov $%lu, %%rax  # double %Lf", u.u64, node->fval);
+      println("  mov $%Lu, %%rax  # double %Lf", u.u64, node->fval);
       println("  movq %%rax, %%xmm0");
       return;
     }
@@ -713,16 +713,16 @@ static void gen_expr(Node *node) {
       union { long double f80; uint64_t u64[2]; } u;
       memset(&u, 0, sizeof(u));
       u.f80 = node->fval;
-      println("  mov $%lu, %%rax  # long double %Lf", u.u64[0], node->fval);
+      println("  mov $%Lu, %%rax  # long double %Lf", u.u64[0], node->fval);
       println("  mov %%rax, -16(%%rsp)");
-      println("  mov $%lu, %%rax", u.u64[1]);
+      println("  mov $%Lu, %%rax", u.u64[1]);
       println("  mov %%rax, -8(%%rsp)");
       println("  fldt -16(%%rsp)");
       return;
     }
     }
 
-    println("  mov $%ld, %%rax", node->val);
+    println("  mov $%Ld, %%rax", node->val);
     return;
   }
   case ND_NEG:

@@ -18,14 +18,23 @@ void strarray_push(StringArray *arr, char *s) {
 
 // Takes a printf-style format string and returns a formatted string.
 char *format(char *fmt, ...) {
-  char *buf;
-  size_t buflen;
-  FILE *out = open_memstream(&buf, &buflen);
+  static const int buflen = 2048;
+  char buf[buflen];
 
   va_list ap;
   va_start(ap, fmt);
-  vfprintf(out, fmt, ap);
+  int len = vsnprintf(buf, buflen, fmt, ap);
+
+  if( len < 0 )
+      len = 0;
+
+  char* out = (char*)malloc(len+1);
+  if( len > buflen )
+      vsnprintf(out, len, fmt, ap);
+  memcpy(out,buf,len);
+  out[len] = 0;
+
   va_end(ap);
-  fclose(out);
-  return buf;
+
+  return out;
 }

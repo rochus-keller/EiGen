@@ -350,13 +350,13 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, char **va_args_na
       error_tok(tok, "expected an identifier");
 
     if (equal(tok->next, "...")) {
-      *va_args_name = strndup(tok->loc, tok->len);
+      *va_args_name = helper_strndup(tok->loc, tok->len);
       *rest = skip(tok->next->next, ")");
       return head.next;
     }
 
     MacroParam *m = calloc(1, sizeof(MacroParam));
-    m->name = strndup(tok->loc, tok->len);
+    m->name = helper_strndup(tok->loc, tok->len);
     cur = cur->next = m;
     tok = tok->next;
   }
@@ -368,7 +368,7 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, char **va_args_na
 static void read_macro_definition(Token **rest, Token *tok) {
   if (tok->kind != TK_IDENT)
     error_tok(tok, "macro name must be an identifier");
-  char *name = strndup(tok->loc, tok->len);
+  char *name = helper_strndup(tok->loc, tok->len);
   tok = tok->next;
 
   if (!tok->has_space && equal(tok, "(")) {
@@ -723,7 +723,7 @@ static char *read_include_filename(Token **rest, Token *tok, bool *is_dquote) {
     // So we don't want to use token->str.
     *is_dquote = true;
     *rest = skip_line(tok->next);
-    return strndup(tok->loc + 1, tok->len - 2);
+    return helper_strndup(tok->loc + 1, tok->len - 2);
   }
 
   // Pattern 2: #include <foo.h>
@@ -768,7 +768,7 @@ static char *detect_include_guard(Token *tok) {
   if (tok->kind != TK_IDENT)
     return NULL;
 
-  char *macro = strndup(tok->loc, tok->len);
+  char *macro = helper_strndup(tok->loc, tok->len);
   tok = tok->next;
 
   if (!is_hash(tok) || !equal(tok->next, "define") || !equal(tok->next->next, macro))
@@ -862,7 +862,7 @@ static Token *preprocess2(Token *tok) {
       char *filename = read_include_filename(&tok, tok->next, &is_dquote);
 
       if (filename[0] != '/' && is_dquote) {
-        char *path = format("%s/%s", dirname(strdup(start->file->name)), filename);
+        char *path = helper_rebase(start->file->name, filename);
         if (file_exists(path)) {
           tok = include_file(tok, path, start->next->next);
           continue;
@@ -891,7 +891,7 @@ static Token *preprocess2(Token *tok) {
       tok = tok->next;
       if (tok->kind != TK_IDENT)
         error_tok(tok, "macro name must be an identifier");
-      undef_macro(strndup(tok->loc, tok->len));
+      undef_macro(helper_strndup(tok->loc, tok->len));
       tok = skip_line(tok->next);
       continue;
     }
@@ -1024,20 +1024,6 @@ static Token *counter_macro(Token *tmpl) {
   return new_num_token(i++, tmpl);
 }
 
-// __TIMESTAMP__ is expanded to a string describing the last
-// modification time of the current file. E.g.
-// "Fri Jul 24 01:32:50 2020"
-static Token *timestamp_macro(Token *tmpl) {
-  struct stat st;
-  if (stat(tmpl->file->name, &st) != 0)
-    return new_str_token("??? ??? ?? ??:??:?? ????", tmpl);
-
-  char buf[30];
-  ctime_r(&st.st_mtime, buf);
-  buf[24] = '\0';
-  return new_str_token(buf, tmpl);
-}
-
 static Token *base_file_macro(Token *tmpl) {
   return new_str_token(base_file, tmpl);
 }
@@ -1103,7 +1089,7 @@ void init_macros(void) {
   add_builtin("__FILE__", file_macro);
   add_builtin("__LINE__", line_macro);
   add_builtin("__COUNTER__", counter_macro);
-  add_builtin("__TIMESTAMP__", timestamp_macro);
+  // add_builtin("__TIMESTAMP__", timestamp_macro);
   add_builtin("__BASE_FILE__", base_file_macro);
 
   time_t now = time(NULL);

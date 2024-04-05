@@ -342,7 +342,7 @@ static Obj *new_string_literal(char *p, Type *ty) {
 static char *get_ident(Token *tok) {
   if (tok->kind != TK_IDENT)
     error_tok(tok, "expected an identifier");
-  return helper_strndup(tok->loc, tok->len);
+  return mystrndup(tok->loc, tok->len);
 }
 
 static Type *find_typedef(Token *tok) {
@@ -1745,7 +1745,7 @@ static Node *stmt(Token **rest, Token *tok) {
 
   if (tok->kind == TK_IDENT && equal(tok->next, ":")) {
     Node *node = new_node(ND_LABEL, tok);
-    node->label = helper_strndup(tok->loc, tok->len);
+    node->label = mystrndup(tok->loc, tok->len);
     node->unique_label = new_unique_name();
     node->lhs = stmt(rest, tok->next->next);
     node->goto_next = labels;

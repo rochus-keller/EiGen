@@ -53,7 +53,7 @@ static bool take_arg(char *arg) {
 static void define(char *str) {
   char *eq = strchr(str, '=');
   if (eq)
-    define_macro(helper_strndup(str, eq - str), eq + 1);
+    define_macro(mystrndup(str, eq - str), eq + 1);
   else
     define_macro(str, "1");
 }
@@ -561,7 +561,7 @@ int main(int argc, char **argv) {
     }
 
     if (!strncmp(input, "-Wl,", 4)) {
-      char *s = helper_strdup(input + 4);
+      char *s = mystrdup(input + 4);
       char *arg = strtok(s, ",");
       while (arg) {
         strarray_push(&ld_args, arg);

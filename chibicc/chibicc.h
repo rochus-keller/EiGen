@@ -451,6 +451,6 @@ extern char *base_file;
 // helper.c
 //
 
-char *helper_strndup( const char *src, size_t size );
-char *helper_strdup( const char *src);
-char *helper_rebase(const char* newBase, const char* filename);
+char *mystrndup( const char *src, size_t size );
+char *mystrdup( const char *src);
+char *rebase_file(const char* newBase, const char* filename);

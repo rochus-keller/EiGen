@@ -25,6 +25,5 @@ let chibicc ! : Executable {
     ./tokenize.c
     ./type.c
     ./unicode.c
-    ./helper.c
     ]
 }

@@ -1,20 +1,21 @@
 // Generic assembly language pretty printer
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "asmprinter.hpp"
 #include "assembly.hpp"
@@ -25,7 +26,7 @@
 using namespace ECS;
 using namespace Assembly;
 
-using Context = class Printer::Context : Indenter
+class Printer::Context : Indenter
 {
 public:
 	Instructions::size_type conditionals = 0;
@@ -48,25 +49,25 @@ void Printer::Print (const Instructions& instructions, std::ostream& stream) con
 	Context {}.Print (stream, instructions);
 }
 
-std::ostream& Context::Print (std::ostream& stream, const Sections& sections)
+std::ostream& Printer::Context::Print (std::ostream& stream, const Sections& sections)
 {
 	for (auto& section: sections) Print (stream, section); return stream;
 }
 
-std::ostream& Context::Print (std::ostream& stream, const Section& section)
+std::ostream& Printer::Context::Print (std::ostream& stream, const Section& section)
 {
 	if (IsAssembly (section)) Indent (stream) << Lexer::Assembly << '\n';
 	else WriteIdentifier (Indent (stream) << '.' << section.type << ' ', section.name) << '\n';
 	return Print (stream, section.instructions);
 }
 
-std::ostream& Context::Print (std::ostream& stream, const Instructions& instructions)
+std::ostream& Printer::Context::Print (std::ostream& stream, const Instructions& instructions)
 {
 	for (auto& instruction: instructions) Print (stream, instruction);
 	while (conditionals) Decrease (stream), --conditionals; return stream;
 }
 
-std::ostream& Context::Print (std::ostream& stream, const Instruction& instruction)
+std::ostream& Printer::Context::Print (std::ostream& stream, const Instruction& instruction)
 {
 	if (instruction.directive == Lexer::Endif && conditionals) Decrease (stream), --conditionals;
 

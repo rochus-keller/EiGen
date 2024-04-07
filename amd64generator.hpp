@@ -1,20 +1,21 @@
 // AMD64 machine code generator
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_AMD64_GENERATOR_HEADER_INCLUDED
 #define ECS_AMD64_GENERATOR_HEADER_INCLUDED
@@ -22,28 +23,29 @@
 #include "amd64assembler.hpp"
 #include "asmgenerator.hpp"
 
-namespace ECS { namespace AMD64
-{
-	class Generator;
+namespace ECS {
+namespace AMD64 {
+
+    class Generator : public Assembly::Generator
+    {
+    public:
+        using DirectAddressing = bool;
+        using MediaFloat = bool;
+
+        Generator (Diagnostics&, StringPool&, Charset&, OperatingMode, MediaFloat, DirectAddressing);
+
+    private:
+        class Context;
+
+        Assembler assembler;
+        const OperatingMode mode;
+        const MediaFloat mediaFloat;
+        const DirectAddressing directAddressing;
+
+        void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
+    };
 }}
 
-class ECS::AMD64::Generator : public Assembly::Generator
-{
-public:
-	using DirectAddressing = bool;
-	using MediaFloat = bool;
 
-	Generator (Diagnostics&, StringPool&, Charset&, OperatingMode, MediaFloat, DirectAddressing);
-
-private:
-	class Context;
-
-	Assembler assembler;
-	const OperatingMode mode;
-	const MediaFloat mediaFloat;
-	const DirectAddressing directAddressing;
-
-	void Process (const Code::Sections&, Object::Binaries&, Debugging::Information&, std::ostream&) const override;
-};
 
 #endif // ECS_AMD64_GENERATOR_HEADER_INCLUDED

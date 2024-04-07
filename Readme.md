@@ -1,11 +1,24 @@
 This project aims to develop a reusable cross-platform compiler backend for the i386, x86_64, ARM and AArch64 architectures based on 
 the Eigen Compiler Suite (see https://ecs.openbrace.org/).
 
-The original code is written in C++17 and doesn't compile with MSVC.
+The original code is written in C++17 and doesn't compile with MSVC or old GCC versions.
 
-The contribution of this project is the migration to C++11 and (eventually) MSVC compatibility.
+The contribution of this project is the migration of a subset of the ECS code base to a conservative C++11 dialect, so it compiles on old GCC versions as well as on MSVC.
 
-NOTE that this project is work in progress.
+Yet another goal is to make the chibicc C compiler cross-platform (the original version depends on Posix) and generate ECS IR instead of AMD64.
+
+
+#### Status on April 7, 2024
+
+The source code of the cp*, *asm and linkbin tools has been successfully migrated.
+
+The tools have been successfully tested on Linux i386 with GCC 4.8 and on Windows 10 with MSVC 2015 (compiler version 14.0).
+It has to be noted that even when the source code compiled with no errors on the mentioned compilers there were still crashes.
+Thus migration and debugging continued until the crashes vanished. 
+
+Therefore the resulting tools (i.e. the ones listed in the BUSY file) seem to be fit for purpose as specified in the official ECS documentation.
+
+The chibicc C compiler was refactored so it no longer depends on Posix; the ECS IR backend is work in progress.
 
 #### Precompiled versions
 
@@ -25,7 +38,7 @@ Alternatively you can open the BUSY file with LeanCreator (see https://github.co
 
 This project uses a subset of the source code version 0.0.40 (dated 13 March 2024 16:05) 
 provided at https://software.openbrace.org/projects/ecs/files
-made available under GPL v3 or later by its author, copyright (C) Florian Negele.
+made available under GPL v3 or later by its original author, Florian Negele.
 
 
 

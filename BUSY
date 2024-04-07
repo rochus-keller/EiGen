@@ -4,7 +4,6 @@ let config : Config {
         .ldflags += "-shared-libgcc"
         .cflags_cc += "-std=c++11"
     }else if target_toolchain == `msvc {
-        # nothing to do
     }else {
         error("target toolchain not supported")
     }
@@ -51,6 +50,7 @@ let common : SourceSet {
         ./asmgeneratorcontext.hpp
         ./ieee.hpp
         ./indenter.hpp
+        ./stdlayout.hpp
         ]
 }
 
@@ -273,7 +273,7 @@ let linkbin : Executable {
 ############# All tools ##############################
 
 let tools ! : Group {
-    .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe
-                amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
+    .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe ]
+    .deps += [ amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
     .deps += linkbin
 }

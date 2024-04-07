@@ -1,20 +1,21 @@
 // Intermediate code semantic checker
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "asmcheckercontext.hpp"
 #include "cdchecker.hpp"
@@ -25,7 +26,7 @@
 using namespace ECS;
 using namespace Code;
 
-using Context = class Checker::Context : public Assembly::Checker::Context
+class Checker::Context : public Assembly::Checker::Context
 {
 public:
 	Context (const Code::Checker&, Section&, Inlined);
@@ -75,20 +76,20 @@ void Checker::Check (const Assembly::Section& section, Sections& sections) const
     Context {*this, sections.back(), IsAssembly (section)}.Process (section.instructions);
 }
 
-Context::Context (const Code::Checker& c, Section& s, const Inlined i) :
+Checker::Context::Context (const Code::Checker& c, Section& s, const Inlined i) :
     Assembly::Checker::Context {c, s, s.instructions.size (), 1, i}, section(s), platform(c.platform)
 {
 }
 
-void Context::Patch (Type& type) const
+void Checker::Context::Patch (Type& type) const
 {
 	if (type.model == Type::Pointer) type.size = platform.pointer.size;
-	else if (type.model == Type::Function) type.size = platform.function.size;
+    else if (type.model == Type::Function) type.size = platform.function.size;
 }
 
-bool Context::Check (Instruction& instruction)
+bool Checker::Context::Check (Instruction& instruction)
 {
-	instruction.line = Assembly::Checker::Context::location->line;
+    instruction.line = Assembly::Checker::Checker::Context::location->line;
 	Patch (instruction.operand1.type); Patch (instruction.operand2.type); Patch (instruction.operand3.type);
 	if (parsing) return IsValid (instruction);
 
@@ -117,33 +118,33 @@ bool Context::Check (Instruction& instruction)
 	return IsValid (instruction, section, platform);
 }
 
-void Context::Reset ()
+void Checker::Context::Reset ()
 {
-	Assembly::Checker::Context::Reset ();
+    Assembly::Checker::Checker::Context::Reset ();
 	if (location) EmitError ("missing source code location");
 	if (type || IsType (section.type) && !sectionType && !parsing) EmitError ("missing type declaration");
 	size = 0; declarations.clear (); sectionType = false; sectionLocation = inlined;
 }
 
-Context::Size Context::GetDisplacement (const Size) const
+Checker::Context::Size Checker::Context::GetDisplacement (const Size) const
 {
 	return 1;
 }
 
-bool Context::GetLink (const Assembly::Expression&, Link& link) const
+bool Checker::Context::GetLink (const Assembly::Expression&, Link& link) const
 {
 	assert (link.name.empty ());
 	return false;
 }
 
-Context::Size Context::AssembleInstruction (std::istream& stream, const Link&)
+Checker::Context::Size Checker::Context::AssembleInstruction (std::istream& stream, const Link&)
 {
 	if (parsing) section.instructions.emplace_back ();
 	auto& instruction = section.instructions[offset];
 	return stream >> instruction && Check (instruction);
 }
 
-bool Context::GetDefinition (const Assembly::Identifier& identifier, Assembly::Expression& value) const
+bool Checker::Context::GetDefinition (const Assembly::Identifier& identifier, Assembly::Expression& value) const
 {
 	if (identifier == "int") return value = Evaluate (platform.integer), true;
 	if (identifier == "flt") return value = Evaluate (platform.float_), true;
@@ -159,17 +160,17 @@ bool Context::GetDefinition (const Assembly::Identifier& identifier, Assembly::E
 	if (identifier == "funalign") return value = Evaluate (platform.GetStackSize (platform.function)), true;
 	if (identifier == "retalign") return value = Evaluate (platform.GetStackSize (platform.return_)), true;
 	if (identifier == "stackdisp") return value = Evaluate (platform.stackDisplacement), true;
-	if (identifier == "file") return value = {Assembly::Expression::String, *Assembly::Checker::Context::location->source}, true;
-	if (identifier == "line") return value = {Assembly::Expression::Number, Assembly::Expression::Value (Assembly::Checker::Context::location->line)}, true;
-	return Assembly::Checker::Context::GetDefinition (identifier, value);
+    if (identifier == "file") return value = {Assembly::Expression::String, *Assembly::Checker::Checker::Context::location->source}, true;
+    if (identifier == "line") return value = {Assembly::Expression::Number, Assembly::Expression::Value (Assembly::Checker::Checker::Context::location->line)}, true;
+    return Assembly::Checker::Checker::Context::GetDefinition (identifier, value);
 }
 
-Assembly::Expression Context::Evaluate (const Type::Size size)
+Assembly::Expression Checker::Context::Evaluate (const Type::Size size)
 {
 	return {Assembly::Expression::Number, size};
 }
 
-Assembly::Expression Context::Evaluate (const Type& type)
+Assembly::Expression Checker::Context::Evaluate (const Type& type)
 {
 	std::ostringstream stream; stream << type;
 	return {Assembly::Expression::Identifier, stream.str ()};

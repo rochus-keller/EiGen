@@ -1,20 +1,21 @@
 // ARM A64 instruction set representation
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_ARM_A64_HEADER_INCLUDED
 #define ECS_ARM_A64_HEADER_INCLUDED
@@ -23,13 +24,12 @@
 
 #include <array>
 
-namespace ECS
-{
-	using Bits = unsigned;
-}
+namespace ECS {
 
-namespace ECS { namespace ARM { namespace A64
-{
+using Bits = unsigned;
+
+namespace ARM {
+namespace A64 {
 	enum Register
 	{
 		W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10, W11, W12, W13, W14, W15,
@@ -87,171 +87,170 @@ namespace ECS { namespace ARM { namespace A64
 	std::ostream& operator << (std::ostream&, Register);
 	std::ostream& operator << (std::ostream&, Symbol);
 	std::ostream& operator << (std::ostream&, Width);
+
+    class Operand
+    {
+    public:
+        using Preindexed = bool;
+        using Size = unsigned;
+
+        Operand () = default;
+        Operand (A64::Symbol);
+        Operand (A64::Register);
+        Operand (A64::Immediate);
+        Operand (ARM::ConditionCode);
+        Operand (ARM::FloatImmediate);
+        Operand (A64::Register, Format);
+        Operand (ARM::CoprocessorRegister);
+        Operand (A64::Register, Format, Size);
+        Operand (ARM::ShiftMode, A64::Immediate = 0);
+        Operand (A64::Extension, A64::Immediate = 0);
+        Operand (A64::Register, Width, A64::Immediate);
+        Operand (A64::Register, Width, Size, A64::Immediate);
+        Operand (A64::Register, A64::Immediate, Preindexed = false);
+        Operand (A64::Register, A64::Register, A64::Immediate = 0);
+        Operand (A64::Register, A64::Register, A64::Extension, A64::Immediate = 0);
+
+    private:
+        enum Model {Empty, Immediate, FloatImmediate, Register, Vector, VectorSet, Element, ElementSet, Memory, ShiftedIndex, ExtendedIndex, Shift, Extension, ConditionCode, CoprocessorRegister, Symbol};
+
+        enum Type {
+            #define GROUP(group, mask) group,
+            #include "arma64.def"
+            Groups, Void,
+            #define TYPE(type) type,
+            #include "arma64.def"
+        };
+
+        Model model = Empty;
+        A64::Register register_;
+
+        union
+        {
+            A64::Register index;
+            Size size;
+        };
+
+        union
+        {
+            A64::Immediate immediate;
+            ARM::FloatImmediate floatImmediate;
+        };
+
+        union
+        {
+            Width width;
+            Format format;
+            Preindexed preindexed;
+            ARM::ShiftMode shiftmode;
+            A64::Extension extension;
+            ARM::ConditionCode code;
+            ARM::CoprocessorRegister coregister;
+            A64::Symbol symbol;
+        };
+
+        Opcode Encode (Type) const;
+        bool Decode (Opcode, Type);
+        bool IsCompatibleWith (Type) const;
+
+        static const Type groups[];
+        static const Opcode codes[];
+        static const Opcode masks[];
+        static const char*const widths[];
+        static const char*const formats[];
+        static const char*const symbols[];
+        static const char*const registers[];
+        static const char*const extensions[];
+
+        static constexpr Opcode Invalid = -1;
+
+        static Mask Decode (Opcode, Bits);
+        static Opcode Encode (Mask, Bits);
+        static Opcode Encode (ARM::FloatImmediate);
+        static ARM::FloatImmediate Decode (Opcode);
+        static bool Decode (Opcode, Type, A64::Symbol&);
+
+        friend class Instruction;
+        friend bool IsValid (Mask, Bits);
+        friend bool IsEmpty (const Operand&);
+        friend bool IsValid (ARM::FloatImmediate);
+        friend A64::Register GetRegister (const Operand&);
+        friend std::istream& operator >> (std::istream&, A64::Extension&);
+        friend std::istream& operator >> (std::istream&, A64::Format&);
+        friend std::istream& operator >> (std::istream&, A64::Register&);
+        friend std::istream& operator >> (std::istream&, A64::Symbol&);
+        friend std::istream& operator >> (std::istream&, A64::Width&);
+        friend std::ostream& operator << (std::ostream&, A64::Extension);
+        friend std::ostream& operator << (std::ostream&, A64::Format);
+        friend std::ostream& operator << (std::ostream&, A64::Register);
+        friend std::ostream& operator << (std::ostream&, A64::Symbol);
+        friend std::ostream& operator << (std::ostream&, A64::Width);
+        friend std::ostream& operator << (std::ostream&, const Operand&);
+    };
+
+    class Instruction
+    {
+    public:
+        enum Mnemonic {
+            #define MNEM(name, mnem, ...) mnem,
+            #include "arma64.def"
+            Count,
+        };
+
+        Instruction () = default;
+        explicit Instruction (Span<const Byte>);
+        Instruction (Mnemonic, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {});
+
+        void Emit (Span<Byte>) const;
+        void Adjust (Object::Patch&) const;
+
+    private:
+        struct Entry;
+
+        const Entry* entry = nullptr;
+        std::array<Operand, 5> operands;
+
+        static const Entry table[];
+        static const char*const mnemonics[];
+        static const Lookup<Entry, Mnemonic> first, last;
+
+        friend bool IsValid (const Instruction&);
+        friend std::istream& operator >> (std::istream&, Mnemonic&);
+        friend std::ostream& operator << (std::ostream&, Mnemonic);
+        friend std::ostream& operator << (std::ostream&, const Instruction&);
+    };
+
+    template <Instruction::Mnemonic> struct InstructionMnemonic;
+
+    #define MNEM(name, mnem, ...) using mnem = InstructionMnemonic<Instruction::mnem>;
+    #include "arma64.def"
+
+    std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
+    std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
+
+    template <Instruction::Mnemonic>
+    struct InstructionMnemonic : Instruction
+    {
+        explicit InstructionMnemonic (const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {});
+    };
+
+    inline bool IsEmpty (const Operand& operand)
+    {
+        return operand.model == Operand::Empty;
+    }
+
+    inline bool IsValid (const Instruction& instruction)
+    {
+        return instruction.entry;
+    }
+
+    template <Instruction::Mnemonic m>
+    inline InstructionMnemonic<m>::InstructionMnemonic (const Operand& op0, const Operand& op1, const Operand& op2, const Operand& op3, const Operand& op4) :
+        Instruction {m, op0, op1, op2, op3, op4}
+    {
+    }
+
 }}}
 
-class ECS::ARM::A64::Operand
-{
-public:
-	using Preindexed = bool;
-	using Size = unsigned;
-
-	Operand () = default;
-	Operand (A64::Symbol);
-	Operand (A64::Register);
-	Operand (A64::Immediate);
-	Operand (ARM::ConditionCode);
-	Operand (ARM::FloatImmediate);
-	Operand (A64::Register, Format);
-	Operand (ARM::CoprocessorRegister);
-	Operand (A64::Register, Format, Size);
-	Operand (ARM::ShiftMode, A64::Immediate = 0);
-	Operand (A64::Extension, A64::Immediate = 0);
-	Operand (A64::Register, Width, A64::Immediate);
-	Operand (A64::Register, Width, Size, A64::Immediate);
-	Operand (A64::Register, A64::Immediate, Preindexed = false);
-	Operand (A64::Register, A64::Register, A64::Immediate = 0);
-	Operand (A64::Register, A64::Register, A64::Extension, A64::Immediate = 0);
-
-private:
-	enum Model {Empty, Immediate, FloatImmediate, Register, Vector, VectorSet, Element, ElementSet, Memory, ShiftedIndex, ExtendedIndex, Shift, Extension, ConditionCode, CoprocessorRegister, Symbol};
-
-	enum Type {
-		#define GROUP(group, mask) group,
-		#include "arma64.def"
-		Groups, Void,
-		#define TYPE(type) type,
-		#include "arma64.def"
-	};
-
-	Model model = Empty;
-	A64::Register register_;
-
-	union
-	{
-		A64::Register index;
-		Size size;
-	};
-
-	union
-	{
-		A64::Immediate immediate;
-		ARM::FloatImmediate floatImmediate;
-	};
-
-	union
-	{
-		Width width;
-		Format format;
-		Preindexed preindexed;
-		ARM::ShiftMode shiftmode;
-		A64::Extension extension;
-		ARM::ConditionCode code;
-		ARM::CoprocessorRegister coregister;
-		A64::Symbol symbol;
-	};
-
-	Opcode Encode (Type) const;
-	bool Decode (Opcode, Type);
-	bool IsCompatibleWith (Type) const;
-
-	static const Type groups[];
-	static const Opcode codes[];
-	static const Opcode masks[];
-	static const char*const widths[];
-	static const char*const formats[];
-	static const char*const symbols[];
-	static const char*const registers[];
-	static const char*const extensions[];
-
-	static constexpr Opcode Invalid = -1;
-
-	static Mask Decode (Opcode, Bits);
-	static Opcode Encode (Mask, Bits);
-	static Opcode Encode (ARM::FloatImmediate);
-	static ARM::FloatImmediate Decode (Opcode);
-	static bool Decode (Opcode, Type, A64::Symbol&);
-
-	friend class Instruction;
-	friend bool IsValid (Mask, Bits);
-	friend bool IsEmpty (const Operand&);
-	friend bool IsValid (ARM::FloatImmediate);
-	friend A64::Register GetRegister (const Operand&);
-	friend std::istream& operator >> (std::istream&, A64::Extension&);
-	friend std::istream& operator >> (std::istream&, A64::Format&);
-	friend std::istream& operator >> (std::istream&, A64::Register&);
-	friend std::istream& operator >> (std::istream&, A64::Symbol&);
-	friend std::istream& operator >> (std::istream&, A64::Width&);
-	friend std::ostream& operator << (std::ostream&, A64::Extension);
-	friend std::ostream& operator << (std::ostream&, A64::Format);
-	friend std::ostream& operator << (std::ostream&, A64::Register);
-	friend std::ostream& operator << (std::ostream&, A64::Symbol);
-	friend std::ostream& operator << (std::ostream&, A64::Width);
-	friend std::ostream& operator << (std::ostream&, const Operand&);
-};
-
-class ECS::ARM::A64::Instruction
-{
-public:
-	enum Mnemonic {
-		#define MNEM(name, mnem, ...) mnem,
-		#include "arma64.def"
-		Count,
-	};
-
-	Instruction () = default;
-	explicit Instruction (Span<const Byte>);
-	Instruction (Mnemonic, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {});
-
-	void Emit (Span<Byte>) const;
-	void Adjust (Object::Patch&) const;
-
-private:
-	struct Entry;
-
-	const Entry* entry = nullptr;
-	std::array<Operand, 5> operands;
-
-	static const Entry table[];
-	static const char*const mnemonics[];
-	static const Lookup<Entry, Mnemonic> first, last;
-
-	friend bool IsValid (const Instruction&);
-	friend std::istream& operator >> (std::istream&, Mnemonic&);
-	friend std::ostream& operator << (std::ostream&, Mnemonic);
-	friend std::ostream& operator << (std::ostream&, const Instruction&);
-};
-
-namespace ECS { namespace ARM { namespace A64
-{
-	template <Instruction::Mnemonic> struct InstructionMnemonic;
-
-	#define MNEM(name, mnem, ...) using mnem = InstructionMnemonic<Instruction::mnem>;
-	#include "arma64.def"
-
-	std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
-	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}}}
-
-template <ECS::ARM::A64::Instruction::Mnemonic>
-struct ECS::ARM::A64::InstructionMnemonic : Instruction
-{
-	explicit InstructionMnemonic (const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {}, const Operand& = {});
-};
-
-inline bool ECS::ARM::A64::IsEmpty (const Operand& operand)
-{
-	return operand.model == Operand::Empty;
-}
-
-inline bool ECS::ARM::A64::IsValid (const Instruction& instruction)
-{
-	return instruction.entry;
-}
-
-template <ECS::ARM::A64::Instruction::Mnemonic m>
-inline ECS::ARM::A64::InstructionMnemonic<m>::InstructionMnemonic (const Operand& op0, const Operand& op1, const Operand& op2, const Operand& op3, const Operand& op4) :
-	Instruction {m, op0, op1, op2, op3, op4}
-{
-}
 
 #endif // ECS_ARM_A64_HEADER_INCLUDED

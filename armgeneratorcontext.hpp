@@ -1,20 +1,21 @@
 // ARM machine code generator context
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_ARM_GENERATOR_CONTEXT_HEADER_INCLUDED
 #define ECS_ARM_GENERATOR_CONTEXT_HEADER_INCLUDED
@@ -23,10 +24,16 @@
 #include "armgenerator.hpp"
 #include "asmgeneratorcontext.hpp"
 
-class ECS::ARM::Generator::Context : public Assembly::Generator::Context
+namespace ECS {
+namespace ARM {
+
+class Generator::Context : public Assembly::Generator::Context
 {
 public:
 	Context (const Generator&, Object::Binaries&, Debugging::Information&, std::ostream&);
+
+    Register Translate (Register, const Code::Type&) const;
+    static Register TranslateBack (Register);
 
 protected:
 	enum Index {Low, High, Float};
@@ -42,7 +49,6 @@ protected:
 	Register GetFree (Index) const;
 	Register Select (const Code::Operand&, Index) const;
 	Immediate Extract (const Code::Operand&, Index) const;
-	Register Translate (Register, const Code::Type&) const;
 
 	ARM::Suffix GetSuffix (const Code::Operand&) const;
 	Instruction::Mnemonic GetLoadMnemonic (const Code::Type&) const;
@@ -55,9 +61,12 @@ protected:
 	auto Release (Code::Register) -> void override;
 	auto WriteRegister (std::ostream&, const Code::Operand&, Part) -> std::ostream& override;
 
-	static Register TranslateBack (Register);
 	static bool IsComplex (const Code::Operand&);
 	static Code::Type::Size GetSize (const Code::Operand&);
 };
+
+
+}
+}
 
 #endif // ECS_ARM_GENERATOR_CONTEXT_HEADER_INCLUDED

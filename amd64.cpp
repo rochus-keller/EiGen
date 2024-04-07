@@ -1,20 +1,21 @@
 // AMD64 instruction set representation
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "amd64.hpp"
 #include "object.hpp"
@@ -35,7 +36,7 @@ const char*const Operand::registers[] {nullptr,
 	#include "amd64.def"
 };
 
-using Format = class Operand::Format
+class Operand::Format
 {
 public:
 	explicit Format (OperatingMode);
@@ -69,11 +70,20 @@ private:
 		Count, FirstLegacyPrefix = OS, LastLegacyPrefix = REPNE, FirstREXPrefix = REXB, LastREXPrefix = REXW,
 	};
 
-	struct Entry;
-
 	using Exprefix = std::uint16_t;
 	using Opcode = std::uint32_t;
 	using Register = AMD64::Register;
+
+    struct Entry
+    {
+        Opcode opcode;
+        Instruction::Mnemonic mnemonic;
+        Type type1, type2, type3, type4;
+        Code code1, code2;
+        Flags flags;
+        Exprefix exprefix;
+        ECS::Byte suffix;
+    };
 
 	const OperatingMode mode;
 
@@ -122,17 +132,6 @@ private:
 	static bool Match (Register, Register, const Operand&);
 };
 
-struct Format::Entry
-{
-	Opcode opcode;
-	Instruction::Mnemonic mnemonic;
-	Type type1, type2, type3, type4;
-	Code code1, code2;
-	Flags flags;
-	Exprefix exprefix;
-	ECS::Byte suffix;
-};
-
 const char*const Instruction::prefixes[] {nullptr, "lock", "rep", "repne"};
 
 const char*const Instruction::mnemonics[] {
@@ -140,10 +139,10 @@ const char*const Instruction::mnemonics[] {
 	#include "amd64.def"
 };
 
-const Register Format::base16[8] {BX, BX, BP, BP, SI, DI, BP, BX};
-const Register Format::index16[8] {SI, DI, SI, DI, RVoid, RVoid, RVoid, RVoid};
+const Register Operand::Format::base16[8] {BX, BX, BP, BP, SI, DI, BP, BX};
+const Register Operand::Format::index16[8] {SI, DI, SI, DI, RVoid, RVoid, RVoid, RVoid};
 
-const Format::Entry Format::table[] = {
+const Operand::Format::Entry Operand::Format::table[] = {
 	#define INSTR(mnem, type1, type2, type3, type4, exprefix, opcode, code1, code2, suffix, flags) \
 		{opcode, Instruction::mnem, type1, type2, type3, type4, code1, code2, \
 		Flags (flags | HASTYPE (type1, type2, type3, type4, mem, mem256) * HasMem | HASTYPE (type1, type2, type3, type4, moffset, moffset) * HasMOffset | \
@@ -159,13 +158,14 @@ const Format::Entry Format::table[] = {
 	#undef HASTYPE
 };
 
-const Byte Format::prefixBytes[] {0,
+const Byte Operand::Format::prefixBytes[] {0,
 	#define PREFIX(prefix, byte) byte,
 	#include "amd64.def"
 };
 
-const Lookup<Format::Entry, Instruction::Mnemonic> Format::first = Lookup<Format::Entry, Instruction::Mnemonic>(table),
-    Format::last = Lookup<Format::Entry, Instruction::Mnemonic>(table, 0);
+const Lookup<Operand::Format::Entry, Instruction::Mnemonic> Operand::Format::first =
+        Lookup<Operand::Format::Entry, Instruction::Mnemonic>(table),
+    Operand::Format::last = Lookup<Operand::Format::Entry, Instruction::Mnemonic>(table, 0);
 
 Operand::Operand (const AMD64::Register r) :
 	model {Register}, register_ {r}
@@ -204,14 +204,16 @@ Instruction::Instruction (const OperatingMode m) :
 }
 
 Instruction::Instruction (const OperatingMode m, const Span<const Byte> bytes) :
-	mode {m}, size {Format {mode}.Decode (bytes, *this)}
+    mode {m}, size {Operand::Format {mode}.Decode (bytes, *this)}
 {
 	assert (size <= sizeof code);
 	std::copy_n (bytes.begin (), size, code);
 }
 
-Instruction::Instruction (const OperatingMode om, const Prefix p, const Mnemonic m, const Operand& o1, const Operand& o2, const Operand& o3, const Operand& o4) :
-	mode {om}, prefix {p}, mnemonic {m}, operand1 {o1}, operand2 {o2}, operand3 {o3}, operand4 {o4}, size {Format {mode}.Encode (*this, code, fixup)}
+Instruction::Instruction (const OperatingMode om, const Prefix p, const Mnemonic m, const Operand& o1,
+                          const Operand& o2, const Operand& o3, const Operand& o4) :
+    mode {om}, prefix {p}, mnemonic {m}, operand1 {o1}, operand2 {o2}, operand3 {o3}, operand4 {o4},
+    size(Operand::Format(mode).Encode(*this, code, fixup))
 {
 }
 
@@ -227,12 +229,12 @@ void Instruction::Adjust (Object::Patch& patch) const
 	if (fixup.relative && patch.mode == Object::Patch::Absolute) patch.displacement -= size - fixup.offset, patch.mode = Object::Patch::Relative;
 }
 
-Format::Format (const OperatingMode m) :
+Operand::Format::Format (const OperatingMode m) :
 	mode {m}
 {
 }
 
-std::size_t Format::Decode (const Span<const ECS::Byte> bytes, Instruction& instruction)
+std::size_t Operand::Format::Decode (const Span<const ECS::Byte> bytes, Instruction& instruction)
 {
 	std::size_t size = 0;
 	auto byte = bytes.begin ();
@@ -318,13 +320,16 @@ std::size_t Format::Decode (const Span<const ECS::Byte> bytes, Instruction& inst
 	return size;
 }
 
-std::size_t Format::Encode (const Instruction& instruction, ECS::Byte* code, Instruction::Fixup& fixup)
+std::size_t Operand::Format::Encode (const Instruction& instruction, ECS::Byte* code, Instruction::Fixup& fixup)
 {
 	std::size_t size = 0;
 
-	entry = first[instruction.mnemonic]; const auto sentinel = last[instruction.mnemonic];
-	while (entry != sentinel && !Match (*entry, instruction)) ++entry;
-	if (entry == sentinel) return 0;
+    entry = first[instruction.mnemonic];
+    const auto sentinel = last[instruction.mnemonic];
+    while (entry != sentinel && !Match (*entry, instruction))
+        ++entry;
+    if (entry == sentinel)
+        return 0;
 
 	operandSize = addressSize = 0;
 	mod = reg = rm = vvvv = scale = index = base = 0;
@@ -413,7 +418,7 @@ std::size_t Format::Encode (const Instruction& instruction, ECS::Byte* code, Ins
 	return size;
 }
 
-std::size_t Format::CountImmediateBytes () const
+std::size_t Operand::Format::CountImmediateBytes () const
 {
 	if (entry->flags & HasIB) return 1;
 	if (entry->flags & HasIW) return 2;
@@ -423,7 +428,7 @@ std::size_t Format::CountImmediateBytes () const
 	return 0;
 }
 
-std::size_t Format::CountDisplacementBytes () const
+std::size_t Operand::Format::CountDisplacementBytes () const
 {
 	if (addressSize == 16 && mod == 0 && rm == 6) return 2;
 	if (addressSize != 16 && mod == 0 && (rm == 4 && base == 5 || rm == 5)) return 4;
@@ -436,7 +441,7 @@ std::size_t Format::CountDisplacementBytes () const
 	return 0;
 }
 
-Operand Format::Decode (const Type type) const
+Operand Operand::Format::Decode (const Type type) const
 {
 	switch (type)
 	{
@@ -502,7 +507,7 @@ Operand Format::Decode (const Type type) const
 	}
 }
 
-bool Format::Encode (const Operand& operand, const Type type)
+bool Operand::Format::Encode (const Operand& operand, const Type type)
 {
 	switch (type)
 	{
@@ -548,19 +553,19 @@ bool Format::Encode (const Operand& operand, const Type type)
 	}
 }
 
-bool Format::Segment (const Register register_)
+bool Operand::Format::Segment (const Register register_)
 {
 	segment = register_;
 	return !register_ || register_ >= (mode == LongMode ? AMD64::FS : AMD64::ES);
 }
 
-Operand Format::ModRM (Register basereg, const Size size) const
+Operand Operand::Format::ModRM (Register basereg, const Size size) const
 {
 	if (mod == 3 || entry->flags & (HasCR | HasDR)) return Base (basereg, rm, REXB);
 	return ModMem (size);
 }
 
-Operand Format::ModMem (const Size size) const
+Operand Operand::Format::ModMem (const Size size) const
 {
 	assert (mod != 3);
 
@@ -576,7 +581,7 @@ Operand Format::ModMem (const Size size) const
 		index != 4 || prefixes[REXX] ? Base (basereg, index, REXX) : RVoid, 1u << scale, displacement, size, segment};
 }
 
-bool Format::ModRM (const Operand& operand, const Register basereg)
+bool Operand::Format::ModRM (const Operand& operand, const Register basereg)
 {
 	if (operand.model == Model::Register) return mod = 3, Base (operand.register_, basereg, rm, REXB);
 	assert (operand.model == Memory);
@@ -640,31 +645,31 @@ bool Format::ModRM (const Operand& operand, const Register basereg)
 	return true;
 }
 
-Register Format::ModReg (const Register basereg) const
+Operand::Format::Register Operand::Format::ModReg (const Register basereg) const
 {
 	if (basereg == AMD64::ES || basereg == ST0) return Register (basereg + reg);
 	return Base (basereg, reg, entry->code1 == rv ? REXB : REXR);
 }
 
-bool Format::ModReg (const Operand& operand, const Register basereg)
+bool Operand::Format::ModReg (const Operand& operand, const Register basereg)
 {
 	return Base (operand.register_, basereg, reg, entry->code1 == rv ? REXB : REXR);
 }
 
-Register Format::Base (const Register basereg, const unsigned index, const Prefix prefix) const
+Operand::Format::Register Operand::Format::Base (const Register basereg, const unsigned index, const Prefix prefix) const
 {
 	const auto register_ = Register (basereg + prefixes[prefix] * 8 + index);
 	if (IsHigh (register_) && prefixes[REX]) return Register (register_ - AH + SPL);
 	return register_;
 }
 
-bool Format::Base (const Register register_, const Register prefixReg, const Prefix prefix)
+bool Operand::Format::Base (const Register register_, const Register prefixReg, const Prefix prefix)
 {
 	if (register_ >= prefixReg) if (mode == LongMode) prefixes.set (prefix); else return false;
 	return true;
 }
 
-bool Format::Base (const Register register_, const Register basereg, unsigned& index, const Prefix prefix)
+bool Operand::Format::Base (const Register register_, const Register basereg, unsigned& index, const Prefix prefix)
 {
 	index = register_ - basereg;
 	if (register_ >= SPL && register_ <= DIL) if (mode == LongMode) prefixes.set (REX), index -= SPL - AH; else return false;
@@ -672,7 +677,7 @@ bool Format::Base (const Register register_, const Register basereg, unsigned& i
 	return true;
 }
 
-bool Format::Match (const Flags flags, const OperatingMode mode)
+bool Operand::Format::Match (const Flags flags, const OperatingMode mode)
 {
 	if ((flags & I16) && mode == RealMode) return false;
 	if ((flags & I32) && mode == ProtectedMode) return false;
@@ -680,22 +685,22 @@ bool Format::Match (const Flags flags, const OperatingMode mode)
 	return true;
 }
 
-bool Format::Match (const Register register_, const Operand& operand)
+bool Operand::Format::Match (const Register register_, const Operand& operand)
 {
 	return operand.model == Model::Register && operand.register_ == register_;
 }
 
-bool Format::Match (const Register first, const Register last, const Operand& operand)
+bool Operand::Format::Match (const Register first, const Register last, const Operand& operand)
 {
 	return operand.model == Model::Register && operand.register_ >= first && operand.register_ <= last;
 }
 
-bool Format::Match (const Model model, const Size size, const Operand& operand)
+bool Operand::Format::Match (const Model model, const Size size, const Operand& operand)
 {
-	return operand.model == model && (!operand.size || operand.size == size);
+    return operand.model == model && (!operand.size || operand.size == size);
 }
 
-bool Format::Match (const Type type, const Operand& operand)
+bool Operand::Format::Match (const Type type, const Operand& operand)
 {
 	switch (type)
 	{
@@ -703,11 +708,11 @@ bool Format::Match (const Type type, const Operand& operand)
 	case one: return Match (Immediate, Byte, operand) && operand.immediate == 1;
 	case imm8: return Match (Immediate, Byte, operand) && operand.immediate >= -128 && operand.immediate < 256;
 	case imm16: return Match (Immediate, Word, operand) && operand.immediate >= -32768 && operand.immediate < 65536;
-	case imm32: return Match (Immediate, DWord, operand) && operand.immediate >= -2147483648 && operand.immediate < 4294967296;
+	case imm32: return Match (Immediate, DWord, operand) && operand.immediate >= -2147483648LL && operand.immediate < 4294967296LL;
 	case imm64: return Match (Immediate, QWord, operand);
 	case simm8: case rel8off: return Match (Immediate, Byte, operand) && operand.immediate >= -128 && operand.immediate < 128;
 	case simm16: case rel16off: return Match (Immediate, Word, operand) && operand.immediate >= -32768 && operand.immediate < 32768;
-	case simm32: case rel32off: return Match (Immediate, DWord, operand) && operand.immediate >= -2147483648 && operand.immediate < 2147483648;
+	case simm32: case rel32off: return Match (Immediate, DWord, operand) && operand.immediate >= -2147483648LL && operand.immediate < 2147483648LL;
 	case moffset: return operand.model == Memory && !operand.register_ && !operand.index;
 	case al: return Match (AL, operand);
 	case cl: return Match (CL, operand);
@@ -758,16 +763,21 @@ bool Format::Match (const Type type, const Operand& operand)
 	}
 }
 
-bool Format::Match (const Entry& entry, const Instruction& instruction)
+bool Operand::Format::Match (const Entry& entry, const Instruction& instruction)
 {
-	if (!Match (entry.flags, instruction.mode)) return false;
-	if (instruction.prefix == Instruction::Locked && !(entry.flags & PLOCK)) return false;
-	if (instruction.prefix == Instruction::Rep && !(entry.flags & PREP)) return false;
-	if (instruction.prefix == Instruction::Repne && !(entry.flags & PREPNE)) return false;
-	return Match (entry.type1, instruction.operand1) && Match (entry.type2, instruction.operand2) && Match (entry.type3, instruction.operand3) && Match (entry.type4, instruction.operand4);
+    if (!Match (entry.flags, instruction.mode))
+        return false;
+    if (instruction.prefix == Instruction::Locked && !(entry.flags & PLOCK))
+        return false;
+    if (instruction.prefix == Instruction::Rep && !(entry.flags & PREP))
+        return false;
+    if (instruction.prefix == Instruction::Repne && !(entry.flags & PREPNE))
+        return false;
+    return Match (entry.type1, instruction.operand1) && Match (entry.type2, instruction.operand2) &&
+            Match (entry.type3, instruction.operand3) && Match (entry.type4, instruction.operand4);
 }
 
-bool Format::Match (const Entry& entry, const Format& format)
+bool Operand::Format::Match (const Entry& entry, const Format& format)
 {
 	if (!Match (entry.flags, format.mode)) return false;
 	if (entry.mnemonic == Instruction::NOP && entry.type1 == none && format.prefixes.any ()) return false;
@@ -785,7 +795,7 @@ bool Format::Match (const Entry& entry, const Format& format)
 	return !(entry.flags & DefaultSizeMask) || entry.flags & DefaultSizeMask & format.operandSize;
 }
 
-bool Format::IsHigh (const Register register_)
+bool Operand::Format::IsHigh (const Register register_)
 {
 	return register_ >= AH && register_ <= BH;
 }

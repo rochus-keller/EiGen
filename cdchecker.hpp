@@ -1,20 +1,21 @@
 // Intermediate code semantic checker
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_CODE_CHECKER_HEADER_INCLUDED
 #define ECS_CODE_CHECKER_HEADER_INCLUDED
@@ -24,40 +25,45 @@
 #include <list>
 #include <vector>
 
-namespace ECS { namespace Code
-{
-	class Checker;
-	class Platform;
+namespace ECS {
 
-	struct Section;
-	struct Type;
+    namespace Assembly
+    {
+        struct Instruction;
+        struct Program;
+        struct Section;
 
-	using Sections = std::list<Section>;
-}}
+        using Instructions = std::vector<Instruction>;
+    }
 
-namespace ECS { namespace Assembly
-{
-	struct Instruction;
-	struct Program;
-	struct Section;
+    namespace Code
+    {
+        class Platform;
 
-	using Instructions = std::vector<Instruction>;
-}}
+        struct Section;
+        struct Type;
 
-class ECS::Code::Checker : Assembly::Checker
-{
-public:
-	Checker (Diagnostics&, Charset&, Platform&);
+        using Sections = std::list<Section>;
 
-	void Check (const Assembly::Program&, Sections&) const;
-	void Check (const Assembly::Instructions&, Section&) const;
+        class Checker : Assembly::Checker
+        {
+        public:
+            Checker (Diagnostics&, Charset&, Platform&);
 
-private:
-	class Context;
+            void Check (const Assembly::Program&, Sections&) const;
+            void Check (const Assembly::Instructions&, Section&) const;
 
-	Platform& platform;
+        private:
+            class Context;
 
-	void Check (const Assembly::Section&, Sections&) const;
-};
+            Platform& platform;
+
+            void Check (const Assembly::Section&, Sections&) const;
+        };
+    }
+
+} // ECS
+
+
 
 #endif // ECS_CODE_CHECKER_HEADER_INCLUDED

@@ -1,20 +1,21 @@
 // Generic linker driver
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "driver.hpp"
 #include "objlinker.hpp"
@@ -52,8 +53,8 @@ static void Read (std::istream& stream, const Source& source, const Position&)
 	{
 		Object::MappedByteArrangement arrangement;
 		linker.Link (binaries, arrangement);
-        File file(target, GetContents ("_extension", binaries, charset, ".bin"), file.binary);
-		Object::WriteBinary (file, arrangement.bytes);
+        File file(target, GetContents ("_extension", binaries, charset, ".bin"), File::binary);
+        Object::WriteBinary (file, arrangement.bytes);
         File map(target, ".map");
 		map << arrangement.map;
 	}

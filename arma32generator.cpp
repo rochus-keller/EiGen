@@ -1,39 +1,51 @@
 // ARM A32 machine code generator
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "arma32.hpp"
 #include "arma32generator.hpp"
 #include "armgeneratorcontext.hpp"
 
-using namespace ECS;
-using namespace ARM;
-using namespace A32;
+namespace ECS {
+namespace ARM {
+namespace A32 {
 
-using Context = class A32::Generator::Context : public ARM::Generator::Context
+class Generator::Context : public ARM::Generator::Context
 {
 public:
-	using ARM::Generator::Context::Context;
+    using ARM::Generator::Context::Context;
 
 private:
-	class SmartOperand;
+    class SmartOperand : public Operand
+    {
+    public:
+        using Operand::Operand;
+        SmartOperand () = default;
+        SmartOperand (SmartOperand&&) noexcept;
+        SmartOperand (Context&, ARM::Register, const Code::Type&);
+        ~SmartOperand ();
 
-	using ARM::Generator::Context::Acquire;
-	using ARM::Generator::Context::Release;
+    private:
+        Context* context = nullptr;
+    };
+
+    using ARM::Generator::Context::Acquire;
+    using ARM::Generator::Context::Release;
 
 	SmartOperand Acquire (const Code::Type&, Index);
 	SmartOperand Load (const Code::Operand&, Index);
@@ -84,51 +96,38 @@ private:
 	auto Generate (const Code::Instruction&) -> void override;
 };
 
-using SmartOperand = class Context::SmartOperand : public Operand
-{
-public:
-	using Operand::Operand;
-	SmartOperand () = default;
-	SmartOperand (SmartOperand&&) noexcept;
-	SmartOperand (Context&, ARM::Register, const Code::Type&);
-	~SmartOperand ();
-
-private:
-	Context* context = nullptr;
-};
-
-A32::Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const FloatingPointExtension fpe) :
+Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const FloatingPointExtension fpe) :
 	ARM::Generator {d, sp, assembler, "arma32", "ARM A32", fpe}, assembler {d, c}
 {
 }
 
-void A32::Generator::Process (const Code::Sections& sections, Object::Binaries& binaries, Debugging::Information& information, std::ostream& listing) const
+void Generator::Process (const Code::Sections& sections, Object::Binaries& binaries, Debugging::Information& information, std::ostream& listing) const
 {
-	Context {*this, binaries, information, listing}.Process (sections);
+    Context {*this, binaries, information, listing}.Process (sections);
 }
 
-SmartOperand Context::Acquire (const Code::Type& type, const Index index)
+Generator::Context::SmartOperand Generator::Context::Acquire (const Code::Type& type, const Index index)
 {
 	return {*this, GetFree (index), type};
 }
 
-SmartOperand Context::Load (const Code::Operand& operand, const Index index)
+Generator::Context::SmartOperand Generator::Context::Load (const Code::Operand& operand, const Index index)
 {
 	if (IsRegister (operand)) return Select (operand, index);
 	auto result = Acquire (operand.type, index); Load (result, operand, index); return result;
 }
 
-SmartOperand Context::Acquire (const Code::Operand& operand, const Index index)
+Generator::Context::SmartOperand Generator::Context::Acquire (const Code::Operand& operand, const Index index)
 {
 	if (IsRegister (operand)) return Select (operand, index); return Acquire (operand.type, index);
 }
 
-SmartOperand Context::Evaluate (const Code::Operand& operand, const Index index)
+Generator::Context::SmartOperand Generator::Context::Evaluate (const Code::Operand& operand, const Index index)
 {
 	if (IsImmediate (operand) && GetRotation (Extract (operand, index)) != 16 && (!IsNegative (operand) || GetSize (operand) >= 4)) return Extract (operand, index); return Load (operand, index);
 }
 
-void Context::Load (const Operand& register_, const Code::Operand& operand, const Index index)
+void Generator::Context::Load (const Operand& register_, const Code::Operand& operand, const Index index)
 {
 	switch (operand.model)
 	{
@@ -158,7 +157,7 @@ void Context::Load (const Operand& register_, const Code::Operand& operand, cons
 	}
 }
 
-void Context::Store (const Operand& register_, const Code::Operand& operand, const Index index)
+void Generator::Context::Store (const Operand& register_, const Code::Operand& operand, const Index index)
 {
 	switch (operand.model)
 	{
@@ -175,7 +174,7 @@ void Context::Store (const Operand& register_, const Code::Operand& operand, con
 	}
 }
 
-void Context::Access (const Instruction::Mnemonic mnemonic, const Operand& register_, const Code::Operand& operand, const Index index)
+void Generator::Context::Access (const Instruction::Mnemonic mnemonic, const Operand& register_, const Code::Operand& operand, const Index index)
 {
 	assert (IsMemory (operand));
 	const auto displacement = (!operand.address.empty () || operand.register_ != Code::RVoid ? operand.displacement : 0) + (index * 4 % 8);
@@ -197,33 +196,33 @@ void Context::Access (const Instruction::Mnemonic mnemonic, const Operand& regis
 	Emit ({mnemonic, register_, '[', address, Immediate (isValidDisplacement ? displacement : 0), ']'});
 }
 
-void Context::Emit (const Instruction& instruction)
+void Generator::Context::Emit (const Instruction& instruction)
 {
 	assert (IsValid (instruction));
 	instruction.Emit (Reserve (4));
 	if (listing) listing << '\t' << instruction << '\n';
 }
 
-void Context::Emit (const Instruction::Mnemonic mnemonic, const Code::Operand& operand)
+void Generator::Context::Emit (const Instruction::Mnemonic mnemonic, const Code::Operand& operand)
 {
 	const Instruction instruction {mnemonic, Immediate (0), {}}; assert (IsValid (instruction));
-	Object::Patch patch {0, Object::Patch::Absolute, Object::Patch::Displacement (operand.displacement), 0};
+    Object::Patch patch {0, Object::Patch::Absolute, Object::Patch::Displacement (operand.displacement), 0};
 	instruction.Adjust (patch); AddLink (operand.address, patch); instruction.Emit (Reserve (4));
 	if (listing) WriteAddress (listing << '\t' << mnemonic << '\t', nullptr, operand.address, operand.displacement, 0) << '\n';
 }
 
-void Context::EmitMove (const Register target, const Register source)
+void Generator::Context::EmitMove (const Register target, const Register source)
 {
 	if (target != source) Emit ({target >= S0 ? Instruction::FMOVS : target >= D0 ? Instruction::FMOVD : Instruction::MOV, target, source});
 }
 
-void Context::Extend (const Operand& register_, const Code::Type& type)
+void Generator::Context::Extend (const Operand& register_, const Code::Type& type)
 {
 	if (type.size == 1) Emit ({type.model == Code::Type::Signed ? Instruction::SXTB : Instruction::UXTB, register_, register_});
 	else if (type.size == 2) Emit ({type.model == Code::Type::Signed ? Instruction::SXTH : Instruction::UXTH, register_, register_});
 }
 
-void Context::Load (const Operand& register_, const Immediate immediate, const Code::Type& type)
+void Generator::Context::Load (const Operand& register_, const Immediate immediate, const Code::Type& type)
 {
 	if (GetRotation (immediate) != 16) Emit (MOV {register_, immediate});
 	else if (GetRotation (-immediate) != 16) Emit (MOV {register_, -immediate}), Emit (RSB {register_, register_, Immediate (0)});
@@ -231,7 +230,7 @@ void Context::Load (const Operand& register_, const Immediate immediate, const C
 	if (type.model == Code::Type::Signed && !TruncatesPreserving (immediate, type.size * 8)) Extend (register_, type);
 }
 
-void Context::Load (const Operand& register_, const Code::Operand& operand)
+void Generator::Context::Load (const Operand& register_, const Code::Operand& operand)
 {
 	const auto mnemonic = GetLoadMnemonic (operand.type);
 	const auto offset = mnemonic == Instruction::LDR || mnemonic == Instruction::LDRB ? 4096 - 52 : mnemonic == Instruction::FLDD || mnemonic == Instruction::FLDS ? 1024 - 52 : 256 - 52;
@@ -239,14 +238,14 @@ void Context::Load (const Operand& register_, const Code::Operand& operand)
 	if (listing) listing << '\t' << mnemonic << '\t' << register_ << ", [" << PC << ", " << Assembly::Lexer::Offset << " (" << label << ")]\n";
 }
 
-void Context::AddDisplacement (const Operand& address, const Operand& base, const Code::Displacement displacement)
+void Generator::Context::AddDisplacement (const Operand& address, const Operand& base, const Code::Displacement displacement)
 {
 	if (GetRotation (Immediate (displacement)) != 16) Emit (ADD {address, base, Immediate (displacement)});
 	else if (GetRotation (Immediate (-displacement)) != 16) Emit (SUB {address, base, Immediate (-displacement)});
 	else Emit (ADD {address, base, Load (Code::PtrImm (generator.platform.pointer, displacement), Low)});
 }
 
-void Context::Generate (const Code::Instruction& instruction)
+void Generator::Context::Generate (const Code::Instruction& instruction)
 {
 	assert (IsSupported (instruction));
 
@@ -417,20 +416,20 @@ void Context::Generate (const Code::Instruction& instruction)
 	}
 }
 
-void Context::Move (const Code::Operand& target, const Code::Operand& source, const Index index)
+void Generator::Context::Move (const Code::Operand& target, const Code::Operand& source, const Index index)
 {
 	if (IsRegister (target)) Load (Select (target, index), source, index);
 	else Store (Load (source, index), target, index);
 }
 
-void Context::Convert (const Code::Operand& target, const Code::Operand& source)
+void Generator::Context::Convert (const Code::Operand& target, const Code::Operand& source)
 {
 	const auto result = Load (source, Low); Extend (result, target.type); Store (result, target, Low);
 	if (!IsComplex (target)) return; if (IsComplex (source)) return Move (target, source, High);
 	const auto high = Acquire (target, High); if (IsSigned (source)) Emit (MOV {high, result, ASR, Immediate (31)}); else Emit (MOV {high, Immediate (0)}); Store (high, target, High);
 }
 
-void Context::ConvertToFloat (const Code::Operand& target, const Code::Operand& source)
+void Generator::Context::ConvertToFloat (const Code::Operand& target, const Code::Operand& source)
 {
 	if (target.type == source.type) return Move (target, source, Float); const auto result = Acquire (target, Float);
 	const auto single = IsComplex (target) ? Translate (GetRegister (result), Code::Float {4}) : GetRegister (result);
@@ -439,7 +438,7 @@ void Context::ConvertToFloat (const Code::Operand& target, const Code::Operand& 
 	Store (result, target, Float);
 }
 
-void Context::ConvertFromFloat (const Code::Operand& target, const Code::Operand& source)
+void Generator::Context::ConvertFromFloat (const Code::Operand& target, const Code::Operand& source)
 {
 	const auto single = Acquire (Code::Float {4}, Float), result = Acquire (target, Low);
 	Emit ({IsComplex (source) ? Instruction::FTOSIZD : Instruction::FTOSIZS, single, Load (source, Float)});
@@ -447,7 +446,7 @@ void Context::ConvertFromFloat (const Code::Operand& target, const Code::Operand
 	const auto high = Acquire (target, High); Emit (MOV {high, result, ASR, Immediate (31)}); Store (high, target, High);
 }
 
-void Context::Copy (const Code::Operand& target, const Code::Operand& source, const Code::Operand& size)
+void Generator::Context::Copy (const Code::Operand& target, const Code::Operand& source, const Code::Operand& size)
 {
 	const auto targetAddress = Acquire (generator.platform.pointer, Low); Load (targetAddress, target, Low);
 	const auto sourceAddress = Acquire (generator.platform.pointer, Low); Load (sourceAddress, source, Low);
@@ -460,7 +459,7 @@ void Context::Copy (const Code::Operand& target, const Code::Operand& source, co
 	Emit (SUBS {count, count, increment}); Branch (NE, begin);
 }
 
-void Context::Fill (const Code::Operand& target, const Code::Operand& size, const Code::Operand& value)
+void Generator::Context::Fill (const Code::Operand& target, const Code::Operand& size, const Code::Operand& value)
 {
 	const auto count = Acquire (generator.platform.pointer, Low); Load (count, size, Low);
 	if (!IsImmediate (size)) Emit (CMP {count, Immediate (0)}), Branch (EQ, 0);
@@ -471,7 +470,7 @@ void Context::Fill (const Code::Operand& target, const Code::Operand& size, cons
 	Emit (SUBS {count, count, Immediate (1)}); Branch (NE, begin);
 }
 
-void Context::FillFloat (const Code::Operand& target, const Code::Operand& size, const Code::Operand& value)
+void Generator::Context::FillFloat (const Code::Operand& target, const Code::Operand& size, const Code::Operand& value)
 {
 	const auto count = Acquire (generator.platform.pointer, Low); Load (count, size, Low);
 	if (!IsImmediate (size)) Emit (CMP {count, Immediate (0)}), Branch (EQ, 0);
@@ -482,17 +481,17 @@ void Context::FillFloat (const Code::Operand& target, const Code::Operand& size,
 	Emit (SUBS {count, count, Immediate (1)}); Branch (NE, begin);
 }
 
-void Context::Operation (const Instruction::Mnemonic mnemonic, const Code::Operand& target, const Code::Operand& value, const Index index)
+void Generator::Context::Operation (const Instruction::Mnemonic mnemonic, const Code::Operand& target, const Code::Operand& value, const Index index)
 {
 	const auto result = Acquire (target, index); Emit ({mnemonic, result, Evaluate (value, index)}); Store (result, target, index);
 }
 
-void Context::OperationFloat (const Instruction::Mnemonic singleMnemonic, const Instruction::Mnemonic doubleMnemonic, const Code::Operand& target, const Code::Operand& value)
+void Generator::Context::OperationFloat (const Instruction::Mnemonic singleMnemonic, const Instruction::Mnemonic doubleMnemonic, const Code::Operand& target, const Code::Operand& value)
 {
 	const auto result = Acquire (target, Float); Emit ({IsComplex (target) ? doubleMnemonic : singleMnemonic, result, Load (value, Float)}); Store (result, target, Float);
 }
 
-void Context::Operation (const Instruction::Mnemonic mnemonic, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2, const Index index)
+void Generator::Context::Operation (const Instruction::Mnemonic mnemonic, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2, const Index index)
 {
 	if (IsImmediate (value1) && !IsImmediate (value2) && GetRotation (Extract (value1, index)) != 16)
 		return Operation (mnemonic == Instruction::SUB ? Instruction::RSB : mnemonic == Instruction::SUBS ? Instruction::RSBS : mnemonic == Instruction::SBC ? Instruction::RSC : mnemonic, target, value2, value1, index);
@@ -502,14 +501,14 @@ void Context::Operation (const Instruction::Mnemonic mnemonic, const Code::Opera
 	const auto result = Acquire (target, index); Emit ({mnemonic, result, Load (value1, index), value}); Store (result, target, index);
 }
 
-void Context::OperationFloat (const Instruction::Mnemonic singleMnemonic, const Instruction::Mnemonic doubleMnemonic, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
+void Generator::Context::OperationFloat (const Instruction::Mnemonic singleMnemonic, const Instruction::Mnemonic doubleMnemonic, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
 {
 	const auto value = Load (value2, Float), result = Acquire (target, Float);
 	Emit ({IsComplex (target) ? doubleMnemonic : singleMnemonic, result, Load (value1, Float), value});
 	Store (result, target, Float);
 }
 
-void Context::MultiplyComplex (const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
+void Generator::Context::MultiplyComplex (const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
 {
 	const auto value1Low = Load (value1, Low), value1High = Load (value1, High);
 	const auto value2Low = Load (value2, Low), value2High = Load (value2, High);
@@ -520,7 +519,7 @@ void Context::MultiplyComplex (const Code::Operand& target, const Code::Operand&
 	Store (resultLow, target, Low); Store (resultHigh, target, High);
 }
 
-void Context::Divide (const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2, const bool modulo)
+void Generator::Context::Divide (const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2, const bool modulo)
 {
 	const auto value1Low = Load (value1, Low), double1 = Acquire (generator.platform.float_, Float), value2Low = Load (value2, Low), double2 = Acquire (generator.platform.float_, Float);
 	const auto value1Float = Translate (GetRegister (double1), Code::Float {4}), value2Float = Translate (GetRegister (double2), Code::Float {4});
@@ -533,70 +532,70 @@ void Context::Divide (const Code::Operand& target, const Code::Operand& value1, 
 	Store (result, target, Low);
 }
 
-void Context::Shift (const ShiftMode shiftMode, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
+void Generator::Context::Shift (const ShiftMode shiftMode, const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
 {
 	const auto value = IsImmediate (value2) && Extract (value2, Low) < 32 ? Extract (value2, Low) : Load (value2, Low);
 	const auto result = Acquire (target, Low); Emit (MOV {result, Load (value1, Low), shiftMode, value}); Store (result, target, Low);
 }
 
-void Context::Push (const Code::Operand& value, const Index index)
+void Generator::Context::Push (const Code::Operand& value, const Index index)
 {
 	Emit (STMDB {SP, '!', RegisterList {GetRegister (Load (value, index))}});
 }
 
-void Context::PushFloat (const Code::Operand& value)
+void Generator::Context::PushFloat (const Code::Operand& value)
 {
 	const auto result = Load (value, Float);
 	if (IsComplex (value)) Emit (FSTMDBD {SP, '!', DoubleRegisterList {GetRegister (result)}}); else Emit (FSTMDBS {SP, '!', SingleRegisterList {GetRegister (result)}});
 }
 
-void Context::Pop (const Code::Operand& target, const Index index)
+void Generator::Context::Pop (const Code::Operand& target, const Index index)
 {
 	const auto result = Acquire (target, index); Emit (LDMIA {SP, '!', RegisterList {GetRegister (result)}}); Store (result, target, index);
 }
 
-void Context::PopFloat (const Code::Operand& target)
+void Generator::Context::PopFloat (const Code::Operand& target)
 {
 	const auto result = Acquire (target, Float);
 	if (IsComplex (target)) Emit (FLDMIAD {SP, '!', DoubleRegisterList {GetRegister (result)}}); else Emit (FLDMIAS {SP, '!', SingleRegisterList {GetRegister (result)}});
 	Store (result, target, Float);
 }
 
-void Context::Compare (const Code::Operand& value1, const Code::Operand& value2, const Index index)
+void Generator::Context::Compare (const Code::Operand& value1, const Code::Operand& value2, const Index index)
 {
 	const auto left = Load (value1, index), right = Evaluate (value2, index);
 	if (IsRegister (value1)) Extend (left, value1.type); if (IsRegister (value2)) Extend (right, value2.type); Emit (CMP {left, right});
 }
 
-void Context::CompareFloat (const Code::Operand& value1, const Code::Operand& value2)
+void Generator::Context::CompareFloat (const Code::Operand& value1, const Code::Operand& value2)
 {
 	const auto left = Load (value1, Float); Emit ({IsComplex (value1) ? Instruction::FCMPD : Instruction::FCMPS, left, Load (value2, Float)}); Emit (FMSTAT {});
 }
 
-void Context::Branch (const Instruction::Mnemonic mnemonic, const Code::Operand& target)
+void Generator::Context::Branch (const Instruction::Mnemonic mnemonic, const Code::Operand& target)
 {
 	const auto address = Load (target, Low); Emit ({mnemonic, address});
 }
 
-void Context::Branch (const ConditionCode code, const Code::Offset offset)
+void Generator::Context::Branch (const ConditionCode code, const Code::Offset offset)
 {
 	Branch (code, GetLabel (offset));
 }
 
-void Context::Branch (const ConditionCode code, const Label& label)
+void Generator::Context::Branch (const ConditionCode code, const Label& label)
 {
 	AddFixup (label, Instruction::B << 6 | code, 4);
 	if (listing) listing << '\t' << Instruction::B << code << '\t' << label << '\n';
 }
 
-void Context::FixupInstruction (const Span<Byte> bytes, const Byte*const target, const FixupCode code) const
+void Generator::Context::FixupInstruction (const Span<Byte> bytes, const Byte*const target, const FixupCode code) const
 {
 	const auto offset = Immediate (target - bytes.begin () - 8); const auto mnemonic = Instruction::Mnemonic (code >> 6);
 	if (mnemonic == Instruction::B) Instruction {mnemonic, ConditionCode (code & 0x3f), offset}.Emit (bytes);
 	else Instruction {mnemonic, Register (code & 0x3f), '[', PC, offset, ']'}.Emit (bytes);
 }
 
-A32::Instruction::Mnemonic Context::GetLoadMnemonic (const Code::Type& type) const
+Instruction::Mnemonic Generator::Context::GetLoadMnemonic (const Code::Type& type) const
 {
 	switch (type.size)
 	{
@@ -608,7 +607,7 @@ A32::Instruction::Mnemonic Context::GetLoadMnemonic (const Code::Type& type) con
 	}
 }
 
-A32::Instruction::Mnemonic Context::GetStoreMnemonic (const Code::Type& type) const
+Instruction::Mnemonic Generator::Context::GetStoreMnemonic (const Code::Type& type) const
 {
 	switch (type.size)
 	{
@@ -620,19 +619,21 @@ A32::Instruction::Mnemonic Context::GetStoreMnemonic (const Code::Type& type) co
 	}
 }
 
-SmartOperand::SmartOperand (Context& c, const ARM::Register register_, const Code::Type& type) :
-	Operand {c.Translate (register_, type)}, context {&c}
+Generator::Context::SmartOperand::SmartOperand (Context& c, const ARM::Register register_, const Code::Type& type) :
+    Operand {c.Translate (register_, type)}, context {&c}
 {
 	context->Acquire (register_);
 }
 
-SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
+Generator::Context::SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
 	Operand {std::move (operand)}, context {operand.context}
 {
 	operand.context = nullptr;
 }
 
-SmartOperand::~SmartOperand ()
+Generator::Context::SmartOperand::~SmartOperand ()
 {
 	if (context) context->Release (TranslateBack (GetRegister (*this)));
 }
+
+}}} // ECS::ARM::A32

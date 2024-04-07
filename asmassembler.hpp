@@ -1,20 +1,21 @@
 // Generic assembler
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_ASSEMBLY_ASSEMBLER_HEADER_INCLUDED
 #define ECS_ASSEMBLY_ASSEMBLER_HEADER_INCLUDED
@@ -27,72 +28,72 @@
 #include <string>
 #include <vector>
 
-namespace ECS
-{
-	enum class Endianness;
+namespace ECS {
 
-	template <typename> class Span;
+    enum class Endianness;
 
-	using Byte = std::uint8_t;
-}
+    template <typename> class Span;
 
-namespace ECS { namespace Assembly
-{
-	class Assembler;
+    using Byte = std::uint8_t;
 
-	struct Expression;
-	struct Instruction;
-	struct Program;
-	struct Section;
+    namespace Object
+    {
+        struct Binary;
+        struct Patch;
 
-	using Identifier = std::string;
-	using Instructions = std::vector<Instruction>;
-}}
+        using Binaries = std::list<Binary>;
+    }
 
-namespace ECS { namespace Object
-{
-	struct Binary;
-	struct Patch;
+    namespace Assembly {
 
-	using Binaries = std::list<Binary>;
-}}
+        struct Expression;
+        struct Instruction;
+        struct Program;
+        struct Section;
 
-class ECS::Assembly::Assembler : Checker
-{
-public:
-	virtual ~Assembler () = default;
+        using Identifier = std::string;
+        using Instructions = std::vector<Instruction>;
 
-	void Assemble (const Program&, Object::Binaries&) const;
-	void Assemble (const Instructions&, Object::Binary&) const;
+        class Assembler : Checker
+        {
+        public:
+            virtual ~Assembler () = default;
 
-protected:
-	using BitMode = unsigned;
-	using CodeAlignment = std::size_t;
-	using DataAlignment = std::size_t;
-	using Size = std::size_t;
-	using State = unsigned;
+            void Assemble (const Program&, Object::Binaries&) const;
+            void Assemble (const Instructions&, Object::Binary&) const;
 
-	Assembler (Diagnostics&, Charset&, CodeAlignment, DataAlignment, Endianness, BitMode);
+        protected:
+            using BitMode = unsigned;
+            using CodeAlignment = std::size_t;
+            using DataAlignment = std::size_t;
+            using Size = std::size_t;
+            using State = unsigned;
 
-private:
-	class Context;
+            Assembler (Diagnostics&, Charset&, CodeAlignment, DataAlignment, Endianness, BitMode);
 
-	const CodeAlignment codeAlignment;
-	const DataAlignment dataAlignment;
-	const Endianness endianness;
-	const BitMode bitmode;
+        private:
+            class Context;
 
-	void Align (Object::Binary&) const;
-	void Assemble (const Section&, Object::Binaries&) const;
+            const CodeAlignment codeAlignment;
+            const DataAlignment dataAlignment;
+            const Endianness endianness;
+            const BitMode bitmode;
 
-	virtual bool Validate (BitMode) const {return false;}
-	virtual Size GetDisplacement (Size, BitMode) const {return 0;}
-	virtual bool GetDefinition (const Identifier&, Expression&) const {return false;}
+            void Align (Object::Binary&) const;
+            void Assemble (const Section&, Object::Binaries&) const;
 
-	virtual Size ParseInstruction (std::istream&, BitMode, State&) const = 0;
-	virtual Size EmitInstruction (std::istream&, BitMode, Endianness, Span<Byte>, Object::Patch&, State&) const = 0;
+            virtual bool Validate (BitMode) const {return false;}
+            virtual Size GetDisplacement (Size, BitMode) const {return 0;}
+            virtual bool GetDefinition (const Identifier&, Expression&) const {return false;}
 
-	friend class Generator;
-};
+            virtual Size ParseInstruction (std::istream&, BitMode, State&) const = 0;
+            virtual Size EmitInstruction (std::istream&, BitMode, Endianness, Span<Byte>, Object::Patch&, State&) const = 0;
+
+            friend class Generator;
+        };
+
+    } // Assembly
+} // ECS
+
 
 #endif // ECS_ASSEMBLY_ASSEMBLER_HEADER_INCLUDED

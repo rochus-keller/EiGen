@@ -1,20 +1,21 @@
 // Generic assembler
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "asmassembler.hpp"
 #include "asmcheckercontext.hpp"
@@ -31,7 +32,7 @@ using namespace ECS;
 using namespace Object;
 using namespace Assembly;
 
-using Context = class Assembler::Context : public Checker::Context
+class Assembler::Context : public Checker::Context
 {
 public:
 	Context (const Assembler&, Binary&, Inlined);
@@ -88,22 +89,22 @@ void Assembler::Assemble (const Instructions& instructions, Binary& binary) cons
 	Context {*this, binary, true}.Process (instructions);
 }
 
-void Assembler::Assemble (const Section& section, Binaries& binaries) const
+void Assembler::Assemble (const Assembly::Section& section, Binaries& binaries) const
 {
     binaries.emplace_back (section);
     Context (*this, binaries.back(), false).Process (section.instructions); Align (binaries.back ());
 }
 
-Context::Context (const Assembler& a, Binary& b, const Inlined i) :
+Assembler::Context::Context (const Assembler& a, Binary& b, const Inlined i) :
 	Checker::Context {a, b, b.bytes.size (), IsCode (b.type) ? a.codeAlignment : a.dataAlignment, i},
     assembler(a), binary(b), endianness {assembler.endianness}, bitmode {assembler.bitmode}
 {
 }
 
-void Context::ProcessDirective (const Instruction& instruction)
+void Assembler::Context::ProcessDirective (const Instruction& instruction)
 {
 	switch (instruction.directive)
-	{
+    {
 	case Lexer::Alias:
 		assert (instruction.operands.size () == 1);
 		return ProcessAliasDirective (instruction.operands.front ());
@@ -159,54 +160,54 @@ void Context::ProcessDirective (const Instruction& instruction)
 		return;
 	}
 
-	Checker::Context::ProcessDirective (instruction);
+    Checker::Context::ProcessDirective (instruction);
 }
 
-void Context::ProcessReserveDirective (const Expression& expression)
+void Assembler::Context::ProcessReserveDirective (const Expression& expression)
 {
 	Value value; if (!GetValue (expression, value) || value < 0 || value >= 0x10000000 || value % alignment) EmitError ("invalid data reservation");
 	Reserve (value);
 }
 
-void Context::ProcessPadDirective (const Expression& expression)
+void Assembler::Context::ProcessPadDirective (const Expression& expression)
 {
 	Value value; if (!GetValue (expression, value) || value < 0 || value >= 0x10000000 || Size (value) < offset) EmitError ("invalid padding");
 	Reserve (Size (value) - offset);
 }
 
-void Context::ProcessAlignDirective (const Expression& expression)
+void Assembler::Context::ProcessAlignDirective (const Expression& expression)
 {
 	Value value; if (!GetValue (expression, value) || value <= 0 || value >= 0x10000000 || !IsPowerOfTwo (value) || value % alignment) EmitError ("invalid data alignment");
 	Reserve (ECS::Align (offset, Size (value)) - offset);
 }
 
-void Context::Reset ()
+void Assembler::Context::Reset ()
 {
-	Checker::Context::Reset (); state = 0;
+    Checker::Context::Reset (); state = 0;
 	if (!inlined) endianness = assembler.endianness, bitmode = assembler.bitmode;
 	else if (endianness != assembler.endianness) EmitError ("original endianness mode not restored");
 	else if (bitmode != assembler.bitmode) EmitError ("original bit mode not restored");
 }
 
-void Context::Reserve (const Size size)
+void Assembler::Context::Reserve (const Size size)
 {
-	Checker::Context::Reserve (size);
+    Checker::Context::Reserve (size);
 	binary.bytes.resize (std::max (offset, binary.bytes.size ()));
 }
 
-void Context::EmitData (const Value value, const Size size, const char*const type)
+void Assembler::Context::EmitData (const Value value, const Size size, const char*const type)
 {
 	if (!TruncatesPreserving<std::uint64_t> (value, size * 8) && !TruncatesPreserving<std::int64_t> (value, size * 8)) EmitError (Format ("invalid %0 value", type));
 	Reserve (size); if (!parsing) Pattern {size, endianness}.Patch (value, {binary.bytes.data () + offset - size, size});
 }
 
-void Context::ProcessDataDirective (const Expressions& expressions, const Size size, const char*const type)
+void Assembler::Context::ProcessDataDirective (const Expressions& expressions, const Size size, const char*const type)
 {
 	assert (!expressions.empty ());
 	Batch (expressions, [this, size, type] (const Expression& expression) {ProcessDataDirective (expression, size, type);});
 }
 
-void Context::ProcessDataDirective (const Expression& expression, const Size size, const char*const type)
+void Assembler::Context::ProcessDataDirective (const Expression& expression, const Size size, const char*const type)
 {
 	Value value; if (GetValue (expression, value)) return EmitData (value, size, type);
 	String string; if (GetString (expression, string)) return Batch (string, [this, size, type] (const String::value_type character) {EmitData (charset.Encode (character), size, type);});
@@ -215,7 +216,7 @@ void Context::ProcessDataDirective (const Expression& expression, const Size siz
 	if (!parsing) patch.pattern = {size, endianness}, binary.AddLink (link.name, patch);
 }
 
-bool Context::GetLink (const Expression& expression, Link& link) const
+bool Assembler::Context::GetLink (const Expression& expression, Link& link) const
 {
 	assert (link.name.empty ());
 
@@ -266,7 +267,7 @@ bool Context::GetLink (const Expression& expression, Link& link) const
 	}
 }
 
-bool Context::GetValue (const Expression& expression, Value& value) const
+bool Assembler::Context::GetValue (const Expression& expression, Value& value) const
 {
 	switch (expression.model)
 	{
@@ -281,7 +282,7 @@ bool Context::GetValue (const Expression& expression, Value& value) const
 	case Expression::PostfixOperation:
 	case Expression::FunctionalOperation:
 	case Expression::Parenthesized:
-		return Checker::Context::GetValue (expression, value);
+        return Checker::Context::GetValue (expression, value);
 
 	case Expression::Character:
 	{
@@ -297,7 +298,7 @@ bool Context::GetValue (const Expression& expression, Value& value) const
 		case Lexer::BitMode: return value = bitmode, assembler.Validate (bitmode);
 		case Lexer::Little: return value = endianness == Endianness::Little, true;
 		case Lexer::Big: return value = endianness == Endianness::Big, true;
-		default: return Checker::Context::GetValue (expression, value);
+        default: return Checker::Context::GetValue (expression, value);
 		}
 
 	default:
@@ -305,26 +306,26 @@ bool Context::GetValue (const Expression& expression, Value& value) const
 	}
 }
 
-void Context::ProcessBitModeDirective (const Expression& expression)
+void Assembler::Context::ProcessBitModeDirective (const Expression& expression)
 {
 	Value value; if (!GetValue (expression, value) || value <= 0 || value > 256 || !assembler.Validate (value)) EmitError ("invalid bit mode");
 	bitmode = value; state = 0;
 }
 
-void Context::ProcessAliasDirective (const Expression& expression)
+void Assembler::Context::ProcessAliasDirective (const Expression& expression)
 {
 	Identifier identifier; if (!GetIdentifier (expression, identifier) || identifier == binary.name) EmitError ("invalid alias name");
 	if (std::find_if (binary.aliases.begin (), binary.aliases.end (), [&identifier] (const Alias& alias) {return alias.name == identifier;}) != binary.aliases.end ()) EmitError ("duplicated alias name");
 	if (!parsing) binary.aliases.emplace_back (identifier, offset);
 }
 
-void Context::ProcessRequireDirective (const Expression& expression)
+void Assembler::Context::ProcessRequireDirective (const Expression& expression)
 {
 	Identifier identifier; if (!GetIdentifier (expression, identifier)) EmitError ("invalid name requirement");
 	if (!parsing && !binary.AddRequirement (identifier)) EmitError ("duplicated name requirement");
 }
 
-void Context::ProcessEmbedDirective (const Expression& expression)
+void Assembler::Context::ProcessEmbedDirective (const Expression& expression)
 {
 	String string; if (!GetString (expression, string)) EmitError ("invalid filename");
     std::ifstream file;
@@ -336,12 +337,12 @@ void Context::ProcessEmbedDirective (const Expression& expression)
 	if (!file) EmitError (Format ("failed to read binary file '%0'", string));
 }
 
-Context::Size Context::GetDisplacement (const Size size) const
+Assembler::Context::Size Assembler::Context::GetDisplacement (const Size size) const
 {
 	return assembler.GetDisplacement (size, bitmode);
 }
 
-Context::Size Context::AssembleInstruction (std::istream& stream, const Link& link)
+Assembler::Context::Size Assembler::Context::AssembleInstruction (std::istream& stream, const Link& link)
 {
 	if (parsing) return assembler.ParseInstruction (stream, bitmode, state); Patch patch {offset, link.mode, link.displacement, link.scale};
 	const auto size = assembler.EmitInstruction (stream, bitmode, endianness, {binary.bytes.data () + offset, binary.bytes.size () - offset}, patch, state);
@@ -349,7 +350,7 @@ Context::Size Context::AssembleInstruction (std::istream& stream, const Link& li
 	return size;
 }
 
-bool Context::GetDefinition (const Identifier& identifier, Expression& value) const
+bool Assembler::Context::GetDefinition (const Identifier& identifier, Expression& value) const
 {
-	return assembler.GetDefinition (identifier, value) || Checker::Context::GetDefinition (identifier, value);
+    return assembler.GetDefinition (identifier, value) || Checker::Context::GetDefinition (identifier, value);
 }

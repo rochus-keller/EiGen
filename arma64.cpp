@@ -1,20 +1,21 @@
 // ARM A64 instruction set representation
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "arma64.hpp"
 #include "object.hpp"
@@ -22,16 +23,17 @@
 
 #include <cassert>
 
-using namespace ECS;
-using namespace ARM;
-using namespace A64;
+namespace ECS {
+namespace ARM {
 
-struct A64::Instruction::Entry
+namespace A64 {
+struct Instruction::Entry
 {
 	Mnemonic mnemonic;
 	Opcode opcode, mask;
 	Operand::Type types[5];
 };
+}
 
 const Opcode A64::Operand::codes[] {
 	#define SYMBOL(name, symbol, code, group) code,
@@ -163,123 +165,123 @@ bool A64::Operand::Decode (const Opcode opcode, const Type type)
 	case I0: model = Immediate; immediate = 0; break;
 	case I1: case I2: case I4: case I8: case I16: case I32: case I64: model = Immediate; immediate = 1 << (type - I1); break;
 	case I3: case I6: case I12: case I24: case I48: model = Immediate; immediate = 3 << (type - I3); break;
-	case U4: model = Immediate; immediate = A64::Immediate (opcode >> 8 & 0xf); break;
-	case U5: case U6: model = Immediate; immediate = A64::Immediate (opcode >> 16 & 0x3f); break;
+    case U4: model = Immediate; immediate = A64::Immediate (opcode >> 8 & 0xf); break;
+    case U5: case U6: model = Immediate; immediate = A64::Immediate (opcode >> 16 & 0x3f); break;
 	case U5ND: if ((opcode >> 16 & 0x1f) != (opcode >> 10 & 0x1f) + 1) return false;
-	case U5N: model = Immediate; immediate = -A64::Immediate (opcode >> 16) & 0x1f; break;
-	case U5P: model = Immediate; immediate = A64::Immediate (opcode & 0x1f); break;
-	case U5S: case U6S: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f); break;
-	case U5SD: case U6SD: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f) + 1; break;
-	case U5SS: case U6SS: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f) - this[-1].immediate + 1; break;
+    case U5N: model = Immediate; immediate = -A64::Immediate (opcode >> 16) & 0x1f; break;
+    case U5P: model = Immediate; immediate = A64::Immediate (opcode & 0x1f); break;
+    case U5S: case U6S: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f); break;
+    case U5SD: case U6SD: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f) + 1; break;
+    case U5SS: case U6SS: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0x3f) - this[-1].immediate + 1; break;
 	case U6ND: if ((opcode >> 16 & 0x3f) != (opcode >> 10 & 0x3f) + 1) return false;
-	case U6N: model = Immediate; immediate = -A64::Immediate (opcode >> 16) & 0x3f; break;
-	case U7H: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x3f); break;
-	case U8: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x1f) | A64::Immediate (opcode >> 16 & 0x7) << 5; break;
-	case U12: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0xfff); break;
-	case U16: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0xffff); break;
-	case U16I: model = Immediate; immediate = ~A64::Immediate (opcode >> 5 & 0xffff); break;
-	case UDB: case UQB: model = Immediate; immediate = A64::Immediate (opcode >> 11 & 0xf); break;
-	case S7W: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 55; break;
-	case S7X: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 54; break;
-	case S7Q: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 53; break;
-	case S9: model = Immediate; immediate = A64::Immediate (opcode) << 43 >> 55; break;
-	case S21: model = Immediate; immediate = A64::Immediate (opcode >> 29 & 0x3) | A64::Immediate (opcode >> 5) << 45 >> 43; break;
-	case S21P: model = Immediate; immediate = A64::Immediate (opcode >> 29 & 0x3) << 12 | A64::Immediate (opcode >> 5) << 45 >> 31; break;
-	case O14: model = Immediate; immediate = A64::Immediate (opcode >> 5) << 50 >> 48; break;
-	case O19: model = Immediate; immediate = A64::Immediate (opcode >> 5) << 45 >> 43; break;
-	case O26: model = Immediate; immediate = A64::Immediate (opcode) << 38 >> 36; break;
-	case BW: model = Immediate; immediate = A64::Immediate (opcode >> 19 & 0x1f); break;
-	case BX: model = Immediate; immediate = A64::Immediate (opcode >> 19 & 0x1f) | A64::Immediate (opcode >> 31 & 0x1) << 5; break;
-	case FBW: case FBX: model = Immediate; immediate = 64 - A64::Immediate (opcode >> 10 & 0x3f); break;
-	case FBB: case FBH: case FBS: case FBD: model = Immediate; immediate = (1 << type - FBB + 3) - A64::Immediate (opcode >> 16 & (1 << type - FBB + 3) - 1); break;
-	case FDB: case FDH: case FDS: case FDD: model = Immediate; immediate = A64::Immediate (opcode >> 16 & (1 << type - FDB + 3) - 1); break;
+    case U6N: model = Immediate; immediate = -A64::Immediate (opcode >> 16) & 0x3f; break;
+    case U7H: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x3f); break;
+    case U8: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x1f) | A64::Immediate (opcode >> 16 & 0x7) << 5; break;
+    case U12: model = Immediate; immediate = A64::Immediate (opcode >> 10 & 0xfff); break;
+    case U16: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0xffff); break;
+    case U16I: model = Immediate; immediate = ~A64::Immediate (opcode >> 5 & 0xffff); break;
+    case UDB: case UQB: model = Immediate; immediate = A64::Immediate (opcode >> 11 & 0xf); break;
+    case S7W: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 55; break;
+    case S7X: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 54; break;
+    case S7Q: model = Immediate; immediate = A64::Immediate (opcode >> 15) << 57 >> 53; break;
+    case S9: model = Immediate; immediate = A64::Immediate (opcode) << 43 >> 55; break;
+    case S21: model = Immediate; immediate = A64::Immediate (opcode >> 29 & 0x3) | A64::Immediate (opcode >> 5) << 45 >> 43; break;
+    case S21P: model = Immediate; immediate = A64::Immediate (opcode >> 29 & 0x3) << 12 | A64::Immediate (opcode >> 5) << 45 >> 31; break;
+    case O14: model = Immediate; immediate = A64::Immediate (opcode >> 5) << 50 >> 48; break;
+    case O19: model = Immediate; immediate = A64::Immediate (opcode >> 5) << 45 >> 43; break;
+    case O26: model = Immediate; immediate = A64::Immediate (opcode) << 38 >> 36; break;
+    case BW: model = Immediate; immediate = A64::Immediate (opcode >> 19 & 0x1f); break;
+    case BX: model = Immediate; immediate = A64::Immediate (opcode >> 19 & 0x1f) | A64::Immediate (opcode >> 31 & 0x1) << 5; break;
+    case FBW: case FBX: model = Immediate; immediate = 64 - A64::Immediate (opcode >> 10 & 0x3f); break;
+    case FBB: case FBH: case FBS: case FBD: model = Immediate; immediate = (1 << type - FBB + 3) - A64::Immediate (opcode >> 16 & (1 << type - FBB + 3) - 1); break;
+    case FDB: case FDH: case FDS: case FDD: model = Immediate; immediate = A64::Immediate (opcode >> 16 & (1 << type - FDB + 3) - 1); break;
 	case IW: model = Immediate; immediate = Decode (opcode >> 10 & 0xfff, 32); break;
 	case IX: model = Immediate; immediate = Decode (opcode >> 10 & 0x1fff, 64); break;
-	case NZCV: model = Immediate; immediate = A64::Immediate (opcode & 0xf); break;
-	case OP1: model = Immediate; immediate = A64::Immediate (opcode >> 16 & 0x7); break;
-	case OP2: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x7); break;
-	case R11: model = Immediate; immediate = A64::Immediate (opcode >> 11 & 0x3) * 90; break;
-	case R12: model = Immediate; immediate = A64::Immediate (opcode >> 12 & 0x1 ? 270 : 90); break;
-	case R13: model = Immediate; immediate = A64::Immediate (opcode >> 13 & 0x3) * 90; break;
+    case NZCV: model = Immediate; immediate = A64::Immediate (opcode & 0xf); break;
+    case OP1: model = Immediate; immediate = A64::Immediate (opcode >> 16 & 0x7); break;
+    case OP2: model = Immediate; immediate = A64::Immediate (opcode >> 5 & 0x7); break;
+    case R11: model = Immediate; immediate = A64::Immediate (opcode >> 11 & 0x3) * 90; break;
+    case R12: model = Immediate; immediate = A64::Immediate (opcode >> 12 & 0x1 ? 270 : 90); break;
+    case R13: model = Immediate; immediate = A64::Immediate (opcode >> 13 & 0x3) * 90; break;
 	case FZ: model = FloatImmediate; floatImmediate = 0; break;
 	case F5: model = FloatImmediate; floatImmediate = Decode (opcode >> 5 & 0x1f | (opcode >> 16 & 0x7) << 5); break;
 	case F13: model = FloatImmediate; floatImmediate = Decode (opcode >> 13 & 0xff); break;
-	case Wa: case Wt2: model = Register; register_ = A64::Register (W0 + (opcode >> 10 & 0x1f)); break;
-	case Wd: case Wt: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f)); break;
-	case WdSP: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f)); if (register_ == WZR) register_ = WSP; break;
-	case Wm: case Ws: model = Register; register_ = A64::Register (W0 + (opcode >> 16 & 0x1f)); break;
+    case Wa: case Wt2: model = Register; register_ = A64::Register (W0 + (opcode >> 10 & 0x1f)); break;
+    case Wd: case Wt: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f)); break;
+    case WdSP: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f)); if (register_ == WZR) register_ = WSP; break;
+    case Wm: case Ws: model = Register; register_ = A64::Register (W0 + (opcode >> 16 & 0x1f)); break;
 	case Wnm: case WnmZ: if ((opcode >> 5 & 0x1f) != (opcode >> 16 & 0x1f)) return false;
-	case Wn: case WnNZ: model = Register; register_ = A64::Register (W0 + (opcode >> 5 & 0x1f)); break;
-	case WnSP: model = Register; register_ = A64::Register (W0 + (opcode >> 5 & 0x1f)); if (register_ == WZR) register_ = WSP; break;
-	case WsP: model = Register; register_ = A64::Register (W0 + (opcode >> 16 & 0x1f) + 1); break;
-	case WtP: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f) + 1); break;
-	case Xa: case Xt2: model = Register; register_ = A64::Register (X0 + (opcode >> 10 & 0x1f)); break;
-	case Xd: case Xt: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f)); break;
-	case XdSP: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f)); if (register_ == XZR) register_ = SP; break;
-	case Xm: case XmNZ: case Xs: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f)); break;
-	case XmSP: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f)); if (register_ == XZR) register_ = SP; break;
+    case Wn: case WnNZ: model = Register; register_ = A64::Register (W0 + (opcode >> 5 & 0x1f)); break;
+    case WnSP: model = Register; register_ = A64::Register (W0 + (opcode >> 5 & 0x1f)); if (register_ == WZR) register_ = WSP; break;
+    case WsP: model = Register; register_ = A64::Register (W0 + (opcode >> 16 & 0x1f) + 1); break;
+    case WtP: model = Register; register_ = A64::Register (W0 + (opcode & 0x1f) + 1); break;
+    case Xa: case Xt2: model = Register; register_ = A64::Register (X0 + (opcode >> 10 & 0x1f)); break;
+    case Xd: case Xt: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f)); break;
+    case XdSP: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f)); if (register_ == XZR) register_ = SP; break;
+    case Xm: case XmNZ: case Xs: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f)); break;
+    case XmSP: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f)); if (register_ == XZR) register_ = SP; break;
 	case Xnm: case XnmZ: if ((opcode >> 5 & 0x1f) != (opcode >> 16 & 0x1f)) return false;
-	case Xn: case XnNZ: model = Register; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); break;
-	case XnSP: model = Register; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; break;
-	case XsP: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f) + 1); break;
-	case XtP: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f) + 1); break;
-	case Bd: case Bt: model = Register; register_ = A64::Register (B0 + (opcode & 0x1f)); break;
-	case Bm: model = Register; register_ = A64::Register (B0 + (opcode >> 16 & 0x1f)); break;
-	case Bn: model = Register; register_ = A64::Register (B0 + (opcode >> 5 & 0x1f)); break;
-	case Ha: model = Register; register_ = A64::Register (H0 + (opcode >> 10 & 0x1f)); break;
-	case Hd: case Ht: model = Register; register_ = A64::Register (H0 + (opcode & 0x1f)); break;
-	case Hm: model = Register; register_ = A64::Register (H0 + (opcode >> 16 & 0x1f)); break;
-	case Hn: model = Register; register_ = A64::Register (H0 + (opcode >> 5 & 0x1f)); break;
-	case Sa: case St2: model = Register; register_ = A64::Register (S0 + (opcode >> 10 & 0x1f)); break;
-	case Sd: case St: model = Register; register_ = A64::Register (S0 + (opcode & 0x1f)); break;
-	case Sm: model = Register; register_ = A64::Register (S0 + (opcode >> 16 & 0x1f)); break;
-	case Sn: model = Register; register_ = A64::Register (S0 + (opcode >> 5 & 0x1f)); break;
-	case Da: case Dt2: model = Register; register_ = A64::Register (D0 + (opcode >> 10 & 0x1f)); break;
-	case Dd: case Dt: model = Register; register_ = A64::Register (D0 + (opcode & 0x1f)); break;
-	case Dm: model = Register; register_ = A64::Register (D0 + (opcode >> 16 & 0x1f)); break;
-	case Dn: model = Register; register_ = A64::Register (D0 + (opcode >> 5 & 0x1f)); break;
-	case Qd: case Qt: model = Register; register_ = A64::Register (Q0 + (opcode & 0x1f)); break;
-	case Qn: model = Register; register_ = A64::Register (Q0 + (opcode >> 5 & 0x1f)); break;
-	case Qt2: model = Register; register_ = A64::Register (Q0 + (opcode >> 10 & 0x1f)); break;
+    case Xn: case XnNZ: model = Register; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); break;
+    case XnSP: model = Register; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; break;
+    case XsP: model = Register; register_ = A64::Register (X0 + (opcode >> 16 & 0x1f) + 1); break;
+    case XtP: model = Register; register_ = A64::Register (X0 + (opcode & 0x1f) + 1); break;
+    case Bd: case Bt: model = Register; register_ = A64::Register (B0 + (opcode & 0x1f)); break;
+    case Bm: model = Register; register_ = A64::Register (B0 + (opcode >> 16 & 0x1f)); break;
+    case Bn: model = Register; register_ = A64::Register (B0 + (opcode >> 5 & 0x1f)); break;
+    case Ha: model = Register; register_ = A64::Register (H0 + (opcode >> 10 & 0x1f)); break;
+    case Hd: case Ht: model = Register; register_ = A64::Register (H0 + (opcode & 0x1f)); break;
+    case Hm: model = Register; register_ = A64::Register (H0 + (opcode >> 16 & 0x1f)); break;
+    case Hn: model = Register; register_ = A64::Register (H0 + (opcode >> 5 & 0x1f)); break;
+    case Sa: case St2: model = Register; register_ = A64::Register (S0 + (opcode >> 10 & 0x1f)); break;
+    case Sd: case St: model = Register; register_ = A64::Register (S0 + (opcode & 0x1f)); break;
+    case Sm: model = Register; register_ = A64::Register (S0 + (opcode >> 16 & 0x1f)); break;
+    case Sn: model = Register; register_ = A64::Register (S0 + (opcode >> 5 & 0x1f)); break;
+    case Da: case Dt2: model = Register; register_ = A64::Register (D0 + (opcode >> 10 & 0x1f)); break;
+    case Dd: case Dt: model = Register; register_ = A64::Register (D0 + (opcode & 0x1f)); break;
+    case Dm: model = Register; register_ = A64::Register (D0 + (opcode >> 16 & 0x1f)); break;
+    case Dn: model = Register; register_ = A64::Register (D0 + (opcode >> 5 & 0x1f)); break;
+    case Qd: case Qt: model = Register; register_ = A64::Register (Q0 + (opcode & 0x1f)); break;
+    case Qn: model = Register; register_ = A64::Register (Q0 + (opcode >> 5 & 0x1f)); break;
+    case Qt2: model = Register; register_ = A64::Register (Q0 + (opcode >> 10 & 0x1f)); break;
 	case V1DB: case V1DH: case V1DS: case V1DD: case V1QB: case V1QH: case V1QS: case V1QD:
 	case V2DB: case V2DH: case V2DS: case V2DD: case V2QB: case V2QH: case V2QS: case V2QD:
 	case V3DB: case V3DH: case V3DS: case V3DD: case V3QB: case V3QH: case V3QS: case V3QD:
-	case V4DB: case V4DH: case V4DS: case V4DD: case V4QB: case V4QH: case V4QS: case V4QD: model = VectorSet; register_ = A64::Register (V0 + (opcode & 0x1f)); size = (type - V1DB) / 8u + 1u; format = Format (F8B + (type - V1DB) % 8u); break;
-	case W1QB: case W2QB: case W3QB: case W4QB: model = VectorSet; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); size = type - W1QB + 1u; format = F16B; break;
-	case VaSH: case VaDB: case VaDH: case VaDS: case VaDD: case VaQB: case VaQH: case VaQS: case VaQD: case VaQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 10 & 0x1f)); format = Format (type - VaSH); break;
-	case VdSH: case VdDB: case VdDH: case VdDS: case VdDD: case VdQB: case VdQH: case VdQS: case VdQD: case VdQQ: model = Vector; register_ = A64::Register (V0 + (opcode & 0x1f)); format = Format (type - VdSH); break;
-	case VmSH: case VmDB: case VmDH: case VmDS: case VmDD: case VmQB: case VmQH: case VmQS: case VmQD: case VmQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); format = Format (type - VmSH); break;
-	case VnSH: case VnDB: case VnDH: case VnDS: case VnDD: case VnQB: case VnQH: case VnQS: case VnQD: case VnQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); format = Format (type - VnSH); break;
-	case VoSH: case VoDB: case VoDH: case VoDS: case VoDD: case VoQB: case VoQH: case VoQS: case VoQD: case VoQQ: if ((opcode >> 5 & 0x1f) != (opcode >> 16 & 0x1f)) return false; model = Vector; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); format = Format (type - VoSH); break;
+    case V4DB: case V4DH: case V4DS: case V4DD: case V4QB: case V4QH: case V4QS: case V4QD: model = VectorSet; register_ = A64::Register (V0 + (opcode & 0x1f)); size = (type - V1DB) / 8u + 1u; format = Format (F8B + (type - V1DB) % 8u); break;
+    case W1QB: case W2QB: case W3QB: case W4QB: model = VectorSet; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); size = type - W1QB + 1u; format = F16B; break;
+    case VaSH: case VaDB: case VaDH: case VaDS: case VaDD: case VaQB: case VaQH: case VaQS: case VaQD: case VaQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 10 & 0x1f)); format = Format (type - VaSH); break;
+    case VdSH: case VdDB: case VdDH: case VdDS: case VdDD: case VdQB: case VdQH: case VdQS: case VdQD: case VdQQ: model = Vector; register_ = A64::Register (V0 + (opcode & 0x1f)); format = Format (type - VdSH); break;
+    case VmSH: case VmDB: case VmDH: case VmDS: case VmDD: case VmQB: case VmQH: case VmQS: case VmQD: case VmQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); format = Format (type - VmSH); break;
+    case VnSH: case VnDB: case VnDH: case VnDS: case VnDD: case VnQB: case VnQH: case VnQS: case VnQD: case VnQQ: model = Vector; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); format = Format (type - VnSH); break;
+    case VoSH: case VoDB: case VoDH: case VoDS: case VoDD: case VoQB: case VoQH: case VoQS: case VoQD: case VoQQ: if ((opcode >> 5 & 0x1f) != (opcode >> 16 & 0x1f)) return false; model = Vector; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); format = Format (type - VoSH); break;
 	case E1B: case E1H: case E1S: case E1D: case E2B: case E2H: case E2S: case E2D: case E3B: case E3H: case E3S: case E3D: case E4B: case E4H: case E4S: case E4D:
-		model = ElementSet; register_ = A64::Register (V0 + (opcode & 0x1f)); size = (type - E1B) / 4u + 1u; width = Width ((type - E1B) % 4u); immediate = (A64::Immediate (opcode >> 10 & 0x7) | A64::Immediate (opcode >> 30 & 0x1) << 3) >> width; break;
-	case EdB: case EdH: case EdS: case EdD: model = Element; register_ = A64::Register (V0 + (opcode & 0x1f)); width = Width (type - EdB); immediate = A64::Immediate (opcode >> 17 + width & 0xf >> width); break;
-	case EdD0: model = Element; register_ = A64::Register (V0 + (opcode & 0x1f)); width = WD; immediate = 1; break;
-	case EnD0: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = WD; immediate = 1; break;
-	case EnS1: case EnD1: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (WS + type - EnS1); immediate = A64::Immediate (opcode >> 19 + width - WS & 3 >> width - WS); break;
-	case EnB4: case EnH4: case EnS4: case EnD4: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (type - EnB4); immediate = A64::Immediate (opcode >> 11 + width & 0xf >> width); break;
-	case EnB5: case EnH5: case EnS5: case EnD5: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (type - EnB5); immediate = A64::Immediate (opcode >> 17 + width & 0xf >> width); break;
-	case EmH1: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = WH; immediate = A64::Immediate (opcode >> 21 & 0x1); break;
-	case EmS1: case EmD1: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = Width (WS + type - EmS1); immediate = A64::Immediate (opcode >> 11 & 0x1); break;
-	case EmB2: case EmH2: case EmS2: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = Width (WB + type - EmB2); immediate = A64::Immediate (opcode >> 21 & 0x1) | A64::Immediate (opcode >> 11 & 0x1) << 1; break;
-	case EmH3: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0xf)); width = WH; immediate = A64::Immediate (opcode >> 20 & 0x3) | A64::Immediate (opcode >> 11 & 0x1) << 2; break;
-	case EmSI: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = WS; immediate = A64::Immediate (opcode >> 12 & 0x3); break;
-	case MZ: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = 0; preindexed = false; break;
-	case M7W: case M7WP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 55; preindexed = type == M7WP; break;
-	case M7X: case M7XP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 54; preindexed = type == M7XP; break;
-	case M7Q: case M7QP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 53; preindexed = type == M7QP; break;
-	case M9B: case M9BP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode) << 43 >> 55; preindexed = type == M9BP; break;
-	case M9X: case M9XP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 12 & 0x1ff) << 3 | A64::Immediate (opcode >> 22) << 63 >> 51; preindexed = type == M9XP; break;
-	case M12B: case M12H: case M12W: case M12X: case M12Q: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 10 & 0xfff) << type - M12B; preindexed = false; break;
-	case ShW: case ShWR: case ShX: case ShXR: model = Shift; shiftmode = ARM::ShiftMode (opcode >> 22 & 0x3); immediate = A64::Immediate (opcode >> 10 & 0x3f); break;
-	case MSEB: case MSEH: case MSEW: case MSEX: case MSEQ: model = (opcode >> 13 & 0x7) == 3 ? ShiftedIndex : ExtendedIndex; if (model == ExtendedIndex) extension = A64::Extension (opcode >> 13 & 0x7);
-		register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 12 & 0x1) * (type - MSEB);
-		index = A64::Register ((model == ShiftedIndex || model == ExtendedIndex && extension == SEXTX ? X0 : W0) + (opcode >> 16 & 0x1f)); break;
-	case Ext: model = Extension; extension = A64::Extension (opcode >> 13 & 0x7); immediate = A64::Immediate (opcode >> 10 & 0x3); break;
-	case LI: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 22 & 0x1) * 12; break;
-	case LE: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 10 & 0x3); break;
-	case LBH: case LBS: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 13 & 0x3) << 3; break;
-	case LW: case LX: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 21 & 0x3) << 4; break;
+        model = ElementSet; register_ = A64::Register (V0 + (opcode & 0x1f)); size = (type - E1B) / 4u + 1u; width = Width ((type - E1B) % 4u); immediate = (A64::Immediate (opcode >> 10 & 0x7) | A64::Immediate (opcode >> 30 & 0x1) << 3) >> width; break;
+    case EdB: case EdH: case EdS: case EdD: model = Element; register_ = A64::Register (V0 + (opcode & 0x1f)); width = Width (type - EdB); immediate = A64::Immediate (opcode >> 17 + width & 0xf >> width); break;
+    case EdD0: model = Element; register_ = A64::Register (V0 + (opcode & 0x1f)); width = WD; immediate = 1; break;
+    case EnD0: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = WD; immediate = 1; break;
+    case EnS1: case EnD1: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (WS + type - EnS1); immediate = A64::Immediate (opcode >> 19 + width - WS & 3 >> width - WS); break;
+    case EnB4: case EnH4: case EnS4: case EnD4: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (type - EnB4); immediate = A64::Immediate (opcode >> 11 + width & 0xf >> width); break;
+    case EnB5: case EnH5: case EnS5: case EnD5: model = Element; register_ = A64::Register (V0 + (opcode >> 5 & 0x1f)); width = Width (type - EnB5); immediate = A64::Immediate (opcode >> 17 + width & 0xf >> width); break;
+    case EmH1: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = WH; immediate = A64::Immediate (opcode >> 21 & 0x1); break;
+    case EmS1: case EmD1: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = Width (WS + type - EmS1); immediate = A64::Immediate (opcode >> 11 & 0x1); break;
+    case EmB2: case EmH2: case EmS2: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = Width (WB + type - EmB2); immediate = A64::Immediate (opcode >> 21 & 0x1) | A64::Immediate (opcode >> 11 & 0x1) << 1; break;
+    case EmH3: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0xf)); width = WH; immediate = A64::Immediate (opcode >> 20 & 0x3) | A64::Immediate (opcode >> 11 & 0x1) << 2; break;
+    case EmSI: model = Element; register_ = A64::Register (V0 + (opcode >> 16 & 0x1f)); width = WS; immediate = A64::Immediate (opcode >> 12 & 0x3); break;
+    case MZ: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = 0; preindexed = false; break;
+    case M7W: case M7WP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 55; preindexed = type == M7WP; break;
+    case M7X: case M7XP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 54; preindexed = type == M7XP; break;
+    case M7Q: case M7QP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 15) << 57 >> 53; preindexed = type == M7QP; break;
+    case M9B: case M9BP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode) << 43 >> 55; preindexed = type == M9BP; break;
+    case M9X: case M9XP: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 12 & 0x1ff) << 3 | A64::Immediate (opcode >> 22) << 63 >> 51; preindexed = type == M9XP; break;
+    case M12B: case M12H: case M12W: case M12X: case M12Q: model = Memory; register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 10 & 0xfff) << type - M12B; preindexed = false; break;
+    case ShW: case ShWR: case ShX: case ShXR: model = Shift; shiftmode = ARM::ShiftMode (opcode >> 22 & 0x3); immediate = A64::Immediate (opcode >> 10 & 0x3f); break;
+    case MSEB: case MSEH: case MSEW: case MSEX: case MSEQ: model = (opcode >> 13 & 0x7) == 3 ? ShiftedIndex : ExtendedIndex; if (model == ExtendedIndex) extension = A64::Extension (opcode >> 13 & 0x7);
+        register_ = A64::Register (X0 + (opcode >> 5 & 0x1f)); if (register_ == XZR) register_ = SP; immediate = A64::Immediate (opcode >> 12 & 0x1) * (type - MSEB);
+        index = A64::Register ((model == ShiftedIndex || model == ExtendedIndex && extension == SEXTX ? X0 : W0) + (opcode >> 16 & 0x1f)); break;
+    case Ext: model = Extension; extension = A64::Extension (opcode >> 13 & 0x7); immediate = A64::Immediate (opcode >> 10 & 0x3); break;
+    case LI: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 22 & 0x1) * 12; break;
+    case LE: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 10 & 0x3); break;
+    case LBH: case LBS: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 13 & 0x3) << 3; break;
+    case LW: case LX: model = Shift; shiftmode = ARM::LSL; immediate = A64::Immediate (opcode >> 21 & 0x3) << 4; break;
 	case CC: model = ConditionCode; code = GetConditionCode (opcode >> 12 & 0xf); break;
 	case CCI: model = ConditionCode; code = GetConditionCode (opcode >> 12 & 0xf ^ 0x1); break;
 	case Cm: model = CoprocessorRegister; coregister = ARM::CoprocessorRegister (opcode >> 8 & 0xf); break;
@@ -510,7 +512,7 @@ bool A64::Operand::IsCompatibleWith (const Type type) const
 	}
 }
 
-Mask A64::Operand::Decode (const Opcode immediate, const Bits bits)
+A64::Mask A64::Operand::Decode (const Opcode immediate, const Bits bits)
 {
 	Bits size = 1; for (auto imms = immediate >> 6 & 0x40 | ~immediate & 0x3f; imms; imms >>= 1) size *= 2;
 	Bits length = (immediate & (size - 1)) + 1;
@@ -534,7 +536,7 @@ Opcode A64::Operand::Encode (Mask mask, const Bits bits)
 bool A64::Operand::Decode (const Opcode opcode, const Type type, A64::Symbol& symbol)
 {
 	assert (type < Groups); const auto mask = opcode & masks[type];
-	for (auto& code: codes) if (code == mask && groups[&code - codes] == type) return symbol = A64::Symbol (&code - codes), true;
+    for (auto& code: codes) if (code == mask && groups[&code - codes] == type) return symbol = A64::Symbol (&code - codes), true;
 	return false;
 }
 
@@ -786,3 +788,5 @@ std::ostream& A64::operator << (std::ostream& stream, const Instruction::Mnemoni
 {
 	return WriteEnum (stream, mnemonic, Instruction::mnemonics);
 }
+
+}} // ECS::ARM

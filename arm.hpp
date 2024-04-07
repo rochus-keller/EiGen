@@ -1,20 +1,21 @@
 // ARM instruction set representation
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef ECS_ARM_HEADER_INCLUDED
 #define ECS_ARM_HEADER_INCLUDED
@@ -23,16 +24,18 @@
 #include <iosfwd>
 #include <string>
 
-namespace ECS
-{
-	template <typename> class Span;
-	template <typename, typename> class Lookup;
+namespace ECS {
 
-	using Byte = std::uint8_t;
+template <typename> class Span;
+template <typename, typename> class Lookup;
+
+using Byte = std::uint8_t;
+
+namespace Object {
+    struct Patch;
 }
 
-namespace ECS { namespace ARM
-{
+namespace ARM {
 	enum ConditionCode {No, AL, CC, CS, EQ, GE, GT, HI, HS, LE, LO, LS, LT, MI, NE, NV, PL, VC, VS};
 
 	enum Suffix {None,
@@ -107,159 +110,154 @@ namespace ECS { namespace ARM
 
 	template <Register First, Register Last> std::istream& operator >> (std::istream&, List<First, Last>&);
 	template <Register First, Register Last> std::ostream& operator << (std::ostream&, List<First, Last>);
-}}
 
-namespace ECS { namespace Object
-{
-	struct Patch;
-}}
+    class Operand
+    {
+    public:
+        using WriteBack = bool;
 
-class ECS::ARM::Operand
-{
-public:
-	using WriteBack = bool;
+        Operand () = default;
+        Operand (ARM::Immediate);
+        Operand (ARM::RegisterList);
+        Operand (ARM::Coprocessor);
+        Operand (ARM::ConditionCode);
+        Operand (ARM::InterruptMask);
+        Operand (ARM::BarrierOperation);
+        Operand (ARM::DoubleRegisterList);
+        Operand (ARM::SingleRegisterList);
+        Operand (ARM::CoprocessorRegister);
+        Operand (ARM::ShiftMode, ARM::Register);
+        Operand (ARM::Register, WriteBack = false);
+        Operand (ARM::ShiftMode, ARM::Immediate = 0);
+        Operand (ARM::Register, ARM::Immediate, WriteBack = false);
+        Operand (ARM::Register, ARM::Register, ARM::Immediate = 0);
 
-	Operand () = default;
-	Operand (ARM::Immediate);
-	Operand (ARM::RegisterList);
-	Operand (ARM::Coprocessor);
-	Operand (ARM::ConditionCode);
-	Operand (ARM::InterruptMask);
-	Operand (ARM::BarrierOperation);
-	Operand (ARM::DoubleRegisterList);
-	Operand (ARM::SingleRegisterList);
-	Operand (ARM::CoprocessorRegister);
-	Operand (ARM::ShiftMode, ARM::Register);
-	Operand (ARM::Register, WriteBack = false);
-	Operand (ARM::ShiftMode, ARM::Immediate = 0);
-	Operand (ARM::Register, ARM::Immediate, WriteBack = false);
-	Operand (ARM::Register, ARM::Register, ARM::Immediate = 0);
+    protected:
+        enum Model {Empty, Immediate, Register, ShiftedRegister, RegisterList, DoubleRegisterList, SingleRegisterList, Memory, MemoryIndex, ShiftMode, ConditionCode, InterruptMask, BarrierOperation, Coprocessor, CoprocessorRegister};
 
-protected:
-	enum Model {Empty, Immediate, Register, ShiftedRegister, RegisterList, DoubleRegisterList, SingleRegisterList, Memory, MemoryIndex, ShiftMode, ConditionCode, InterruptMask, BarrierOperation, Coprocessor, CoprocessorRegister};
+        Model model = Empty;
 
-	Model model = Empty;
+        union
+        {
+            ARM::Register register_;
+            ARM::RegisterSet registerSet;
+            ARM::ConditionCode code;
+            ARM::InterruptMask mask;
+            ARM::BarrierOperation operation;
+            ARM::Coprocessor coprocessor;
+            ARM::CoprocessorRegister coregister;
+        };
 
-	union
-	{
-		ARM::Register register_;
-		ARM::RegisterSet registerSet;
-		ARM::ConditionCode code;
-		ARM::InterruptMask mask;
-		ARM::BarrierOperation operation;
-		ARM::Coprocessor coprocessor;
-		ARM::CoprocessorRegister coregister;
-	};
+        union
+        {
+            ARM::Immediate immediate;
+            ARM::Register index;
+            ARM::ShiftMode mode;
+        };
 
-	union
-	{
-		ARM::Immediate immediate;
-		ARM::Register index;
-		ARM::ShiftMode mode;
-	};
+        union {
+            WriteBack writeBack;
+            ARM::Immediate shift;
+        };
 
-	union {
-		WriteBack writeBack;
-		ARM::Immediate shift;
-	};
+        friend bool IsEmpty (const Operand&);
+        friend ARM::Register GetRegister (const Operand&);
+        friend std::ostream& operator << (std::ostream&, const Operand&);
+    };
 
-	friend bool IsEmpty (const Operand&);
-	friend ARM::Register GetRegister (const Operand&);
-	friend std::ostream& operator << (std::ostream&, const Operand&);
-};
+    class Instruction
+    {
+    public:
+        enum Mnemonic {
+            #define MNEM(name, mnem, ...) mnem,
+            #include "arm.def"
+            Count,
+        };
 
-class ECS::ARM::Instruction
-{
-public:
-	enum Mnemonic {
-		#define MNEM(name, mnem, ...) mnem,
-		#include "arm.def"
-		Count,
-	};
+    protected:
+        enum Flags {
+            #define FLAG(flag, value) flag = value,
+            #include "arm.def"
+        };
 
-protected:
-	enum Flags {
-		#define FLAG(flag, value) flag = value,
-		#include "arm.def"
-	};
+        static std::istream& Read (std::istream&, Mnemonic&, ConditionCode&, Qualifier&, Suffix&);
+        static std::ostream& Write (std::ostream&, Mnemonic, ConditionCode, Qualifier, Suffix);
 
-	static std::istream& Read (std::istream&, Mnemonic&, ConditionCode&, Qualifier&, Suffix&);
-	static std::ostream& Write (std::ostream&, Mnemonic, ConditionCode, Qualifier, Suffix);
+    private:
+        static const char*const mnemonics[];
+        static const char*const suffixes[];
 
-private:
-	static const char*const mnemonics[];
-	static const char*const suffixes[];
+        friend std::istream& operator >> (std::istream&, Mnemonic&);
+        friend std::istream& operator >> (std::istream&, Suffix&);
+        friend std::ostream& operator << (std::ostream&, Mnemonic);
+        friend std::ostream& operator << (std::ostream&, Suffix);
+    };
 
-	friend std::istream& operator >> (std::istream&, Mnemonic&);
-	friend std::istream& operator >> (std::istream&, Suffix&);
-	friend std::ostream& operator << (std::ostream&, Mnemonic);
-	friend std::ostream& operator << (std::ostream&, Suffix);
-};
+    class BasicList
+    {
+    public:
+        explicit BasicList (RegisterSet = 0);
 
-class ECS::ARM::BasicList
-{
-public:
-	explicit BasicList (RegisterSet = 0);
+        explicit operator RegisterSet () const;
 
-	explicit operator RegisterSet () const;
+    protected:
+        std::istream& Read (std::istream&, Register, Register);
+        std::ostream& Write (std::ostream&, Register, Register) const;
 
-protected:
-	std::istream& Read (std::istream&, Register, Register);
-	std::ostream& Write (std::ostream&, Register, Register) const;
+    private:
+        RegisterSet registerSet;
+    };
 
-private:
-	RegisterSet registerSet;
-};
+    template <Register, Register>
+    class List : public BasicList
+    {
+    public:
+        List () = default;
+        explicit List (Register);
+        using BasicList::BasicList;
 
-template <ECS::ARM::Register, ECS::ARM::Register>
-class ECS::ARM::List : public BasicList
-{
-public:
-	List () = default;
-	explicit List (Register);
-	using BasicList::BasicList;
+    private:
+        friend std::istream& operator >> <> (std::istream&, List&);
+        friend std::ostream& operator << <> (std::ostream&, List);
+    };
 
-private:
-	friend std::istream& operator >> <> (std::istream&, List&);
-	friend std::ostream& operator << <> (std::ostream&, List);
-};
+    std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
 
-namespace ECS { namespace ARM
-{
-	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-}}
+    inline BasicList::BasicList (const RegisterSet s) :
+        registerSet {s}
+    {
+    }
 
-inline ECS::ARM::BasicList::BasicList (const RegisterSet s) :
-	registerSet {s}
-{
-}
+    inline BasicList::operator RegisterSet () const
+    {
+        return registerSet;
+    }
 
-inline ECS::ARM::BasicList::operator RegisterSet () const
-{
-	return registerSet;
-}
+    template <Register First, Register Last>
+    inline List<First, Last>::List (const Register register_) :
+        BasicList {1u << RegisterSet (register_ - First)}
+    {
+    }
 
-template <ECS::ARM::Register First, ECS::ARM::Register Last>
-inline ECS::ARM::List<First, Last>::List (const Register register_) :
-	BasicList {1u << RegisterSet (register_ - First)}
-{
-}
+    inline bool IsEmpty (const Operand& operand)
+    {
+        return operand.model == Operand::Empty;
+    }
 
-inline bool ECS::ARM::IsEmpty (const Operand& operand)
-{
-	return operand.model == Operand::Empty;
-}
+    template <Register First, Register Last>
+    inline std::istream& operator >> (std::istream& stream, List<First, Last>& registerList)
+    {
+        return registerList.Read (stream, First, Last);
+    }
 
-template <ECS::ARM::Register First, ECS::ARM::Register Last>
-inline std::istream& ECS::ARM::operator >> (std::istream& stream, List<First, Last>& registerList)
-{
-	return registerList.Read (stream, First, Last);
-}
+    template <Register First, Register Last>
+    inline std::ostream& operator << (std::ostream& stream, const List<First, Last> registerList)
+    {
+        return registerList.Write (stream, First, Last);
+    }
 
-template <ECS::ARM::Register First, ECS::ARM::Register Last>
-inline std::ostream& ECS::ARM::operator << (std::ostream& stream, const List<First, Last> registerList)
-{
-	return registerList.Write (stream, First, Last);
-}
+}} // ECS::ARM
+
+
 
 #endif // ECS_ARM_HEADER_INCLUDED

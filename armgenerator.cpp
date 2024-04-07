@@ -1,75 +1,77 @@
 // ARM machine code generator
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "arm.hpp"
 #include "armgenerator.hpp"
 #include "asmgeneratorcontext.hpp"
+#include "armgeneratorcontext.hpp"
 
 using namespace ECS;
 using namespace ARM;
 
-using Context =
-	#include "armgeneratorcontext.hpp"
 
-Generator::Generator (Diagnostics& d, StringPool& sp, Assembly::Assembler& a, const Target t, const Name n, const FloatingPointExtension fpe) :
-	Assembly::Generator {d, sp, a, t, n, {{4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true}, true}, floatingPointExtension {fpe}
+Generator::Generator (Diagnostics& d, StringPool& sp, Assembly::Assembler& a, const Target t,
+    const Name n, const FloatingPointExtension fpe) :
+    Assembly::Generator {d, sp, a, t, n, {{4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true}, true},
+    floatingPointExtension {fpe}
 {
 }
 
-Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l) :
+Generator::Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l) :
 	Assembly::Generator::Context {g, b, i, l, false}, floatingPointExtension {g.floatingPointExtension}
 {
 	for (auto& set: registers) for (auto& register_: set) register_ = R15;
 	Acquire (registers[Low][Code::RSP] = SP); Acquire (registers[Low][Code::RFP] = R11); Acquire (registers[Low][Code::RLink] = LR); Acquire (R15);
 }
 
-void Context::Acquire (const Register register_)
+void Generator::Context::Acquire (const Register register_)
 {
 	assert (register_ < 32); assert (!acquired[register_]); acquired[register_] = true;
 }
 
-void Context::Release (const Register register_)
+void Generator::Context::Release (const Register register_)
 {
 	assert (register_ < 32); assert (acquired[register_]); acquired[register_] = false;
 }
 
-Register Context::GetFree (const Index index) const
+Register Generator::Context::GetFree (const Index index) const
 {
 	auto register_ = index == Float ? D1 : R2; while (register_ % 16 && acquired[register_]) register_ = Register (register_ + 1);
 	if (register_ % 16 == 0) throw RegisterShortage {}; return register_;
 }
 
-Register Context::Select (const Code::Operand& operand, const Index index) const
+Register Generator::Context::Select (const Code::Operand& operand, const Index index) const
 {
 	assert (IsRegister (operand)); return Translate (registers[index][operand.register_], operand.type);
 }
 
-Immediate Context::Extract (const Code::Operand& operand, const Index index) const
+Immediate Generator::Context::Extract (const Code::Operand& operand, const Index index) const
 {
 	assert (IsImmediate (operand)); return Immediate (Code::Convert (operand) >> index * 32);
 }
 
-Register Context::Translate (const Register register_, const Code::Type& type) const
+Register Generator::Context::Translate (const Register register_, const Code::Type& type) const
 {
 	return floatingPointExtension && type.model == Code::Type::Float && type.size == 4 ? Register ((register_ - D0) * 2 + S0) : register_;
 }
 
-void Context::Acquire (const Code::Register register_, const Types& types)
+void Generator::Context::Acquire (const Code::Register register_, const Types& types)
 {
 	auto high = false, floating = false;
 	for (auto& type: types) if (floatingPointExtension && type.model == Code::Type::Float) floating = true; else if (type.size == 8) high = true;
@@ -78,14 +80,14 @@ void Context::Acquire (const Code::Register register_, const Types& types)
 	assert (registers[Float][register_] == R15); if (floating) Acquire (registers[Float][register_] = (register_ == Code::RRes ? D0 : GetFree (Float)));
 }
 
-void Context::Release (const Code::Register register_)
+void Generator::Context::Release (const Code::Register register_)
 {
 	assert (registers[Low][register_] != R15); Release (registers[Low][register_]); registers[Low][register_] = R15;
 	if (registers[High][register_] != R15) Release (registers[High][register_]), registers[High][register_] = R15;
 	if (registers[Float][register_] != R15) Release (registers[Float][register_]), registers[Float][register_] = R15;
 }
 
-bool Context::IsSupported (const Code::Instruction& instruction) const
+bool Generator::Context::IsSupported (const Code::Instruction& instruction) const
 {
 	assert (IsValid (instruction));
 
@@ -120,27 +122,27 @@ bool Context::IsSupported (const Code::Instruction& instruction) const
 	}
 }
 
-Context::Part Context::GetRegisterParts (const Code::Operand& operand) const
+Generator::Context::Part Generator::Context::GetRegisterParts (const Code::Operand& operand) const
 {
 	return (IsComplex (operand) && (!floatingPointExtension || !IsFloat (operand))) + 1;
 }
 
-Context::Suffix Context::GetRegisterSuffix (const Code::Operand& operand, const Part part) const
+Generator::Context::Suffix Generator::Context::GetRegisterSuffix (const Code::Operand& operand, const Part part) const
 {
 	return IsComplex (operand) ? part == High ? 'h' : 'l' : 0;
 }
 
-std::ostream& Context::WriteRegister (std::ostream& stream, const Code::Operand& operand, const Part part)
+std::ostream& Generator::Context::WriteRegister (std::ostream& stream, const Code::Operand& operand, const Part part)
 {
 	return stream << Translate (registers[IsFloat (operand) ? Float : Index (part)][operand.register_], operand.type);
 }
 
-Suffix Context::GetSuffix (const Code::Operand& operand) const
+Suffix Generator::Context::GetSuffix (const Code::Operand& operand) const
 {
 	return IsFloat (operand) && floatingPointExtension ? IsComplex (operand) ? SF64 : SF32 : None;
 }
 
-Instruction::Mnemonic Context::GetLoadMnemonic (const Code::Type& type) const
+Instruction::Mnemonic Generator::Context::GetLoadMnemonic (const Code::Type& type) const
 {
 	switch (type.size)
 	{
@@ -151,7 +153,7 @@ Instruction::Mnemonic Context::GetLoadMnemonic (const Code::Type& type) const
 	}
 }
 
-Instruction::Mnemonic Context::GetStoreMnemonic (const Code::Type& type) const
+Instruction::Mnemonic Generator::Context::GetStoreMnemonic (const Code::Type& type) const
 {
 	switch (type.size)
 	{
@@ -162,17 +164,17 @@ Instruction::Mnemonic Context::GetStoreMnemonic (const Code::Type& type) const
 	}
 }
 
-Register Context::TranslateBack (const Register register_)
+Register Generator::Context::TranslateBack (const Register register_)
 {
 	return register_ >= S0 ? Register ((register_ - S0) / 2 + D0) : register_;
 }
 
-bool Context::IsComplex (const Code::Operand& operand)
+bool Generator::Context::IsComplex (const Code::Operand& operand)
 {
 	return operand.type.size == 8;
 }
 
-Code::Type::Size Context::GetSize (const Code::Operand& operand)
+Code::Type::Size Generator::Context::GetSize (const Code::Operand& operand)
 {
 	return operand.type.size;
 }

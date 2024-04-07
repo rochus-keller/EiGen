@@ -1,20 +1,21 @@
 // Generic assembly language semantic checker
-// Copyright (C) Florian Negele
+// Copyright (C) Florian Negele (original author)
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "asmchecker.hpp"
 #include "assembly.hpp"
@@ -22,32 +23,29 @@
 #include "error.hpp"
 #include "format.hpp"
 #include "utilities.hpp"
-
+#include "asmcheckercontext.hpp"
 #include <map>
 
 using namespace ECS;
 using namespace Assembly;
-
-using Context =
-	#include "asmcheckercontext.hpp"
 
 Checker::Checker (Diagnostics& d, Charset& c) :
     diagnostics(d), charset(c)
 {
 }
 
-Context::Context (const Checker& c, Object::Section& s, const Origin o, const Alignment a, const Inlined i) :
+Checker::Context::Context (const Checker& c, Object::Section& s, const Origin o, const Alignment a, const Inlined i) :
     charset(c.charset), inlined {i}, alignment {a}, diagnostics(c.diagnostics), section(s), origin {o}
 {
 	assert (IsPowerOfTwo (alignment));
 }
 
-void Context::EmitError (const Message& message) const
+void Checker::Context::EmitError (const Message& message) const
 {
 	location->Emit (Diagnostics::Error, diagnostics, message); throw Error {};
 }
 
-void Context::Process (const Instructions& instructions)
+void Checker::Context::Process (const Instructions& instructions)
 {
 	sizes.resize (instructions.size ()); Reset ();
 	Batch (instructions, [this] (const Instruction& instruction) {Label (instruction);});
@@ -58,7 +56,7 @@ void Context::Process (const Instructions& instructions)
 	assert (conditionals.empty ()); Reset ();
 }
 
-void Context::Label (const Instruction& instruction)
+void Checker::Context::Label (const Instruction& instruction)
 {
 	location = &instruction.location;
 	if (IsConditional (instruction.directive)) return ProcessDirective (instruction);
@@ -74,7 +72,7 @@ void Context::Label (const Instruction& instruction)
 		EmitError (Format ("duplicated label '%0'", instruction.label));
 }
 
-void Context::Process (const Instruction& instruction)
+void Checker::Context::Process (const Instruction& instruction)
 {
 	auto& reserved = sizes[index++]; const auto origin = offset; location = &instruction.location;
 
@@ -91,17 +89,17 @@ void Context::Process (const Instruction& instruction)
 	if (parsing) reserved = size; else if (size != reserved) EmitError ("resized instruction");
 }
 
-void Context::Reset ()
+void Checker::Context::Reset ()
 {
 	assert (conditional == Including); offset = origin; index = 0;
 }
 
-void Context::Reserve (const Size size)
+void Checker::Context::Reserve (const Size size)
 {
 	offset += size;
 }
 
-void Context::ProcessDirective (const Instruction& instruction)
+void Checker::Context::ProcessDirective (const Instruction& instruction)
 {
 	switch (instruction.directive)
 	{
@@ -193,7 +191,7 @@ void Context::ProcessDirective (const Instruction& instruction)
 	EmitError (Format ("illegal %0 directive", instruction.directive));
 }
 
-bool Context::GetIdentifier (const Expression& expression, Identifier& identifier) const
+bool Checker::Context::GetIdentifier (const Expression& expression, Identifier& identifier) const
 {
 	if (IsString (expression)) return identifier = expression.string, true;
 	if (IsGroup (expression)) return identifier = section.group, parsing || !section.group.empty ();
@@ -203,13 +201,13 @@ bool Context::GetIdentifier (const Expression& expression, Identifier& identifie
 	return identifier = expression.string, true;
 }
 
-bool Context::GetString (const Expression& expression, String& string) const
+bool Checker::Context::GetString (const Expression& expression, String& string) const
 {
 	if (!IsIdentifier (expression)) return GetIdentifier (expression, string);
 	Expression definition; return GetDefinition (expression.string, definition) && GetString (definition, string);
 }
 
-void Context::ProcessAlignmentDirective (const Expression& expression) const
+void Checker::Context::ProcessAlignmentDirective (const Expression& expression) const
 {
 	if (section.fixed) EmitError ("aligning fixed section");
 	if (parsing && section.alignment) EmitError ("section alignment already defined");
@@ -218,7 +216,7 @@ void Context::ProcessAlignmentDirective (const Expression& expression) const
 	section.alignment = value;
 }
 
-void Context::ProcessOriginDirective (const Expression& expression) const
+void Checker::Context::ProcessOriginDirective (const Expression& expression) const
 {
 	if (!section.fixed && section.alignment) EmitError ("fixing aligned section");
 	if (parsing && section.fixed) EmitError ("section origin already defined");
@@ -227,7 +225,7 @@ void Context::ProcessOriginDirective (const Expression& expression) const
 	section.fixed = true; section.origin = value;
 }
 
-void Context::ProcessGroupDirective (const Expression& expression) const
+void Checker::Context::ProcessGroupDirective (const Expression& expression) const
 {
 	if (parsing && !section.group.empty ()) EmitError ("section group already defined");
 	Identifier identifier; if (!GetIdentifier (expression, identifier) || identifier.empty ()) EmitError ("invalid section group");
@@ -235,7 +233,7 @@ void Context::ProcessGroupDirective (const Expression& expression) const
 	section.group = identifier;
 }
 
-void Context::CheckDefinition (const Identifier& identifier, const Expression& expression)
+void Checker::Context::CheckDefinition (const Identifier& identifier, const Expression& expression)
 {
 	switch (expression.model)
 	{
@@ -268,7 +266,7 @@ void Context::CheckDefinition (const Identifier& identifier, const Expression& e
 	}
 }
 
-void Context::Assemble (const Instruction& instruction)
+void Checker::Context::Assemble (const Instruction& instruction)
 {
 	std::stringstream stream; stream << instruction.mnemonic;
 	const std::streamoff mnemonic = stream.tellp (); Link link;
@@ -288,20 +286,20 @@ void Context::Assemble (const Instruction& instruction)
 	Reserve (size);
 }
 
-void Context::ProcessTraceDirective (const Expression& expression) const
+void Checker::Context::ProcessTraceDirective (const Expression& expression) const
 {
 	std::ostringstream stream; Rewrite (IsString (expression) ? stream : stream << '\'' << expression << "' = ", expression);
 	location->Emit (Diagnostics::Note, diagnostics, stream.str ());
 }
 
-bool Context::GetDefinition (const Identifier& identifier, Expression& expression) const
+bool Checker::Context::GetDefinition (const Identifier& identifier, Expression& expression) const
 {
 	const auto definition = definitions.find (identifier);
 	if (definition != definitions.end ()) return expression = definition->second, true;
 	return false;
 }
 
-bool Context::Compare (const Expression& left, const Expression& right) const
+bool Checker::Context::Compare (const Expression& left, const Expression& right) const
 {
 	Expression definition;
 	if (IsIdentifier (left) && GetDefinition (left.string, definition)) return Compare (definition, right);
@@ -337,7 +335,7 @@ bool Context::Compare (const Expression& left, const Expression& right) const
 	}
 }
 
-bool Context::Compare (const Expressions& left, const Expressions& right) const
+bool Checker::Context::Compare (const Expressions& left, const Expressions& right) const
 {
     if( left.size() != right.size() )
         return false;
@@ -351,7 +349,7 @@ bool Context::Compare (const Expressions& left, const Expressions& right) const
     return true;
 }
 
-std::ostream& Context::Rewrite (std::ostream& stream, const Expression& expression, Link& link) const
+std::ostream& Checker::Context::Rewrite (std::ostream& stream, const Expression& expression, Link& link) const
 {
 	assert (link.name.empty ());
 
@@ -387,7 +385,7 @@ std::ostream& Context::Rewrite (std::ostream& stream, const Expression& expressi
 	return GetLink (expression, link) ? stream << 0 : Rewrite (stream, expression);
 }
 
-std::ostream& Context::Rewrite (std::ostream& stream, const Expression& expression) const
+std::ostream& Checker::Context::Rewrite (std::ostream& stream, const Expression& expression) const
 {
 	if (IsNumber (expression)) return stream << expression.value; Expression definition;
 	if (IsIdentifier (expression)) return GetDefinition (expression.string, definition) ? Rewrite (stream, definition) : stream << expression;
@@ -427,12 +425,12 @@ std::ostream& Context::Rewrite (std::ostream& stream, const Expression& expressi
 	}
 }
 
-bool Context::Evaluate (const Expression& expression) const
+bool Checker::Context::Evaluate (const Expression& expression) const
 {
 	Value value; if (!GetValue (expression, value)) EmitError ("invalid condition"); return value;
 }
 
-bool Context::GetValue (const Expression& expression, Value& value) const
+bool Checker::Context::GetValue (const Expression& expression, Value& value) const
 {
 	switch (expression.model)
 	{
@@ -530,7 +528,7 @@ bool Context::GetValue (const Expression& expression, Value& value) const
 	}
 }
 
-bool Context::GetOffset (const Expression& expression, Value& value) const
+bool Checker::Context::GetOffset (const Expression& expression, Value& value) const
 {
 	if (IsLabel (expression)) return value = (expression.value - offset) * !parsing - GetDisplacement (sizes[index - 1]), true;
 	if (IsParenthesized (expression)) return GetOffset (expression.operands.front (), value); Expression definition;

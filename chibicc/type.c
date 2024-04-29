@@ -95,7 +95,7 @@ Type *copy_type(Type *ty) {
 }
 
 Type *pointer_to(Type *base) {
-  Type *ty = new_type(TY_PTR, 8, 8);
+  Type *ty = new_type(TY_PTR, 8, 8); // TODO: variable pointer byte width
   ty->base = base;
   ty->is_unsigned = true;
   return ty;

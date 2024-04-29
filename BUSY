@@ -242,11 +242,9 @@ let armt32asm : Executable {
 
 ############# Linker #################################
 
-let linkbin : Executable {
-    # NOTE: compiles but crashes!
+let lcommon : SourceSet {
     .configs += config;
     .sources += [
-        ./linker.cpp
         ./objlinker.cpp
         ./objlinker.hpp
         ./rangeset.hpp
@@ -266,14 +264,32 @@ let linkbin : Executable {
         ./format.hpp
         ./utilities.hpp
         ./stdcharset.hpp
+    ]
+}
+
+let linkbin : Executable {
+    .configs += config;
+    .deps += lcommon;
+    .sources += [
+        ./linker.cpp
         ]
     .defines += "BINARYLINKFILEFORMAT"
 }
+
+let linkmem : Executable {
+    .configs += config;
+    .deps += lcommon;
+    .sources += [
+        ./linker.cpp
+        ]
+    .defines += "MEMORYLINKFILEFORMAT"
+}
+
 
 ############# All tools ##############################
 
 let tools ! : Group {
     .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe ]
     .deps += [ amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
-    .deps += linkbin
+    .deps += [ linkbin linkmem ]
 }

@@ -30,7 +30,10 @@ using Line = std::streamoff;
 
 namespace Code {
 
-	enum Register {R0, R1, R2, R3, RMax = 7, RRes, RSP, RFP, RLink, RVoid, GeneralRegisters = RMax + 1, UserRegisters = RRes + 1, Registers = RLink + 1};
+    enum Register {R0, R1, R2, R3, RMax = 7, RRes, RSP, RFP, RLink, RVoid,
+                   GeneralRegisters = RMax + 1,
+                   UserRegisters = RRes + 1,
+                   Registers = RLink + 1};
 
 	class Platform;
 
@@ -141,7 +144,8 @@ namespace Code {
         enum Model {Void, Size, Offset, String, Type, Immediate, Register, Address, Memory, Unreachable = 0};
 
         enum Class {Pointer = 0, Function = 1, None = 2 << Void,
-            #define CLASS(class, model1, model2, model3, model4) class = (2 << model1 | 2 << model2 | 2 << model3 | 2 << model4) & ~None,
+            #define CLASS(class, model1, model2, model3, model4) \
+                class = (2 << model1 | 2 << model2 | 2 << model3 | 2 << model4) & ~None,
             #include "code.def"
         };
 

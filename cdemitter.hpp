@@ -1,14 +1,15 @@
 // Generic intermediate code emitter
 // Copyright (C) Florian Negele
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
@@ -26,31 +27,31 @@
 namespace ECS
 {
 	class Position;
+
+    namespace Code
+    {
+        template <typename String> Section::Name GetName (const String&);
+
+        class Emitter
+        {
+        public:
+            Emitter (Diagnostics&, StringPool&, Charset&, Platform&);
+
+        protected:
+            class Context;
+
+            Diagnostics& diagnostics;
+            Charset& charset;
+            Platform& platform;
+            const Reg stackPointer, framePointer, linkRegister;
+
+        private:
+            Assembly::Parser parser;
+            Checker checker;
+        };
+    }
 }
 
-namespace ECS::Code
-{
-	class Emitter;
 
-	template <typename String> Section::Name GetName (const String&);
-}
-
-class ECS::Code::Emitter
-{
-public:
-	Emitter (Diagnostics&, StringPool&, Charset&, Platform&);
-
-protected:
-	class Context;
-
-	Diagnostics& diagnostics;
-	Charset& charset;
-	Platform& platform;
-	const Reg stackPointer, framePointer, linkRegister;
-
-private:
-	Assembly::Parser parser;
-	Checker checker;
-};
 
 #endif // ECS_CODE_EMITTER_HEADER_INCLUDED

@@ -21,7 +21,9 @@
 
 #include "cdemitter.hpp"
 
-class ECS::Code::Emitter::Context
+namespace ECS { namespace Code {
+
+class Emitter::Context
 {
 protected:
 	class Label;
@@ -39,7 +41,8 @@ protected:
 	Context (const Emitter&, Sections&);
 
 	Section& BeginAssembly ();
-	Section& Begin (Section::Type, const Section::Name&, Section::Alignment = 0, Section::Required = false, Section::Duplicable = false, Section::Replaceable = false);
+    Section& Begin (Section::Type, const Section::Name&, Section::Alignment = 0, Section::Required = false,
+                    Section::Duplicable = false, Section::Replaceable = false);
 
 	void Alias (const Section::Name&);
 	void Require (const Section::Name&);
@@ -183,11 +186,14 @@ private:
 
 	void Emit (const Instruction&);
 	void Emit (Instruction::Mnemonic, Operand (*) (const Operand&), const Operand&, const Operand&);
-	void Emit (Instruction::Mnemonic, Operand (*) (const Operand&, const Operand&), const Operand&, const Operand&, const Operand&);
+    void Emit (Instruction::Mnemonic, Operand (*) (const Operand&, const Operand&), const Operand&,
+               const Operand&, const Operand&);
 
 	SmartOperand Apply (Instruction::Mnemonic, Operand (*) (const Operand&), const Operand&, Hint);
-	SmartOperand Apply (Instruction::Mnemonic, Operand (*) (const Operand&, const Operand&), const Operand&, const Operand&, Hint);
-	void Branch (Instruction::Mnemonic, bool (*) (const Operand&, const Operand&), const Label&, const Operand& = {}, const Operand& = {});
+    SmartOperand Apply (Instruction::Mnemonic, Operand (*) (const Operand&, const Operand&), const Operand&,
+                        const Operand&, Hint);
+    void Branch (Instruction::Mnemonic, bool (*) (const Operand&, const Operand&), const Label&, const Operand& = {},
+                 const Operand& = {});
 
 	void Patch (Instruction::Mnemonic, const Label&, const Operand& = {}, const Operand& = {});
 
@@ -207,7 +213,7 @@ private:
 	friend class SmartOperand;
 };
 
-class ECS::Code::Emitter::Context::SmartOperand : public Operand
+class Emitter::Context::SmartOperand : public Operand
 {
 public:
 	~SmartOperand ();
@@ -232,7 +238,7 @@ private:
 	friend class Context;
 };
 
-class ECS::Code::Emitter::Context::Label
+class Emitter::Context::Label
 {
 public:
 	Label () = default;
@@ -260,7 +266,7 @@ private:
 	friend class Context;
 };
 
-class ECS::Code::Emitter::Context::RestoreState
+class Emitter::Context::RestoreState
 {
 public:
 	explicit RestoreState (Context&);
@@ -272,7 +278,7 @@ private:
 	State state;
 };
 
-class ECS::Code::Emitter::Context::RestoreRegisterState
+class Emitter::Context::RestoreRegisterState
 {
 public:
 	explicit RestoreRegisterState (Context&);
@@ -282,6 +288,8 @@ private:
 	Context& context;
 	std::vector<SmartOperand*> savedRegisters;
 };
+
+}} // ECS::Code
 
 #include "charset.hpp"
 #include "position.hpp"
@@ -300,16 +308,33 @@ inline void ECS::Code::Emitter::Context::Comment (const char*const text)
 	current->comment = text;
 }
 
+inline void send(std::ostringstream& out) {}
+
+template <typename Value, typename ...Values>
+void send(std::ostringstream& out, const Value& val, const Values&... values)
+{
+    out << val;
+    send(out, values...);
+}
+
 template <typename... Values>
 void ECS::Code::Emitter::Context::Comment (const Position& position, const Values&... values)
 {
-	std::ostringstream stream; ((stream << "line " << GetLine (position) << ": ") << ... << values); current->comment = stream.str ();
+    std::ostringstream stream;
+    stream << "line " << GetLine (position) << ": ";
+    using unused = int[];
+    (void)unused { 0, (send(stream,values), 0)... };
+    current->comment = stream.str ();
 }
 
 template <typename... Values>
 void ECS::Code::Emitter::Context::Comment (const Source& source, const Position& position, const Values&... values)
 {
-	std::ostringstream stream; ((stream << "file '" << source << "' line " << GetLine (position) << ": ") << ... << values); current->comment = stream.str ();
+    std::ostringstream stream;
+    stream << "file '" << source << "' line " << GetLine (position) << ": ";
+    using unused = int[];
+    (void)unused { 0, (send(stream,values), 0)... };
+    current->comment = stream.str ();
 }
 
 template <typename String>

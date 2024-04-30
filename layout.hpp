@@ -62,7 +62,8 @@ namespace ECS
         constexpr Layout (const Integer&, const Float&, const Pointer&, const Function&, const Stack&, CallStack);
     };
 
-    constexpr Layout::Layout (const Integer& i, const Float& fl, const Pointer& p, const Function& fu, const Stack& s, const CallStack cs) :
+    constexpr Layout::Layout (const Integer& i, const Float& fl, const Pointer& p, const Function& fu,
+                              const Stack& s, const CallStack cs) :
         integer {i}, float_ {fl}, pointer {p}, function {fu}, stack {s}, callStack {cs}
     {
     }

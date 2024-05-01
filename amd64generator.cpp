@@ -223,7 +223,7 @@ Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const Operatin
         StandardLayout()
 #endif
         , false},
-	assembler {d, c, m}, mode {m}, mediaFloat {mf}, directAddressing {da}
+    assembler (d, c, m), mode (m), mediaFloat (mf), directAddressing (da)
 {
 }
 
@@ -233,8 +233,8 @@ void Generator::Process (const Code::Sections& sections, Object::Binaries& binar
 }
 
 Generator::Context::Context (const AMD64::Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l) :
-	Assembly::Generator::Context {g, b, i, l, false}, mode {g.mode}, mediaFloat {g.mediaFloat}, directAddressing {g.directAddressing},
-	general {mode == LongMode ? 16u : 8u, tickets.end ()}, floating {mediaFloat && mode == LongMode ? 16u : 8u, tickets.end ()}
+    Assembly::Generator::Context (g, b, i, l, false), mode (g.mode), mediaFloat (g.mediaFloat), directAddressing (g.directAddressing),
+    general (mode == LongMode ? 16u : 8u, tickets.end ()), floating (mediaFloat && mode == LongMode ? 16u : 8u, tickets.end ())
 {
 	for (auto& set: registers) for (auto& ticket: set) ticket = tickets.end ();
 	++general[RA].uses; if (mode != LongMode) ++general[RD].uses; ++floating[FP0].uses; ++general[RC].uses;
@@ -634,7 +634,7 @@ void Generator::Context::Load (const SmartOperand& register_, const Code::Operan
 	case Code::Operand::Address:
 		if (operand.register_ != Code::RVoid && IsUnmapped (GetRegisterTicket (operand.register_, index)) && Access (GetRegisterTicket (operand.register_, index), type) == register_)
 			if (directAddressing) return Emit (Instruction::ADD, register_, {*this, operand.address, operand.displacement});
-			else return Emit (Instruction::ADD, register_, Load (Code::Adr {type, operand.address, operand.displacement}, type, index));
+            else return Emit (Instruction::ADD, register_, Load (Code::Adr {type, operand.address, operand.displacement}, type, index));
 		Emit (Instruction::MOV, register_, {*this, operand.address, operand.displacement});
 		if (operand.register_ != Code::RVoid) Emit (ADD {mode, register_, AccessMem (GetRegisterTicket (operand.register_, index), type)});
 		return;
@@ -1278,44 +1278,44 @@ Instruction::Mnemonic Generator::Context::Transpose (const Instruction::Mnemonic
 }
 
 Generator::Context::RegisterTicket::RegisterTicket (const RegisterIndex i, const Code::Type& t) :
-	type {t}, index {i}
+    type (t), index (i)
 {
 }
 
 Generator::Context::RegisterSetElement::RegisterSetElement (const Ticket c) :
-	current {c}, temporary {c}
+    current (c), temporary (c)
 {
 }
 
 Generator::Context::SmartOperand::SmartOperand (const Operand& o) :
-	Operand {o}
+    Operand (o)
 {
 }
 
 Generator::Context::SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
-	Operand {std::move (operand)}, context {operand.context}, address {std::move (operand.address)}, displacement {operand.displacement}, ticket {operand.ticket}
+    Operand (std::move (operand)), context (operand.context), address (std::move (operand.address)), displacement (operand.displacement), ticket (operand.ticket)
 {
 	operand.context = nullptr;
 }
 
 Generator::Context::SmartOperand::SmartOperand (Context& c, const Ticket t, const AMD64::Register r) :
-	Operand {r}, context {&c}, ticket {t}
+    Operand (r), context (&c), ticket (t)
 {
 }
 
 Generator::Context::SmartOperand::SmartOperand (Context& c, const Ticket t, const Code::Type& type, const AMD64::Register r, const Index i) :
-	Operand {c.GetSize (type), RVoid, r, i, 1, 0}, context {&c}, ticket {t}
+    Operand (c.GetSize (type), RVoid, r, i, 1, 0), context (&c), ticket (t)
 {
 }
 
 Generator::Context::SmartOperand::SmartOperand (const Context& c, const Code::Section::Name& a, const Code::Displacement d) :
-    Operand {0, c.mode == LongMode && c.directAddressing ? DWord : c.GetSize (c.getGenerator().platform.pointer)}, address {a}, displacement {d}
+    Operand (0, c.mode == LongMode && c.directAddressing ? DWord : c.GetSize (c.getGenerator().platform.pointer)), address (a), displacement (d)
 {
 	assert (!address.empty ());
 }
 
 Generator::Context::SmartOperand::SmartOperand (const Context& c, const Code::Type& type, const Code::Section::Name& a, const Code::Displacement d) :
-	Operand {c.GetSize (type), RVoid, c.mode == LongMode ? RIP : RVoid, RVoid, 0, 0}, address {a}, displacement {d}
+    Operand (c.GetSize (type), RVoid, c.mode == LongMode ? RIP : RVoid, RVoid, 0, 0), address (a), displacement (d)
 {
 	assert (!address.empty ());
 }

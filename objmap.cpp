@@ -24,12 +24,12 @@ namespace ECS {
 namespace Object {
 
 MapEntry::MapEntry (const Offset o) :
-	offset {o}
+    offset(o)
 {
 }
 
 MapEntry::MapEntry (const Offset o, const Binary& b) :
-	offset {o}, type {b.type}, name {b.name}, size {b.bytes.size ()}, binary {&b}
+    offset(o), type(b.type), name(b.name), size(b.bytes.size ()), binary(&b)
 {
 }
 

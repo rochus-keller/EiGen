@@ -68,7 +68,7 @@ template <typename Default>
 constexpr ECS::Layout::Type ECS::StandardLayout::Variant<Default>::type;
 
 constexpr ECS::StandardLayout::StandardLayout () :
-	Layout {Integer::type, Float::type, Pointer::type, Function::type, {0, Stack::maximum, Stack::maximum}, true}
+    Layout(Integer::type, Float::type, Pointer::type, Function::type, {0, Stack::maximum, Stack::maximum}, true)
 {
 }
 

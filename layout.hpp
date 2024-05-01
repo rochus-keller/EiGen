@@ -64,7 +64,7 @@ namespace ECS
 
     constexpr Layout::Layout (const Integer& i, const Float& fl, const Pointer& p, const Function& fu,
                               const Stack& s, const CallStack cs) :
-        integer {i}, float_ {fl}, pointer {p}, function {fu}, stack {s}, callStack {cs}
+        integer (i), float_ (fl), pointer (p), function (fu), stack (s), callStack (cs)
     {
     }
 
@@ -74,17 +74,17 @@ namespace ECS
     }
 
     constexpr Layout::Type::Type (const std::size_t s) :
-        size {s}, alignment {s, s}
+        size (s), alignment {s, s}
     {
     }
 
     constexpr Layout::Type::Type (const std::size_t s, const std::size_t a) :
-        Type {s, a, a}
+        Type (s, a, a)
     {
     }
 
     constexpr Layout::Type::Type (const std::size_t s, const std::size_t minimum, const std::size_t maximum) :
-        size {s}, alignment {minimum, maximum}
+        size (s), alignment {minimum, maximum}
     {
     }
 

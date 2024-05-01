@@ -55,62 +55,62 @@ const Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic> A32::Instructi
     A32::Instruction::last = Lookup<A32::Instruction::Entry, A32::Instruction::Mnemonic>(table, 0);
 
 A32::Operand::Operand (const ARM::Immediate i) :
-	model {Immediate}, immediate {i}
+    model (Immediate), immediate(i)
 {
 }
 
 A32::Operand::Operand (const ARM::Register r) :
-	model {Register}, register_ {r}
+    model(Register), register_(r)
 {
 }
 
 A32::Operand::Operand (const ARM::RegisterList r) :
-	model {RegisterList}, registerSet {r}
+    model(RegisterList), registerSet(r)
 {
 }
 
 A32::Operand::Operand (const ARM::DoubleRegisterList r) :
-	model {DoubleRegisterList}, registerSet {r}
+    model(DoubleRegisterList), registerSet(r)
 {
 }
 
 A32::Operand::Operand (const ARM::SingleRegisterList r) :
-	model {SingleRegisterList}, registerSet {r}
+    model(SingleRegisterList), registerSet(r)
 {
 }
 
 A32::Operand::Operand (const ARM::ShiftMode s) :
-	model {ShiftMode}, shiftmode {s}
+    model(ShiftMode), shiftmode(s)
 {
 }
 
 A32::Operand::Operand (const ARM::ConditionCode c) :
-	model {ConditionCode}, code {c}
+    model(ConditionCode), code(c)
 {
 }
 
 A32::Operand::Operand (const ARM::Coprocessor c) :
-	model {Coprocessor}, coprocessor {c}
+    model(Coprocessor), coprocessor(c)
 {
 }
 
 A32::Operand::Operand (const ARM::CoprocessorRegister r) :
-	model {CoprocessorRegister}, coregister {r}
+    model(CoprocessorRegister), coregister(r)
 {
 }
 
 A32::Operand::Operand (const A32::CoprocessorOption c) :
-	model {CoprocessorOption}, cooption {c}
+    model(CoprocessorOption), cooption(c)
 {
 }
 
 A32::Operand::Operand (const char c) :
-	model {Character}, character {c}
+    model(Character), character(c)
 {
 }
 
 A32::Operand::Operand (const Model m, const ARM::Register r) :
-	model {m}, register_ {r}
+    model(m), register_(r)
 {
 }
 

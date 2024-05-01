@@ -76,83 +76,83 @@ const Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic> A64::Instructi
     A64::Instruction::last = Lookup<A64::Instruction::Entry, A64::Instruction::Mnemonic>(table, 0);
 
 A64::Operand::Operand (const A64::Immediate i) :
-	model {Immediate}, immediate {i}
+    model(Immediate), immediate(i)
 {
 }
 
 A64::Operand::Operand (const ARM::FloatImmediate fi) :
-	model {FloatImmediate}, floatImmediate {fi}
+    model(FloatImmediate), floatImmediate(fi)
 {
 }
 
 A64::Operand::Operand (const A64::Register r) :
-	model {Register}, register_ {r}
+    model(Register), register_(r)
 {
 }
 
 A64::Operand::Operand (const A64::Register r, const Format f) :
-	model {Vector}, register_ {r}, format {f}
+    model(Vector), register_(r), format(f)
 {
 	assert (register_ >= V0 && register_ <= V31);
 }
 
 A64::Operand::Operand (const A64::Register r, const Format f, const Size s) :
-	model {VectorSet}, register_ {r}, size {s}, format {f}
+    model(VectorSet), register_(r), size(s), format(f)
 {
 	assert (register_ >= V0 && register_ <= V31);
 	assert (size >= 1 && size <= 4);
 }
 
 A64::Operand::Operand (const A64::Register r, const Width w, const A64::Immediate i) :
-	model {Element}, register_ {r}, immediate {i}, width {w}
+    model(Element), register_(r), immediate(i), width(w)
 {
 	assert (register_ >= V0 && register_ <= V31);
 }
 
 A64::Operand::Operand (const A64::Register r, const Width w, const Size s, const A64::Immediate i) :
-	model {ElementSet}, register_ {r}, size {s}, immediate {i}, width {w}
+    model(ElementSet), register_(r), size(s), immediate(i), width(w)
 {
 	assert (register_ >= V0 && register_ <= V31);
 	assert (size >= 1 && size <= 4);
 }
 
 A64::Operand::Operand (const A64::Register r, const A64::Immediate i, const Preindexed p) :
-	model {Memory}, register_ {r}, immediate {i}, preindexed {p}
+    model (Memory), register_(r), immediate(i), preindexed(p)
 {
 }
 
 A64::Operand::Operand (const A64::Register r, const A64::Register in, const A64::Immediate im) :
-	model {ShiftedIndex}, register_ {r}, index {in}, immediate {im}
+    model(ShiftedIndex), register_(r), index(in), immediate(im)
 {
 }
 
 A64::Operand::Operand (const A64::Register r, const A64::Register in, const A64::Extension e, const A64::Immediate im) :
-	model {ExtendedIndex}, register_ {r}, index {in}, immediate {im}, extension {e}
+    model(ExtendedIndex), register_(r), index(in), immediate(im), extension(e)
 {
 }
 
 A64::Operand::Operand (const ARM::ShiftMode sm, const A64::Immediate i) :
-	model {Shift}, immediate {i}, shiftmode {sm}
+    model(Shift), immediate(i), shiftmode(sm)
 {
 }
 
 A64::Operand::Operand (const A64::Extension e, const A64::Immediate i) :
-	model {Extension}, immediate {i}, extension {e}
+    model(Extension), immediate(i), extension(e)
 {
 }
 
 A64::Operand::Operand (const ARM::ConditionCode c) :
-	model {ConditionCode}, code {c}
+    model(ConditionCode), code(c)
 {
 }
 
 A64::Operand::Operand (const ARM::CoprocessorRegister cr) :
-	model {CoprocessorRegister}, coregister {cr}
+    model(CoprocessorRegister), coregister(cr)
 {
 }
 
 A64::Operand::Operand (const A64::Symbol s) :
-	model {Symbol}, symbol {s}
+    model(Symbol), symbol(s)
 {
 }
 

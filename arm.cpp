@@ -94,22 +94,22 @@ Operand::Operand (const ARM::InterruptMask m) :
 }
 
 Operand::Operand (const ARM::BarrierOperation o) :
-	model {BarrierOperation}, operation {o}
+    model (BarrierOperation), operation (o)
 {
 }
 
 Operand::Operand (const ARM::ShiftMode m, const ARM::Immediate s) :
-	model {ShiftMode}, mode {m}, shift {s}
+    model (ShiftMode), mode(m), shift(s)
 {
 }
 
 Operand::Operand (const ARM::Coprocessor c) :
-	model {Coprocessor}, coprocessor {c}
+    model (Coprocessor), coprocessor(c)
 {
 }
 
 Operand::Operand (const ARM::CoprocessorRegister r) :
-	model {CoprocessorRegister}, coregister {r}
+    model (CoprocessorRegister), coregister(r)
 {
 }
 

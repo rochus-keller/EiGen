@@ -28,13 +28,13 @@ using namespace ARM;
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Assembly::Assembler& a, const Target t,
     const Name n, const FloatingPointExtension fpe) :
-    Assembly::Generator {d, sp, a, t, n, {{4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true}, true},
-    floatingPointExtension {fpe}
+    Assembly::Generator (d, sp, a, t, n, {{4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true}, true),
+    floatingPointExtension(fpe)
 {
 }
 
 Generator::Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l) :
-	Assembly::Generator::Context {g, b, i, l, false}, floatingPointExtension {g.floatingPointExtension}
+    Assembly::Generator::Context(g, b, i, l, false), floatingPointExtension(g.floatingPointExtension)
 {
 	for (auto& set: registers) for (auto& register_: set) register_ = R15;
 	Acquire (registers[Low][Code::RSP] = SP); Acquire (registers[Low][Code::RFP] = R11); Acquire (registers[Low][Code::RLink] = LR); Acquire (R15);

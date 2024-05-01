@@ -48,7 +48,7 @@ namespace ECS
 
     template <typename Stream, typename Value>
     inline BasicIndenter<Stream, Value>::BasicIndenter (const Value& v, const std::size_t i) :
-        value {v}, indentation {i}
+        value (v), indentation (i)
     {
     }
 

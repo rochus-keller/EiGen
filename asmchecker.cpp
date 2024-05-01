@@ -35,7 +35,7 @@ Checker::Checker (Diagnostics& d, Charset& c) :
 }
 
 Checker::Context::Context (const Checker& c, Object::Section& s, const Origin o, const Alignment a, const Inlined i) :
-    charset(c.charset), inlined {i}, alignment {a}, diagnostics(c.diagnostics), section(s), origin {o}
+    charset(c.charset), inlined(i), alignment(a), diagnostics(c.diagnostics), section(s), origin(o)
 {
 	assert (IsPowerOfTwo (alignment));
 }

@@ -65,13 +65,13 @@ namespace ECS
 
     template <typename Value>
     Range<Value>::Range (const Value& v) :
-        lower {v}, upper {v}
+        lower (v), upper (v)
     {
     }
 
     template <typename Value>
     Range<Value>::Range (const Value& l, const Value& u) :
-        lower {l}, upper {u}
+        lower (l), upper (u)
     {
     }
 

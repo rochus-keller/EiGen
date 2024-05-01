@@ -144,8 +144,8 @@ namespace Code {
         enum Model {Void, Size, Offset, String, Type, Immediate, Register, Address, Memory, Unreachable = 0};
 
         enum Class {Pointer = 0, Function = 1, None = 2 << Void,
-            #define CLASS(class, model1, model2, model3, model4) \
-                class = (2 << model1 | 2 << model2 | 2 << model3 | 2 << model4) & ~None,
+            #define CLASS(cls, model1, model2, model3, model4) \
+                cls = (2 << model1 | 2 << model2 | 2 << model3 | 2 << model4) & ~None,
             #include "code.def"
         };
 
@@ -239,10 +239,11 @@ namespace Code {
         Operand operand1, operand2, operand3;
 
         Instruction () = default;
-        explicit Instruction (const Mnemonic m) : mnemonic {m} {}
-        Instruction (const Mnemonic m, const Operand& o1) : mnemonic {m}, operand1 {o1} {}
-        Instruction (const Mnemonic m, const Operand& o1, const Operand& o2) : mnemonic {m}, operand1 {o1}, operand2 {o2} {}
-        Instruction (const Mnemonic m, const Operand& o1, const Operand& o2, const Operand& o3) : mnemonic {m}, operand1 {o1}, operand2 {o2}, operand3 {o3} {}
+        explicit Instruction (const Mnemonic m) : mnemonic(m) {}
+        Instruction (const Mnemonic m, const Operand& o1) : mnemonic(m), operand1(o1) {}
+        Instruction (const Mnemonic m, const Operand& o1, const Operand& o2) : mnemonic(m), operand1(o1), operand2(o2) {}
+        Instruction (const Mnemonic m, const Operand& o1, const Operand& o2, const Operand& o3) :
+            mnemonic(m), operand1(o1), operand2(o2), operand3(o3) {}
 
         Size Uses (Register) const;
     };
@@ -254,7 +255,8 @@ namespace Code {
     template <Instruction::Mnemonic m> struct InstructionMnemonic<m, 3>;
 
     #define INSTR(name, mnem, class1, class2, class3, ...) \
-        using mnem = InstructionMnemonic<Instruction::mnem, (Operand::class1 != Operand::None) + (Operand::class2 != Operand::None) + (Operand::class3 != Operand::None)>;
+        using mnem = InstructionMnemonic<Instruction::mnem, (Operand::class1 != Operand::None) + \
+                        (Operand::class2 != Operand::None) + (Operand::class3 != Operand::None)>;
     #include "code.def"
 
     bool IsAssembly (Instruction::Mnemonic);
@@ -276,25 +278,25 @@ namespace Code {
     template <Instruction::Mnemonic m>
     struct InstructionMnemonic<m, 0> : Instruction
     {
-        InstructionMnemonic () : Instruction {m} {}
+        InstructionMnemonic () : Instruction(m) {}
     };
 
     template <Instruction::Mnemonic m>
     struct InstructionMnemonic<m, 1> : Instruction
     {
-        explicit InstructionMnemonic (const Operand& o1) : Instruction {m, o1} {}
+        explicit InstructionMnemonic (const Operand& o1) : Instruction(m, o1) {}
     };
 
     template <Instruction::Mnemonic m>
     struct InstructionMnemonic<m, 2> : Instruction
     {
-        InstructionMnemonic (const Operand& o1, const Operand& o2) : Instruction {m, o1, o2} {}
+        InstructionMnemonic (const Operand& o1, const Operand& o2) : Instruction(m, o1, o2) {}
     };
 
     template <Instruction::Mnemonic m>
     struct InstructionMnemonic<m, 3> : Instruction
     {
-        InstructionMnemonic (const Operand& o1, const Operand& o2, const Operand& o3) : Instruction {m, o1, o2, o3} {}
+        InstructionMnemonic (const Operand& o1, const Operand& o2, const Operand& o3) : Instruction(m, o1, o2, o3) {}
     };
 
     struct Section : Object::Section
@@ -347,20 +349,20 @@ namespace Code {
     }
 
     inline Type::Type (const Model m, const Size s) :
-        model {m}, size {s}
+        model(m), size(s)
     {
         assert (model != Void);
     }
 
     template <Type::Model M, typename V>
     constexpr TypeModel<M, V>::TypeModel (const Size s) :
-        Type {M, s}
+        Type(M, s)
     {
     }
 
     template <typename TM, typename TM::Value (Operand::*immediate)>
     ImmediateModel<TM, immediate>::ImmediateModel (const Code::Type& t, const Value i) :
-        Operand {Immediate, t}
+        Operand(Immediate, t)
     {
         assert (type.model == TM::Model);
         this->*immediate = i;

@@ -36,7 +36,7 @@ static const char*const symbols[] {"invalid token", "end of file",
 };
 
 Location::Location (const Source& s, const Line l) :
-	source {&s}, line {l}
+    source(&s), line(l)
 {
 	assert (line);
 }
@@ -150,7 +150,7 @@ void Lexer::ReadNumber (std::istream& stream, char character, Token& token)
 }
 
 Lexer::Token::Token (const Symbol s, const Location& l) :
-	symbol {s}, location {l}
+    symbol(s), location(l)
 {
 }
 

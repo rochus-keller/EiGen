@@ -394,13 +394,13 @@ namespace ECS
 
     template <typename Value>
     Restore<Value>::Restore (Value& v) :
-        value {v}, previous {v}
+        value(v), previous(v)
     {
     }
 
     template <typename Value> template <typename Temporary>
     Restore<Value>::Restore (Value& v, const Temporary& temporary) :
-        Restore {v}
+        Restore(v)
     {
         value = temporary;
     }
@@ -427,25 +427,25 @@ namespace ECS
 
     template <typename Value>
     inline Span<Value>::Span (Value*const begin, Value*const end) noexcept :
-        first {begin}, last {end}
+        first(begin), last(end)
     {
     }
 
     template <typename Value>
     inline Span<Value>::Span (Value*const begin, const std::size_t size) noexcept :
-        first {begin}, last {begin + size}
+        first(begin), last(begin + size)
     {
     }
 
     template <typename Value> template <typename Element>
     inline Span<Value>::Span (std::vector<Element>& vector) noexcept :
-        Span {vector.data (), vector.size ()}
+        Span(vector.data (), vector.size ())
     {
     }
 
     template <typename Value> template <typename Element>
     inline Span<Value>::Span (const std::vector<Element>& vector) noexcept :
-        Span {vector.data (), vector.size ()}
+        Span(vector.data (), vector.size ())
     {
     }
 

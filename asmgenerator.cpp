@@ -35,7 +35,7 @@ namespace Assembly {
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Assembler& a, const Target t,
     const Name n, const Layout& l, const HasLinkRegister hlr) :
-    layout {l}, platform {layout, hlr}, assembler(a), target {t}, name {n}, parser {d, sp, false}
+    layout(l), platform(layout, hlr), assembler(a), target(t), name(n), parser(d, sp, false)
 {
 	assert (target); assert (name);
 }
@@ -54,8 +54,8 @@ void Generator::Generate (const Code::Sections& sections, const Source& source, 
 
 Generator::Context::Context (const Generator& g, Object::Binaries& b, Debugging::Information& i,
                   std::ostream& l, const InitializeData id) :
-    listing(l), generator(g), endianness {generator.assembler.endianness}, binaries(b),
-    information(i)	, initializeData {id}
+    listing(l), generator(g), endianness(generator.assembler.endianness), binaries(b),
+    information(i)	, initializeData(id)
 {
 }
 
@@ -757,17 +757,17 @@ Debugging::Value Generator::Context::GetValue (const Code::Operand& operand)
 }
 
 Generator::Context::Label::Label (const Code::Size i) :
-	index {i}
+    index(i)
 {
 }
 
 Generator::Context::LocalLabel::LocalLabel (Context& c, const Code::Size i) :
-	Label {i}, context {&c}
+    Label(i), context(&c)
 {
 }
 
 Generator::Context::LocalLabel::LocalLabel (LocalLabel&& label) noexcept :
-	Label {label.index}, context {label.context}
+    Label(label.index), context(label.context)
 {
 	label.context = nullptr;
 }
@@ -788,17 +788,17 @@ void Generator::Context::LocalLabel::operator () ()
 }
 
 Generator::Context::LocalDefinition::LocalDefinition (const Code::Size l, Context& context, const Code::Operand& v) :
-	limit {l}, label {context.CreateLabel ()}, value {v}
+    limit(l), label(context.CreateLabel ()), value(v)
 {
 }
 
 Generator::Context::InstructionFixup::InstructionFixup (const Code::Size o, const Code::Size i, const FixupCode c, const Code::Size s) :
-	offset {o}, index {i}, code {c}, size {s}
+    offset(o), index(i), code(c), size(s)
 {
 }
 
 Generator::Context::TypeDeclaration::TypeDeclaration (const Code::Size e, Debugging::Type& t) :
-	extent {e}, type {&t}
+    extent(e), type(&t)
 {
 }
 

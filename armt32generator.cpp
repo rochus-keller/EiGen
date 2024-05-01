@@ -97,7 +97,7 @@ private:
 };
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const FloatingPointExtension fpe) :
-	ARM::Generator {d, sp, assembler, "armt32", fpe ? "ARM T32 FPE" : "ARM T32", fpe}, assembler {d, c}
+    ARM::Generator(d, sp, assembler, "armt32", fpe ? "ARM T32 FPE" : "ARM T32", fpe), assembler(d, c)
 {
 }
 
@@ -623,13 +623,13 @@ void Generator::Context::FixupInstruction (const Span<Byte> bytes, const Byte*co
 }
 
 Generator::Context::SmartOperand::SmartOperand (Context& c, const ARM::Register register_, const Code::Type& type) :
-	Operand {c.Translate (register_, type)}, context {&c}
+    Operand(c.Translate (register_, type)), context(&c)
 {
 	context->Acquire (register_);
 }
 
 Generator::Context::SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
-	Operand {std::move (operand)}, context {operand.context}
+    Operand(std::move (operand)), context(operand.context)
 {
 	operand.context = nullptr;
 }

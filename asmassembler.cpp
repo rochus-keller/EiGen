@@ -67,7 +67,7 @@ private:
 };
 
 Assembler::Assembler (Diagnostics& d, Charset& c, const CodeAlignment ca, const DataAlignment da, const Endianness e, const BitMode bm) :
-	Checker {d, c}, codeAlignment {ca}, dataAlignment {da}, endianness {e}, bitmode {bm}
+    Checker(d, c), codeAlignment(ca), dataAlignment(da), endianness(e), bitmode(bm)
 {
 	assert (IsPowerOfTwo (codeAlignment)); assert (IsPowerOfTwo (dataAlignment));
 }
@@ -96,8 +96,8 @@ void Assembler::Assemble (const Assembly::Section& section, Binaries& binaries) 
 }
 
 Assembler::Context::Context (const Assembler& a, Binary& b, const Inlined i) :
-	Checker::Context {a, b, b.bytes.size (), IsCode (b.type) ? a.codeAlignment : a.dataAlignment, i},
-    assembler(a), binary(b), endianness {assembler.endianness}, bitmode {assembler.bitmode}
+    Checker::Context(a, b, b.bytes.size (), IsCode (b.type) ? a.codeAlignment : a.dataAlignment, i),
+    assembler(a), binary(b), endianness(assembler.endianness), bitmode(assembler.bitmode)
 {
 }
 

@@ -26,22 +26,22 @@ using namespace ECS;
 using namespace Assembly;
 
 Program::Program (const Source& s) :
-	source {s}
+    source(s)
 {
 }
 
 Expression::Expression (const Model m, const Value v) :
-	model {m}, value {v}
+    model(m), value(v)
 {
 }
 
 Expression::Expression (const Model m, const Assembly::String& s) :
-	model {m}, string {s}
+    model(m), string(s)
 {
 }
 
 Instruction::Instruction (const Location& l) :
-	location {l}
+    location(l)
 {
 }
 

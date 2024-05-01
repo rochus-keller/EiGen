@@ -63,13 +63,13 @@ namespace ECS
 
 
     inline Position::Position (const Line l, const Column c) :
-        line {l}, column {c}
+        line(l), column(c)
     {
     }
 
     template <typename C, typename T>
     inline Position::Position (std::basic_ifstream<C, T>& stream, const Source& s, const Line l, const Column c) :
-        Position {l, c}
+        Position(l, c)
     {
         if (stream) newline = stream.tellg (), source = std::make_shared<Source> (s);
     }

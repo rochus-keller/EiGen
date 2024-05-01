@@ -109,7 +109,7 @@ private:
 };
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const FullAddressSpace fas) :
-	Assembly::Generator {d, sp, assembler, "arma64", "ARM A64", {{4, 1, 8}, {8, 4, 8}, 8, 8, {0, 16, 16}, true}, true}, assembler {d, c}, fullAddressSpace {fas}
+    Assembly::Generator(d, sp, assembler, "arma64", "ARM A64", {{4, 1, 8}, {8, 4, 8}, 8, 8, {0, 16, 16}, true}, true), assembler(d, c), fullAddressSpace(fas)
 {
 }
 
@@ -119,7 +119,7 @@ void Generator::Process (const Code::Sections& sections, Object::Binaries& binar
 }
 
 Generator::Context::Context (const A64::Generator& g, Object::Binaries& b, Debugging::Information& i, std::ostream& l) :
-	Assembly::Generator::Context {g, b, i, l, false}, fullAddressSpace {g.fullAddressSpace}
+    Assembly::Generator::Context(g, b, i, l, false), fullAddressSpace(g.fullAddressSpace)
 {
 	for (auto& register_: registers) register_ = XZR;
 	registers[Code::RSP] = SP; registers[Code::RFP] = X29; registers[Code::RLink] = X30;
@@ -603,13 +603,13 @@ A64::Instruction::Mnemonic Generator::Context::GetStoreMnemonic (const Code::Typ
 }
 
 Generator::Context::SmartOperand::SmartOperand (Context& c, const A64::Register register_, const Code::Type& type) :
-	Operand {c.Translate (register_, type)}, context {&c}
+    Operand(c.Translate (register_, type)), context(&c)
 {
 	context->Acquire (register_);
 }
 
 Generator::Context::SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
-	Operand {std::move (operand)}, context {operand.context}
+    Operand(std::move (operand)), context(operand.context)
 {
 	operand.context = nullptr;
 }

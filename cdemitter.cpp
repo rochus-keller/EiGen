@@ -48,8 +48,8 @@ void (Emitter::Context::*const Emitter::Context::less[]) (const Label&, const Op
 {&Emitter::Context::BranchGreaterEqual, &Emitter::Context::BranchLessThan};
 
 Emitter::Emitter (Diagnostics& d, StringPool& sp, Charset& c, Platform& p) :
-    diagnostics(d), charset(c), platform(p), stackPointer {p.pointer, RSP}, framePointer {p.pointer, RFP},
-    linkRegister {p.link, RLink}, parser {d, sp, true}, checker {d, c, p}
+    diagnostics(d), charset(c), platform(p), stackPointer(p.pointer, RSP), framePointer(p.pointer, RFP),
+    linkRegister(p.link, RLink), parser(d, sp, true), checker(d, c, p)
 {
 }
 
@@ -443,13 +443,13 @@ Size Emitter::Context::Push (const Size size)
 
 Size Emitter::Context::Push (const Operand& operand)
 {
-    Emit (PUSH {operand});
+    Emit (PUSH(operand));
     return platform.GetStackSize (operand.type);
 }
 
 void Emitter::Context::Pop (const Operand& target)
 {
-	Emit (POP {target});
+    Emit (POP(target));
 }
 
 Emitter::Context::SmartOperand Emitter::Context::Pop (const Type& type, const Hint hint)
@@ -958,25 +958,25 @@ bool Emitter::Context::HaveSameUserRegister (const Operand& first, const Operand
 }
 
 Emitter::Context::SmartOperand::SmartOperand (const Operand& operand) :
-	Operand {operand}
+    Operand(operand)
 {
 	assert (!HasRegister (operand) || !IsUser (operand.register_));
 }
 
 Emitter::Context::SmartOperand::SmartOperand (State::Counters& c, const Operand& operand) :
-	Operand {operand}
+    Operand(operand)
 {
 	if (HasRegister (operand) && IsUser (operand.register_)) counters = &c, ++(*counters)[register_];
 }
 
 Emitter::Context::SmartOperand::SmartOperand (const SmartOperand& operand) :
-	Operand {operand}, counters {operand.counters}
+    Operand(operand), counters(operand.counters)
 {
 	if (counters) ++(*counters)[register_];
 }
 
 Emitter::Context::SmartOperand::SmartOperand (SmartOperand&& operand) noexcept :
-	Operand {std::move (operand)}, counters {operand.counters}
+    Operand(std::move (operand)), counters(operand.counters)
 {
 	operand.counters = nullptr;
 }
@@ -1008,12 +1008,12 @@ void Emitter::Context::SmartOperand::swap (SmartOperand& other)
 }
 
 Emitter::Context::Label::Label (Section& s) :
-	section {&s}
+    section(&s)
 {
 }
 
 Emitter::Context::Label::Label (Label&& label) noexcept :
-	offset {label.offset}, section {label.section}, fixups {std::move (label.fixups)}
+    offset(label.offset), section(label.section), fixups(std::move (label.fixups))
 {
 	label.section = nullptr;
 }
@@ -1054,7 +1054,7 @@ void Emitter::Context::Label::Patch (const Offset offset) const
 }
 
 Emitter::Context::RestoreState::RestoreState (Context& c) :
-    context(c), previous {c.current}
+    context(c), previous(c.current)
 {
 	context.current = &state;
 }

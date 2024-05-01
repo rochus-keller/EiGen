@@ -129,7 +129,7 @@ void Parser::Parse (std::istream& stream, const Source& source, const Line line,
 }
 
 Parser::Context::Context (const Parser& p, std::istream& s, const Source& source, const Line line) :
-    parser {p}, stream(s), current {Lexer::Invalid, {source, line}}
+    parser(p), stream(s), current(Lexer::Invalid, {source, line})
 {
 	SkipCurrent ();
 }

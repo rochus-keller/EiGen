@@ -168,33 +168,33 @@ const Lookup<Operand::Format::Entry, Instruction::Mnemonic> Operand::Format::fir
     Operand::Format::last = Lookup<Operand::Format::Entry, Instruction::Mnemonic>(table, 0);
 
 Operand::Operand (const AMD64::Register r) :
-	model {Register}, register_ {r}
+    model (Register), register_ (r)
 {
 }
 
 Operand::Operand (const AMD64::Immediate i, const Size s) :
-	model {Immediate}, size {s}, immediate {i}
+    model (Immediate), size (s), immediate (i)
 {
 }
 
 Operand::Operand (const Size si, const Segment se, const AMD64::Register r, const Index in, const Scale sc, const AMD64::Immediate im) :
-	model {Memory}, size {si}, segment {se}, register_ {r}, index {in}, scale {sc}, immediate {im}
+    model (Memory), size (si), segment (se), register_ (r), index (in), scale (sc), immediate (im)
 {
 	assert (!segment || segment >= ES && segment <= GS);
 }
 
 Mem::Mem (const AMD64::Immediate i, const Size si, const Segment se) :
-	Operand {si, se, RVoid, RVoid, 0, i}
+    Operand (si, se, RVoid, RVoid, 0, i)
 {
 }
 
 Mem::Mem (const AMD64::Register r, const Index in, const Scale sc, const AMD64::Immediate im, const Size si, const Segment se) :
-	Operand {si, se, r, in, sc, im}
+    Operand (si, se, r, in, sc, im)
 {
 }
 
 Mem::Mem (const AMD64::Register r, const AMD64::Immediate i, const Size si, const Segment se) :
-	Operand {si, se, r, RVoid, 0, i}
+    Operand (si, se, r, RVoid, 0, i)
 {
 }
 
@@ -204,7 +204,7 @@ Instruction::Instruction (const OperatingMode m) :
 }
 
 Instruction::Instruction (const OperatingMode m, const Span<const Byte> bytes) :
-    mode {m}, size {Operand::Format {mode}.Decode (bytes, *this)}
+    mode (m), size (Operand::Format {mode}.Decode (bytes, *this))
 {
 	assert (size <= sizeof code);
 	std::copy_n (bytes.begin (), size, code);
@@ -212,7 +212,7 @@ Instruction::Instruction (const OperatingMode m, const Span<const Byte> bytes) :
 
 Instruction::Instruction (const OperatingMode om, const Prefix p, const Mnemonic m, const Operand& o1,
                           const Operand& o2, const Operand& o3, const Operand& o4) :
-    mode {om}, prefix {p}, mnemonic {m}, operand1 {o1}, operand2 {o2}, operand3 {o3}, operand4 {o4},
+    mode (om), prefix (p), mnemonic (m), operand1 (o1), operand2 (o2), operand3 (o3), operand4 (o4),
     size(Operand::Format(mode).Encode(*this, code, fixup))
 {
 }

@@ -31,63 +31,63 @@ static const char*const entries[] {"code", "data", "type"};
 static const char*const types[] {"void", nullptr, "signed", "unsigned", "float", "array", "record", "pointer", "reference", "function", "enumeration"};
 
 Breakpoint::Breakpoint (const Offset o) :
-	offset {o}
+    offset(o)
 {
 }
 
 Type::Type (const Model m, const Size s, Type&& t) :
-	model {m}, size {s}
+    model(m), size(s)
 {
 	if (IsCompound (*this)) subtypes.push_back (std::move (t));
 }
 
 Type::Type (const Debugging::Name& n) :
-	model {Name}, name {n}
+    model(Name), name(n)
 {
 }
 
 Value::Value (const Signed s) :
-	model {Type::Signed}, signed_ {s}
+    model(Type::Signed), signed_(s)
 {
 }
 
 Value::Value (const Unsigned u) :
-	model {Type::Unsigned}, unsigned_ {u}
+    model(Type::Unsigned), unsigned_ (u)
 {
 }
 
 Value::Value (const Float f) :
-	model {Type::Float}, float_ {f}
+    model(Type::Float), float_(f)
 {
 }
 
 Field::Field (const Name& n, const Offset o, const Mask m) :
-	name {n}, offset {o}, mask {m}
+    name(n), offset(o), mask(m)
 {
 }
 
 Enumerator::Enumerator (const Name& n, const Value& v) :
-	name {n}, value {v}
+    name(n), value(v)
 {
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Value& v) :
-    model {Constant}, name {n}, lifetime(l), value {v}
+    model(Constant), name(n), lifetime(l), value(v)
 {
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Debugging::Register& r) :
-    model {Register}, name {n}, lifetime(l), register_ {r}
+    model(Register), name(n), lifetime(l), register_(r)
 {
 }
 
 Symbol::Symbol (const Name& n, const Lifetime& l, const Debugging::Register& r, const Displacement d) :
-    model {Variable}, name {n}, lifetime(l), register_ {r}, displacement {d}
+    model(Variable), name(n), lifetime(l), register_(r), displacement(d)
 {
 }
 
 Entry::Entry (const Model m, const Name& n) :
-	model {m}, name {n}
+    model(m), name(n)
 {
 }
 

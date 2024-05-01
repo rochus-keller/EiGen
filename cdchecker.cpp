@@ -53,7 +53,7 @@ private:
 };
 
 Checker::Checker (Diagnostics& d, Charset& c, Platform& p) :
-    Assembly::Checker {d, c}, platform(p)
+    Assembly::Checker(d, c), platform(p)
 {
 }
 
@@ -77,7 +77,7 @@ void Checker::Check (const Assembly::Section& section, Sections& sections) const
 }
 
 Checker::Context::Context (const Code::Checker& c, Section& s, const Inlined i) :
-    Assembly::Checker::Context {c, s, s.instructions.size (), 1, i}, section(s), platform(c.platform)
+    Assembly::Checker::Context(c, s, s.instructions.size (), 1, i), section(s), platform(c.platform)
 {
 }
 

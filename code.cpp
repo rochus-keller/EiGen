@@ -44,32 +44,32 @@ static const char*const mnemonics[] {
 };
 
 Operand::Operand (const Code::Size s) :
-	model {Size}, size {s}
+    model(Size), size(s)
 {
 }
 
 Operand::Operand (const Code::Offset o) :
-	model {Offset}, offset {o}
+    model(Offset), offset(o)
 {
 }
 
 Operand::Operand (const Code::String& s) :
-	model {String}, address {s}
+    model(String), address(s)
 {
 }
 
 Operand::Operand (const Code::Type& t) :
-	model {Type}, type {t}
+    model(Type), type(t)
 {
 }
 
 Operand::Operand (const Model m, const Code::Type& t) :
-	model {m}, type {t}
+    model(m), type(t)
 {
 }
 
 Operand::Operand (const Model m, const Code::Type& t, const Section::Name& a) :
-	model {m}, type {t}, address {a}
+    model(m), type(t), address(a)
 {
 }
 
@@ -86,7 +86,7 @@ bool Operand::Uses (const Code::Register r) const
 }
 
 Imm::Imm (const Code::Type& t, const Signed::Value imm) :
-	Operand {Immediate, t}
+    Operand(Immediate, t)
 {
 	switch (type.model)
 	{
@@ -100,34 +100,34 @@ Imm::Imm (const Code::Type& t, const Signed::Value imm) :
 }
 
 Reg::Reg (const Code::Type& t, const Code::Register r, const Displacement d) :
-	Operand {Register, t}
+    Operand(Register, t)
 {
 	assert (r != RVoid);
 	register_ = r; displacement = d;
 }
 
 Adr::Adr (const Code::Type& t, const Section::Name& a, const Displacement d) :
-	Operand {Address, t, a}
+    Operand(Address, t, a)
 {
 	assert (!address.empty ());
 	register_ = RVoid; displacement = d;
 }
 
 Adr::Adr (const Code::Type& t, const Section::Name& a, const Code::Register r, const Displacement d) :
-	Operand {Address, t, a}
+    Operand(Address, t, a)
 {
 	assert (!address.empty ());
 	register_ = r; displacement = d;
 }
 
 Mem::Mem (const Code::Type& t, const Pointer::Value p, const Strict s) :
-	Operand {Memory, t}
+    Operand(Memory, t)
 {
 	register_ = RVoid; ptrimm = p; strict = s;
 }
 
 Mem::Mem (const Code::Type& t, const Operand& operand, const Displacement d, const Strict s) :
-	Operand {Memory, t, operand.address}
+    Operand(Memory, t, operand.address)
 {
 	assert (IsValid (operand)); assert (!IsMemory (operand)); assert (IsPointer (operand.type));
 	if (operand.model == Immediate) register_ = RVoid, ptrimm = operand.ptrimm + d;
@@ -136,21 +136,21 @@ Mem::Mem (const Code::Type& t, const Operand& operand, const Displacement d, con
 }
 
 Mem::Mem (const Code::Type& t, const Section::Name& a, const Displacement d, const Strict s) :
-	Operand {Memory, t, a}
+    Operand(Memory, t, a)
 {
 	assert (!address.empty ());
 	register_ = RVoid; displacement = d; strict = s;
 }
 
 Mem::Mem (const Code::Type& t, const Code::Register r, const Displacement d, const Strict s) :
-	Operand {Memory, t}
+    Operand(Memory, t)
 {
 	assert (r != RVoid);
 	register_ = r; displacement = d; strict = s;
 }
 
 Mem::Mem (const Code::Type& t, const Section::Name& a, const Code::Register r, const Displacement d, const Strict s) :
-	Operand {Memory, t, a}
+    Operand(Memory, t, a)
 {
 	assert (!address.empty () || r != RVoid);
 	register_ = r; displacement = d; strict = s;

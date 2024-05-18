@@ -56,15 +56,23 @@ void Lexer::Scan (std::istream& stream, Token& token) const
 
 	switch (character)
 	{
-	case '=': token.symbol = stream.peek () == '=' && stream.ignore () ? stream.peek () == '=' && stream.ignore () ? Identical : Equal : Invalid; break;
+    case '=': token.symbol = stream.peek () == '=' && stream.ignore () ?
+                    stream.peek () == '=' && stream.ignore () ?
+                        Identical : Equal : Invalid; break;
 	case '+': token.symbol = Plus; break;
 	case '-': token.symbol = Minus; break;
 	case '*': token.symbol = Times; break;
 	case '/': token.symbol = Slash; break;
 	case '%': token.symbol = Modulo; break;
-	case '<': token.symbol = stream.peek () == '<' && stream.ignore () ? LeftShift : stream.peek () == '=' && stream.ignore () ? LessEqual : Less; break;
-	case '>': token.symbol = stream.peek () == '>' && stream.ignore () ? RightShift : stream.peek () == '=' && stream.ignore () ? GreaterEqual : Greater; break;
-	case '!': token.symbol = stream.peek () == '=' && stream.ignore () ? stream.peek () == '=' && stream.ignore () ? Unidentical : Unequal : LogicalNot; break;
+    case '<': token.symbol = stream.peek () == '<' && stream.ignore () ?
+                    LeftShift : stream.peek () == '=' && stream.ignore () ?
+                        LessEqual : Less; break;
+    case '>': token.symbol = stream.peek () == '>' && stream.ignore () ?
+                    RightShift : stream.peek () == '=' && stream.ignore () ?
+                        GreaterEqual : Greater; break;
+    case '!': token.symbol = stream.peek () == '=' && stream.ignore () ?
+                    stream.peek () == '=' && stream.ignore () ?
+                        Unidentical : Unequal : LogicalNot; break;
 	case '~': token.symbol = BitwiseNot; break;
 	case '|': token.symbol = stream.peek () == '|' && stream.ignore () ? LogicalOr : BitwiseOr; break;
 	case '&': token.symbol = stream.peek () == '&' && stream.ignore () ? LogicalAnd : BitwiseAnd; break;
@@ -79,10 +87,17 @@ void Lexer::Scan (std::istream& stream, Token& token) const
 	case ']': token.symbol = RightBracket; break;
 	case '{': token.symbol = LeftBrace; break;
 	case '}': token.symbol = RightBrace; break;
-	case '\'': token.symbol = ReadString (stream.putback ('\''), token.string, '\'') && !token.string.empty () && token.string.size () <= 8 ? Character : Invalid; break;
+    case '\'': token.symbol = ReadString (stream.putback ('\''), token.string, '\'') &&
+                !token.string.empty () && token.string.size () <= 8 ? Character : Invalid; break;
 	case '"': token.symbol = ReadString (stream.putback ('"'), token.string, '"') ? String : Invalid; break;
-	case '@': if (stream.peek () == '"') token.symbol = ReadString (stream, token.string, '"') ? Address : Invalid; else ReadIdentifier (stream, token, Address); break;
-	default: if (std::isdigit (character)) ReadNumber (stream, character, token); else ReadIdentifier (stream.putback (character), token, Identifier);
+    case '@':
+        if (stream.peek () == '"')
+            token.symbol = ReadString (stream, token.string, '"') ? Address : Invalid;
+        else
+            ReadIdentifier (stream, token, Address); break;
+    default:
+        if (std::isdigit (character)) ReadNumber (stream, character, token);
+        else ReadIdentifier (stream.putback (character), token, Identifier);
 	}
 }
 
@@ -94,59 +109,89 @@ Lexer::Symbol Lexer::Convert (const Assembly::Identifier& identifier, const Symb
 
 void Lexer::ReadIdentifier (std::istream& stream, Token& token, const Symbol symbol)
 {
-	if (std::isspace (stream.peek ()) || !ECS::ReadIdentifier (stream, token.string, symbol == Address ? IsAddress : IsIdentifier)) token.symbol = Invalid;
-	else if (symbol == Identifier) token.symbol = Convert (token.string, FirstDirective, LastDirective, Identifier);
-	else token.symbol = symbol;
+    if (std::isspace (stream.peek ()) ||
+            !ECS::ReadIdentifier (stream, token.string, symbol == Address ?
+                                  IsAddress : IsIdentifier))
+        token.symbol = Invalid;
+    else if (symbol == Identifier)
+        token.symbol = Convert (token.string, FirstDirective, LastDirective, Identifier);
+    else
+        token.symbol = symbol;
 }
 
 void Lexer::ReadNumber (std::istream& stream, char character, Token& token)
 {
 	token.string.clear ();
 
-	if (character != '0' || !stream.get (character)) token.symbol = Integer;
-	else if (character == 'b' && std::isxdigit (stream.peek ()) && stream.get (character)) token.symbol = BinInteger;
-	else if (character == 'o' && std::isxdigit (stream.peek ()) && stream.get (character)) token.symbol = OctInteger;
-	else if (character == 'd' && std::isxdigit (stream.peek ()) && stream.get (character)) token.symbol = DecInteger;
-	else if (character == 'x' && std::isxdigit (stream.peek ()) && stream.get (character)) token.symbol = HexInteger;
-	else if (character == 'h' && std::isxdigit (stream.peek ()) && stream.get (character)) token.symbol = HexInteger;
-	else token.symbol = Integer, stream.putback (character), character = '0';
+    if (character != '0' || !stream.get (character))
+        token.symbol = Integer;
+    else if (character == 'b' && std::isxdigit (stream.peek ()) && stream.get (character))
+        token.symbol = BinInteger;
+    else if (character == 'o' && std::isxdigit (stream.peek ()) && stream.get (character))
+        token.symbol = OctInteger;
+    else if (character == 'd' && std::isxdigit (stream.peek ()) && stream.get (character))
+        token.symbol = DecInteger;
+    else if (character == 'x' && std::isxdigit (stream.peek ()) && stream.get (character))
+        token.symbol = HexInteger;
+    else if (character == 'h' && std::isxdigit (stream.peek ()) && stream.get (character))
+        token.symbol = HexInteger;
+    else
+        token.symbol = Integer, stream.putback (character), character = '0';
 
-	do if (stream.peek () == '\'' && !std::isxdigit (stream.ignore ().peek ())) stream.putback ('\'');
+    do
+        if (stream.peek () == '\'' && !std::isxdigit (stream.ignore ().peek ()))
+            stream.putback ('\'');
 	while (token.string.push_back (character), stream.get (character) && std::isxdigit (character));
 
 	if (character == 'o')
 		if (token.symbol == Integer) token.symbol = OctInteger;
 		else stream.putback (character);
 	else if (character == 'h')
-		if (token.symbol == BinInteger) token.symbol = HexInteger, token.string.insert (0, 1, 'b');
-		else if (token.symbol == DecInteger) token.symbol = HexInteger, token.string.insert (0, 1, 'd');
-		else if (token.symbol == Integer) token.symbol = HexInteger;
-		else stream.putback (character);
+        if (token.symbol == BinInteger)
+            token.symbol = HexInteger, token.string.insert (0, 1, 'b');
+        else if (token.symbol == DecInteger)
+            token.symbol = HexInteger, token.string.insert (0, 1, 'd');
+        else if (token.symbol == Integer)
+            token.symbol = HexInteger;
+        else
+            stream.putback (character);
 	else if (token.symbol != Integer)
 		stream.putback (character);
 	else if (stream && std::isalnum (character))
 	{
-		do token.string.push_back (character); while (std::isalnum (stream.peek ()) && stream.get (character));
+        do token.string.push_back (character);
+        while (std::isalnum (stream.peek ()) && stream.get (character));
 		token.symbol = Identifier;
 	}
 	else if (token.string.back () == 'b')
-		stream.putback (character), token.symbol = BinInteger, token.string.pop_back ();
+        stream.putback (character),
+        token.symbol = BinInteger,
+        token.string.pop_back ();
 	else if (token.string.back () == 'd')
-		stream.putback (character), token.symbol = DecInteger, token.string.pop_back ();
+        stream.putback (character),
+        token.symbol = DecInteger,
+        token.string.pop_back ();
 	else if (token.string[0] == '0' && token.string.size () > 1)
-		stream.putback (character), token.symbol = OctInteger, token.string.erase (0, 1);
+        stream.putback (character),
+        token.symbol = OctInteger,
+        token.string.erase (0, 1);
 	else if (stream && character == '.')
 	{
-		do token.string.push_back (character); while (std::isdigit (stream.peek ()) && stream.get (character));
+        do
+            token.string.push_back (character);
+        while (std::isdigit (stream.peek ()) && stream.get (character));
 		if (stream.peek () == 'e' && stream.get (character))
 		{
 			token.string.push_back (character);
-			if ((stream.peek () == '+' || stream.peek () == '-') && stream.get (character)) token.string.push_back (character);
-			while (std::isdigit (stream.peek ()) && stream.get (character)) token.string.push_back (character);
+            if ((stream.peek () == '+' || stream.peek () == '-') && stream.get (character))
+                token.string.push_back (character);
+            while (std::isdigit (stream.peek ()) && stream.get (character))
+                token.string.push_back (character);
 		}
 		token.symbol = Real;
 	}
-	else stream.putback (character);
+    else
+        stream.putback (character);
 }
 
 Lexer::Token::Token (const Symbol s, const Location& l) :

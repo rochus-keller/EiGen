@@ -120,12 +120,14 @@ Parser::Parser (Diagnostics& d, StringPool& sp, const SpecialSections ss) :
 
 void Parser::Parse (std::istream& stream, const Line line, Program& program) const
 {
-	Context {*this, stream, program.source, line}.Parse (program.sections);
+    Context ctx(*this, stream, program.source, line);
+    ctx.Parse (program.sections);
 }
 
 void Parser::Parse (std::istream& stream, const Source& source, const Line line, Instructions& instructions) const
 {
-	Context {*this, stream, source, line}.Parse (instructions);
+    Context ctx(*this, stream, source, line);
+    ctx.Parse (instructions);
 }
 
 Parser::Context::Context (const Parser& p, std::istream& s, const Source& source, const Line line) :
@@ -299,8 +301,10 @@ const Parser::Context::Operand* Parser::Context::GetOperand (const String& strin
 
 bool Parser::Context::IsSection (const Directive directive) const
 {
-	return directive == Lexer::Code || directive == Lexer::InitCode || directive == Lexer::InitData || directive == Lexer::Data || directive == Lexer::Const ||
-		directive == Lexer::Header || directive == Lexer::Trailer || (directive == Lexer::Type || directive == Lexer::Assembly) && parser.specialSections;
+    return directive == Lexer::Code || directive == Lexer::InitCode || directive == Lexer::InitData ||
+           directive == Lexer::Data || directive == Lexer::Const ||
+           directive == Lexer::Header || directive == Lexer::Trailer ||
+           (directive == Lexer::Type || directive == Lexer::Assembly) && parser.specialSections;
 }
 
 void Parser::Context::Parse (Section& section)
@@ -332,7 +336,7 @@ void Parser::Context::Parse (Section::Name& name)
 
 void Parser::Context::ParseAssembly (Section& section)
 {
-	if (!IsCurrent (Lexer::Eof)) Parse (Lexer::Newline); ParseSection (section.instructions);
+    if (!IsCurrent (Lexer::Eof)) Parse (Lexer::Newline);  ParseSection (section.instructions);
 }
 
 void Parser::Context::Parse (Instruction& instruction)

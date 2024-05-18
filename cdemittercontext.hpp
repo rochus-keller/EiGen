@@ -20,6 +20,11 @@
 #define ECS_CODE_EMITTER_CONTEXT_HEADER_INCLUDED
 
 #include "cdemitter.hpp"
+#include "charset.hpp"
+#include "position.hpp"
+#include "utilities.hpp"
+
+#include <sstream>
 
 namespace ECS { namespace Code {
 
@@ -269,43 +274,36 @@ private:
 class Emitter::Context::RestoreState
 {
 public:
-	explicit RestoreState (Context&);
+    explicit RestoreState (Emitter::Context&);
 	~RestoreState ();
 
 private:
-	Context& context;
-	State*const previous;
-	State state;
+    Emitter::Context& context;
+    Context::State*const previous;
+    Context::State state;
 };
 
 class Emitter::Context::RestoreRegisterState
 {
 public:
-	explicit RestoreRegisterState (Context&);
+    explicit RestoreRegisterState (Emitter::Context&);
 	~RestoreRegisterState ();
 
 private:
-	Context& context;
-	std::vector<SmartOperand*> savedRegisters;
+    Emitter::Context& context;
+    std::vector<Context::SmartOperand*> savedRegisters;
 };
 
-}} // ECS::Code
-
-#include "charset.hpp"
-#include "position.hpp"
-#include "utilities.hpp"
-
-#include <sstream>
 
 template <typename String>
-ECS::Code::Section::Name ECS::Code::GetName (const String& string)
+Section::Name GetName (const String& string)
 {
-	std::ostringstream stream; WriteEscaped (stream << '$', string, '?'); return stream.str ();
+    std::ostringstream stream; WriteEscaped (stream << '$', string, '?'); return stream.str ();
 }
 
-inline void ECS::Code::Emitter::Context::Comment (const char*const text)
+inline void Emitter::Context::Comment (const char*const text)
 {
-	current->comment = text;
+    current->comment = text;
 }
 
 inline void send(std::ostringstream& out) {}
@@ -318,7 +316,7 @@ void send(std::ostringstream& out, const Value& val, const Values&... values)
 }
 
 template <typename... Values>
-void ECS::Code::Emitter::Context::Comment (const Position& position, const Values&... values)
+void Emitter::Context::Comment (const Position& position, const Values&... values)
 {
     std::ostringstream stream;
     stream << "line " << GetLine (position) << ": ";
@@ -328,7 +326,7 @@ void ECS::Code::Emitter::Context::Comment (const Position& position, const Value
 }
 
 template <typename... Values>
-void ECS::Code::Emitter::Context::Comment (const Source& source, const Position& position, const Values&... values)
+void Emitter::Context::Comment (const Source& source, const Position& position, const Values&... values)
 {
     std::ostringstream stream;
     stream << "file '" << source << "' line " << GetLine (position) << ": ";
@@ -338,10 +336,14 @@ void ECS::Code::Emitter::Context::Comment (const Source& source, const Position&
 }
 
 template <typename String>
-void ECS::Code::Emitter::Context::Define (const String& string, const Type& type)
+void Emitter::Context::Define (const String& string, const Type& type)
 {
-	for (auto character: string) Define (UImm {type, emitter.charset.Encode (character)});
-	Define (UImm {type, emitter.charset.Encode (0)});
+    for (auto character: string) Define (UImm {type, emitter.charset.Encode (character)});
+    Define (UImm {type, emitter.charset.Encode (0)});
 }
+
+}} // ECS::Code
+
+
 
 #endif // ECS_CODE_EMITTER_CONTEXT_HEADER_INCLUDED

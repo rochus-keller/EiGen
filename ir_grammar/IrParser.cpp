@@ -5,11 +5,11 @@ using namespace Ir;
 static inline bool FIRST_Program(int tt) {
 	switch(tt){
 	case Tok_dot_initdata:
-	case Tok_dot_type:
-	case Tok_dot_data:
-	case Tok_dot_const:
 	case Tok_dot_code:
+	case Tok_dot_data:
 	case Tok_dot_initcode:
+	case Tok_dot_const:
+	case Tok_dot_type:
 		return true;
 	default: return false;
 	}
@@ -18,11 +18,11 @@ static inline bool FIRST_Program(int tt) {
 static inline bool FIRST_Section(int tt) {
 	switch(tt){
 	case Tok_dot_initdata:
-	case Tok_dot_type:
-	case Tok_dot_data:
-	case Tok_dot_const:
 	case Tok_dot_code:
+	case Tok_dot_data:
 	case Tok_dot_initcode:
+	case Tok_dot_const:
+	case Tok_dot_type:
 		return true;
 	default: return false;
 	}
@@ -34,40 +34,40 @@ static inline bool FIRST_code_section(int tt) {
 
 static inline bool FIRST_code(int tt) {
 	switch(tt){
-	case Tok_jump:
-	case Tok_leave:
-	case Tok_or:
-	case Tok_ret:
-	case Tok_conv:
-	case Tok_pop:
-	case Tok_breq:
-	case Tok_copy:
-	case Tok_brne:
-	case Tok_br:
-	case Tok_brge:
-	case Tok_sub:
-	case Tok_neg:
-	case Tok_fill:
-	case Tok_mul:
-	case Tok_mod:
-	case Tok_add:
-	case Tok_trap:
-	case Tok_mov:
-	case Tok_alias:
-	case Tok_brlt:
-	case Tok_xor:
-	case Tok_nop:
-	case Tok_lsh:
-	case Tok_rsh:
-	case Tok_div:
-	case Tok_not:
-	case Tok_unfix:
-	case Tok_req:
-	case Tok_call:
-	case Tok_push:
-	case Tok_and:
-	case Tok_fix:
 	case Tok_enter:
+	case Tok_req:
+	case Tok_nop:
+	case Tok_not:
+	case Tok_copy:
+	case Tok_rsh:
+	case Tok_mul:
+	case Tok_alias:
+	case Tok_or:
+	case Tok_leave:
+	case Tok_mov:
+	case Tok_add:
+	case Tok_pop:
+	case Tok_call:
+	case Tok_sub:
+	case Tok_xor:
+	case Tok_brlt:
+	case Tok_mod:
+	case Tok_ret:
+	case Tok_trap:
+	case Tok_div:
+	case Tok_fill:
+	case Tok_lsh:
+	case Tok_and:
+	case Tok_push:
+	case Tok_conv:
+	case Tok_jump:
+	case Tok_brge:
+	case Tok_unfix:
+	case Tok_fix:
+	case Tok_br:
+	case Tok_brne:
+	case Tok_neg:
+	case Tok_breq:
 		return true;
 	default: return false;
 	}
@@ -94,15 +94,15 @@ static inline bool FIRST_type_section(int tt) {
 }
 
 static inline bool FIRST_data_management(int tt) {
-	return tt == Tok_conv || tt == Tok_fill || tt == Tok_copy || tt == Tok_mov;
+	return tt == Tok_conv || tt == Tok_fill || tt == Tok_mov || tt == Tok_copy;
 }
 
 static inline bool FIRST_arithmetic(int tt) {
 	switch(tt){
-	case Tok_mod:
+	case Tok_neg:
 	case Tok_add:
 	case Tok_sub:
-	case Tok_neg:
+	case Tok_mod:
 	case Tok_div:
 	case Tok_mul:
 		return true;
@@ -112,12 +112,12 @@ static inline bool FIRST_arithmetic(int tt) {
 
 static inline bool FIRST_bit_manipulation(int tt) {
 	switch(tt){
-	case Tok_xor:
-	case Tok_and:
-	case Tok_lsh:
-	case Tok_or:
-	case Tok_rsh:
 	case Tok_not:
+	case Tok_rsh:
+	case Tok_or:
+	case Tok_and:
+	case Tok_xor:
+	case Tok_lsh:
 		return true;
 	default: return false;
 	}
@@ -125,12 +125,12 @@ static inline bool FIRST_bit_manipulation(int tt) {
 
 static inline bool FIRST_function_call(int tt) {
 	switch(tt){
-	case Tok_pop:
-	case Tok_push:
+	case Tok_enter:
 	case Tok_leave:
+	case Tok_pop:
 	case Tok_ret:
 	case Tok_call:
-	case Tok_enter:
+	case Tok_push:
 		return true;
 	default: return false;
 	}
@@ -139,11 +139,11 @@ static inline bool FIRST_function_call(int tt) {
 static inline bool FIRST_branching(int tt) {
 	switch(tt){
 	case Tok_breq:
-	case Tok_jump:
 	case Tok_br:
-	case Tok_brlt:
 	case Tok_brne:
 	case Tok_brge:
+	case Tok_jump:
+	case Tok_brlt:
 		return true;
 	default: return false;
 	}
@@ -174,23 +174,23 @@ static inline bool FIRST_break_decl(int tt) {
 }
 
 static inline bool FIRST_Offset(int tt) {
-	return tt == Tok_Minus || tt == Tok_Plus;
+	return tt == Tok_Plus || tt == Tok_Minus;
 }
 
 static inline bool FIRST_Size(int tt) {
-	return tt == Tok_octal_integer || tt == Tok_hex_integer || tt == Tok_binary_integer || tt == Tok_decimal_integer;
+	return tt == Tok_hex_integer || tt == Tok_decimal_integer || tt == Tok_octal_integer || tt == Tok_binary_integer;
 }
 
 static inline bool FIRST_type(int tt) {
 	switch(tt){
-	case Tok_rec:
-	case Tok_ptr:
-	case Tok_void:
-	case Tok_array:
-	case Tok_ref:
-	case Tok_enum:
 	case Tok_func:
 	case Tok_type:
+	case Tok_void:
+	case Tok_ref:
+	case Tok_array:
+	case Tok_enum:
+	case Tok_rec:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -243,17 +243,17 @@ static inline bool FIRST_func_decl(int tt) {
 static inline bool FIRST_basic_type(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_s2:
-	case Tok_u2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -277,18 +277,18 @@ static inline bool FIRST_sym_decl(int tt) {
 
 static inline bool FIRST_register_(int tt) {
 	switch(tt){
-	case Tok_dlr_2:
 	case Tok_dlr_lnk:
-	case Tok_dlr_sp:
-	case Tok_dlr_5:
-	case Tok_dlr_0:
-	case Tok_dlr_fp:
-	case Tok_dlr_7:
-	case Tok_dlr_6:
-	case Tok_dlr_res:
-	case Tok_dlr_3:
 	case Tok_dlr_4:
+	case Tok_dlr_5:
+	case Tok_dlr_6:
+	case Tok_dlr_fp:
+	case Tok_dlr_sp:
+	case Tok_dlr_7:
+	case Tok_dlr_res:
 	case Tok_dlr_1:
+	case Tok_dlr_2:
+	case Tok_dlr_3:
+	case Tok_dlr_0:
 		return true;
 	default: return false;
 	}
@@ -296,13 +296,13 @@ static inline bool FIRST_register_(int tt) {
 
 static inline bool FIRST_immediate_op(int tt) {
 	switch(tt){
-	case Tok_Minus:
-	case Tok_octal_integer:
 	case Tok_hex_integer:
+	case Tok_decimal_integer:
+	case Tok_octal_integer:
 	case Tok_Plus:
 	case Tok_binary_integer:
+	case Tok_Minus:
 	case Tok_real:
-	case Tok_decimal_integer:
 		return true;
 	default: return false;
 	}
@@ -310,18 +310,18 @@ static inline bool FIRST_immediate_op(int tt) {
 
 static inline bool FIRST_register_op(int tt) {
 	switch(tt){
-	case Tok_dlr_2:
 	case Tok_dlr_lnk:
-	case Tok_dlr_sp:
 	case Tok_dlr_5:
-	case Tok_dlr_0:
-	case Tok_dlr_fp:
-	case Tok_dlr_7:
-	case Tok_dlr_6:
-	case Tok_dlr_res:
-	case Tok_dlr_3:
 	case Tok_dlr_4:
+	case Tok_dlr_6:
+	case Tok_dlr_fp:
+	case Tok_dlr_sp:
+	case Tok_dlr_7:
+	case Tok_dlr_res:
 	case Tok_dlr_1:
+	case Tok_dlr_2:
+	case Tok_dlr_3:
+	case Tok_dlr_0:
 		return true;
 	default: return false;
 	}
@@ -338,17 +338,17 @@ static inline bool FIRST_memory_op(int tt) {
 static inline bool FIRST_ImmAdr(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_u2:
-	case Tok_s2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -357,17 +357,17 @@ static inline bool FIRST_ImmAdr(int tt) {
 static inline bool FIRST_RegMem(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_u2:
-	case Tok_s2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -376,17 +376,17 @@ static inline bool FIRST_RegMem(int tt) {
 static inline bool FIRST_ImmRegMem(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_u2:
-	case Tok_s2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -395,17 +395,17 @@ static inline bool FIRST_ImmRegMem(int tt) {
 static inline bool FIRST_ImmRegAdrMem(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_u2:
-	case Tok_s2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
@@ -422,28 +422,28 @@ static inline bool FIRST_Function(int tt) {
 static inline bool FIRST_Register(int tt) {
 	switch(tt){
 	case Tok_s1:
-	case Tok_ptr:
-	case Tok_fun:
-	case Tok_f4:
-	case Tok_u2:
-	case Tok_s2:
-	case Tok_u4:
-	case Tok_u8:
 	case Tok_s8:
 	case Tok_u1:
+	case Tok_u8:
+	case Tok_s2:
 	case Tok_f8:
+	case Tok_fun:
+	case Tok_f4:
+	case Tok_u4:
 	case Tok_s4:
+	case Tok_u2:
+	case Tok_ptr:
 		return true;
 	default: return false;
 	}
 }
 
 static inline bool FIRST_number(int tt) {
-	return tt == Tok_octal_integer || tt == Tok_hex_integer || tt == Tok_binary_integer || tt == Tok_real || tt == Tok_decimal_integer;
+	return tt == Tok_hex_integer || tt == Tok_decimal_integer || tt == Tok_octal_integer || tt == Tok_binary_integer || tt == Tok_real;
 }
 
 static inline bool FIRST_unsigned_int(int tt) {
-	return tt == Tok_octal_integer || tt == Tok_hex_integer || tt == Tok_binary_integer || tt == Tok_decimal_integer;
+	return tt == Tok_hex_integer || tt == Tok_decimal_integer || tt == Tok_octal_integer || tt == Tok_binary_integer;
 }
 
 void Parser::RunParser() {
@@ -1000,7 +1000,9 @@ void Parser::enum_decl(SynTree* st) {
 void Parser::enum_elem(SynTree* st) {
 	{ SynTree* tmp = new SynTree(SynTree::R_enum_elem, la); st->d_children.append(tmp); st = tmp; }
 	value(st);
-	loc(st);
+	if( FIRST_loc(la.d_type) ) {
+		loc(st);
+	}
 }
 
 void Parser::value(SynTree* st) {

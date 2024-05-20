@@ -109,7 +109,9 @@ private:
 };
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const FullAddressSpace fas) :
-    Assembly::Generator(d, sp, assembler, "arma64", "ARM A64", {{4, 1, 8}, {8, 4, 8}, 8, 8, {0, 16, 16}, true}, true), assembler(d, c), fullAddressSpace(fas)
+    Assembly::Generator(d, sp, assembler, "arma64", "ARM A64",
+        Layout({4, 1, 8}, {8, 4, 8}, 8, 8, {0, 16, 16}, true),
+                        true), assembler(d, c), fullAddressSpace(fas)
 {
 }
 

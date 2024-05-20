@@ -37,8 +37,10 @@ private:
 	struct Variant
 	{
 		static constexpr auto size = sizeof (Default);
-		static constexpr auto minimum = alignof (Default) < Variant<Variants...>::minimum ? alignof (Default) : Variant<Variants...>::minimum;
-		static constexpr auto maximum = alignof (Default) > Variant<Variants...>::maximum ? alignof (Default) : Variant<Variants...>::maximum;
+        static constexpr auto minimum = alignof (Default) < Variant<Variants...>::minimum ?
+                    alignof (Default) : Variant<Variants...>::minimum;
+        static constexpr auto maximum = alignof (Default) > Variant<Variants...>::maximum ?
+                    alignof (Default) : Variant<Variants...>::maximum;
 
 		static constexpr Type type {size, minimum, maximum};
 	};

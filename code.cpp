@@ -175,7 +175,12 @@ bool Platform::IsAligned (const Size offset, const Type& type) const
 
 bool Platform::IsAligned (const Section& section, const Type& type) const
 {
-	return !IsData (section.type) || IsAligned (section.fixed ? section.origin : section.alignment ? section.alignment : 1, type);
+    return !IsData (section.type) ||
+            IsAligned (section.fixed ?
+                           section.origin :
+                           section.alignment ?
+                               section.alignment :
+                               1, type);
 }
 
 bool Platform::IsStackAligned (const Size size) const
@@ -185,9 +190,20 @@ bool Platform::IsStackAligned (const Size size) const
 
 Type::Size Platform::GetAlignment (const Type& type) const
 {
-	assert (type.model != Type::Void);
-	const Layout::Type*const types[] {nullptr, &layout.integer, &layout.integer, &layout.float_, &layout.pointer, &layout.function};
-	return types[type.model]->alignment (type.size);
+    switch(type.model)
+    {
+    case Type::Signed:
+    case Type::Unsigned:
+        return layout.integer.alignment.of(type.size);
+    case Type::Float:
+        return layout.float_.alignment.of(type.size);
+    case Type::Pointer:
+        return layout.pointer.alignment.of(type.size);
+    case Type::Function:
+        return layout.function.alignment.of(type.size);
+    default:
+        assert(false);
+    }
 }
 
 Type::Size Platform::GetStackSize (const Type& type) const
@@ -197,7 +213,7 @@ Type::Size Platform::GetStackSize (const Type& type) const
 
 Type::Size Platform::GetStackAlignment (const Type& type) const
 {
-	return std::max (GetAlignment (type), Type::Size (layout.stack.alignment (type.size)));
+    return std::max (GetAlignment (type), Type::Size (layout.stack.alignment.of (type.size)));
 }
 
 bool Code::IsGeneral (const Register register_)

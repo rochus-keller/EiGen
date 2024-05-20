@@ -35,7 +35,14 @@ namespace Code
     #if 1
         StandardLayout layout;
     #else
-        Layout layout {{4, 1, 4}, {8, 4, 4}, 4, 4, {0, 4, 8}, true};
+        Layout layout {
+            {4, 1, 4},  // Integer: size, alignment{minimum, maximum}
+            {8, 4, 4},  // Float: dito
+            4,          // Pointer: dito, only size
+            4,          // Function: dito
+            {0, 4, 8},  // Stack: dito
+            true        // CallStack
+        };
     #endif
         Platform platform {layout};
 

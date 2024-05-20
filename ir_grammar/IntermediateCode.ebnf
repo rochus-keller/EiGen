@@ -128,7 +128,7 @@ ptr_decl ::= 'ptr' type
 ref_decl ::= 'ref' type
 
 enum_decl ::= 'enum' Offset typeref { enum_elem }
-enum_elem ::= value loc
+enum_elem ::= value [loc]
 value ::= 'value' string ',' basic_type immediate_op 
 
 func_decl ::= 'func' Offset type { type } // return type, followed by arg types

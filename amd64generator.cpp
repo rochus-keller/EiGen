@@ -211,14 +211,14 @@ private:
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const OperatingMode m, const MediaFloat mf, const DirectAddressing da) :
     Assembly::Generator {d, sp, assembler, "amd", "AMD64",
 #if 1
-        {
-            {m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u},
-            {8, 4, 8},
-            m >> 3,
-            m >> 3,
-            {0, m >> 3, 8},
-            true
-        }
+        Layout(
+            {m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u}, // Integer: size, alignment{minimum, maximum}
+            {8, 4, 8},      // Float: dito
+            m >> 3,         // Pointer: dito, only size
+            m >> 3,         // Function: dito
+            {0, m >> 3, 8}, // Stack: dito
+            true            // CallStack
+        )
 #else
         StandardLayout()
 #endif

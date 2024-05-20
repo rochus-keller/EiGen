@@ -28,7 +28,9 @@ using namespace ARM;
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Assembly::Assembler& a, const Target t,
     const Name n, const FloatingPointExtension fpe) :
-    Assembly::Generator (d, sp, a, t, n, {{4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true}, true),
+    Assembly::Generator (d, sp, a, t, n,
+                         Layout({4, 1, 8}, {fpe ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true),
+                         true),
     floatingPointExtension(fpe)
 {
 }

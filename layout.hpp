@@ -32,7 +32,8 @@ namespace ECS
         {
             std::size_t minimum, maximum;
 
-            constexpr std::size_t operator () (std::size_t) const;
+            //constexpr std::size_t operator () (std::size_t) const;
+            constexpr std::size_t of(std::size_t) const;
         };
 
         struct Type
@@ -68,7 +69,14 @@ namespace ECS
     {
     }
 
+#if 0
     constexpr std::size_t Layout::Alignment::operator () (const std::size_t size) const
+    {
+        return of(size);
+    }
+#endif
+
+    constexpr std::size_t Layout::Alignment::of(const std::size_t size) const
     {
         return size < minimum ? minimum : size > maximum ? maximum : size;
     }

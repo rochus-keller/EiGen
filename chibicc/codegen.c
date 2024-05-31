@@ -147,9 +147,9 @@ static void pushRes(const char* type) {
     depth++;
 }
 
-static void pop(const char *arg) {
+static void pop(const char* type, const char *arg) {
     // ok
-    println("  pop %s", arg);
+    println("  pop %s %s", type, arg);
     depth--;
 }
 
@@ -270,7 +270,7 @@ static void store(Type *ty) {
     // ok
     const uint8_t tmpReg = buy();
     const char* tmp = ecsRegs[tmpReg].name;
-    pop(tmp);
+    pop("ptr", tmp);
 
     switch (ty->kind) {
     case TY_STRUCT:
@@ -293,10 +293,10 @@ static void cast(Type *from, Type *to) {
 
     if (to->kind == TY_BOOL) {
         const char* type = getTypeName(from);
-        println("  breq 2, %s 0, %s $res", type, type );
+        println("  breq +2, %s 0, %s $res", type, type );
         type = getTypeName(to);
         println("  mov %s $res, %s 0", type, type);
-        println("  br 1");
+        println("  br +1");
         println("  mov %s $res, %s 1", type, type);
         return;
     }
@@ -563,9 +563,9 @@ static void gen_expr(Node *node) {
         // ok
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
-        println("  breq 2, %s 0, %s $res", type, type );
+        println("  breq +2, %s 0, %s $res", type, type );
         println("  mov u1 $res, u1 0");
-        println("  br 1");
+        println("  br +1");
         println("  mov u1 $res, u1 1");
         return;
     }
@@ -678,14 +678,14 @@ static void gen_expr(Node *node) {
 
     // ok ff
     gen_expr(node->rhs);
-    pushRes(getTypeName(node->rhs->ty));
+    const char* rhsT = getTypeName(node->rhs->ty);
+    pushRes(rhsT);
     gen_expr(node->lhs);
     const uint8_t tmp = buy();
-    pop(ecsRegs[tmp].name);
+    pop(rhsT,ecsRegs[tmp].name);
 
     const char* resT = getTypeName(node->ty);
     const char* lhsT = getTypeName(node->lhs->ty);
-    const char* rhsT = getTypeName(node->rhs->ty);
     const char* tmpname = ecsRegs[tmp].name;
 
     switch (node->kind) {
@@ -718,17 +718,17 @@ static void gen_expr(Node *node) {
     case ND_LT:
     case ND_LE:
         if (node->kind == ND_EQ) {
-            println("  breq 2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  breq +2, %s $res, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_NE) {
-            println("  brne 2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  brne +2, %s $res, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_LT) {
-            println("  brlt 2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  brlt +2, %s $res, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_LE) {
-            println("  brge 2, %s %s, %s $res", rhsT, tmpname, lhsT );
+            println("  brge +2, %s %s, %s $res", rhsT, tmpname, lhsT );
         }
 
         println("  mov u1 $res, u1 0");
-        println("  br 1");
+        println("  br +1");
         println("  mov u1 $res, u1 1");
         break;
     case ND_SHL:

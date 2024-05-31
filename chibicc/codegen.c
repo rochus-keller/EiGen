@@ -70,7 +70,7 @@ static void println(char *fmt, ...) {
     fprintf(output_file, "\n");
 }
 
-enum EcsTypes { u1, u2, u3, u4, u8, s1, s2, s4, s8, f4, f8 };
+enum EcsTypes { u1, u2, u4, u8, s1, s2, s4, s8, f4, f8, ptr, fun };
 
 struct EcsType {
     uint8_t type;
@@ -87,6 +87,8 @@ struct EcsType {
     { s8, 64, "s8" },
     { f4, 32, "f4" },
     { f8, 64, "f8" },
+    { ptr, 0, "ptr" },
+    { fun, 0, "fun" },
 };
 
 static uint8_t getTypeId(Type *ty) {
@@ -105,6 +107,15 @@ static uint8_t getTypeId(Type *ty) {
     case TY_DOUBLE:
     case TY_LDOUBLE:
         return f8;
+    case TY_ENUM:
+        return s4; // RISK
+    case TY_PTR:
+        return ptr;
+    case TY_FUNC:
+        return fun;
+    case TY_ARRAY:
+        return ptr; // RISK
+
     }
     return u8;
 }
@@ -290,9 +301,10 @@ static void cast(Type *from, Type *to) {
         return;
     }
 
-    const char* t1 = getTypeName(from);
-    const char* t2 = getTypeName(to);
-    println("  conv %s $res, %s $res", t2, t1);
+    const uint8_t t1 = getTypeId(from);
+    const uint8_t t2 = getTypeId(to);
+    if( t1 != t2 )
+        println("  conv %s $res, %s $res", ecsTypes[t2].name, ecsTypes[t1].name);
 }
 
 static int push_struct(Type *ty) {
@@ -923,7 +935,7 @@ static void emit_data(Obj *prog) {
 
             Relocation *rel = var->rel;
             int pos = 0;
-            const char* type = getTypeName(var->ty);
+            // var->ty is either an ARRAY or STRUCT or UNION, but initdata is always array of char
             while (pos < var->ty->size) {
                 if (rel && rel->offset == pos) {
                     println("  ; relocation, addend: %s, %+ld", *rel->label, rel->addend);
@@ -932,9 +944,9 @@ static void emit_data(Obj *prog) {
                 } else {
                     const int d = (uint8_t)var->init_data[pos++];
                     if( isprint(d) )
-                        println("  def %s %d \t; '%c'", type, d, (char)d);
+                        println("  def s1 %d \t; '%c'", d, (char)d);
                     else
-                        println("  def %s %d", type, d);
+                        println("  def s1 %d", d);
                 }
             }
 #if 0

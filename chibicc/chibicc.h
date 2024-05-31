@@ -399,6 +399,11 @@ void add_type(Node *node);
 // codegen.c
 //
 
+extern int codegen_PointerWidth;
+extern int codegen_IntWidth;
+extern int codegen_LongWidth;
+extern int codegen_StackAlign;
+
 void codegen(Obj *prog, FILE *out);
 int align_to(int n, int align);
 

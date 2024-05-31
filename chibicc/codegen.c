@@ -543,8 +543,8 @@ static void gen_expr(Node *node) {
         return;
     case ND_MEMZERO:
         // ok
-        // equivalent to `memset(%rdi, %al, %rcx)`.
-        println("  fill ptr $0, ptr %d, ptr 0", node->var->ty->size ); // TODO %rdi replaced by fix $0
+        println("  mov ptr $res, ptr $fp%+d", node->var->offset);
+        println("  fill ptr $res, ptr %d, ptr 0", node->var->ty->size );
         return;
     case ND_COND: {
         // ok
@@ -885,7 +885,6 @@ static void assign_lvar_offsets(Obj *prog) {
             continue;
 
         int top = 2 * codegen_StackAlign; // previous frame and return address
-        int bottom = 0;
 
         // Assign offsets to parameters.
         for (Obj *var = fn->params; var; var = var->next) {
@@ -893,6 +892,8 @@ static void assign_lvar_offsets(Obj *prog) {
             var->offset = top;
             top += var->ty->size;
         }
+
+        int bottom = 0;
 
         // Assign offsets to local variables.
         for (Obj *var = fn->locals; var; var = var->next) {
@@ -1027,7 +1028,12 @@ static void emit_text(Obj *prog) {
         // Epilogue
         println(".L.return.%s:", fn->name);
         println("  leave");
-        println("  ret");
+        if( strcmp(fn->name,"main") == 0 )
+        {
+            pushRes("s4");
+            println("  call fun @_Exit, 0");
+        }else
+            println("  ret");
     }
 }
 

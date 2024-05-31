@@ -95,7 +95,7 @@ Type *copy_type(Type *ty) {
 }
 
 Type *pointer_to(Type *base) {
-  Type *ty = new_type(TY_PTR, 8, 8); // TODO: variable pointer byte width
+  Type *ty = new_type(TY_PTR, codegen_PointerWidth, codegen_PointerWidth);
   ty->base = base;
   ty->is_unsigned = true;
   return ty;
@@ -117,7 +117,7 @@ Type *array_of(Type *base, int len) {
 }
 
 Type *vla_of(Type *base, Node *len) {
-  Type *ty = new_type(TY_VLA, 8, 8);
+  Type *ty = new_type(TY_VLA, codegen_PointerWidth, codegen_PointerWidth);
   ty->base = base;
   ty->vla_len = len;
   return ty;

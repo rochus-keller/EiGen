@@ -22,7 +22,7 @@ static struct EcsReg {
     uint8_t used;
     const char* name;
 } ecsRegs[] = {
-    { R0, 0, "$0" },
+    { R0, 0, "$0" }, // is used here as expression result
     { R1, 0, "$1" },
     { R2, 0, "$2" },
     { R3, 0, "$3" },
@@ -38,7 +38,7 @@ static struct EcsReg {
 
 static uint8_t buy()
 {
-    for( uint8_t i = 0; i <= R7; i++ )
+    for( uint8_t i = 1; i <= R7; i++ )
     {
         if( ecsRegs[i].used == 0 )
         {
@@ -52,13 +52,14 @@ static uint8_t buy()
 
 static void sell(uint8_t reg)
 {
-    assert( reg <= R7 && ecsRegs[reg].used );
+    assert( reg > R0 && reg <= R7 && ecsRegs[reg].used );
     ecsRegs[reg].used = 0;
 }
 
 static FILE *output_file;
 static int depth;
 static Obj *current_fn;
+static const char* returnType = 0;
 
 __attribute__((format(printf, 1, 2)))
 static void println(char *fmt, ...) {
@@ -143,7 +144,7 @@ static int count(void) {
 
 static void pushRes(const char* type) {
     // ok
-    println("  push %s $res", type); // was %rax
+    println("  push %s $0", type); // was %rax
     depth++;
 }
 
@@ -168,13 +169,13 @@ static void gen_addr(Node *node) {
     case ND_VAR:
         // Variable-length array, which is always local.
         if (node->var->ty->kind == TY_VLA) {
-            println("  mov ptr $res, ptr $fp%+d", node->var->offset);
+            println("  mov ptr $0, ptr $fp%+d", node->var->offset);
             return;
         }
 
         // Local variable
         if (node->var->is_local) {
-            println("  mov ptr $res, ptr $fp%+d", node->var->offset);
+            println("  mov ptr $0, ptr $fp%+d", node->var->offset);
             return;
         }
 
@@ -204,12 +205,12 @@ static void gen_addr(Node *node) {
 #endif
         // Function
         if (node->ty->kind == TY_FUNC) {
-            println("  mov fun $res, fun @%s", node->var->name);
+            println("  mov fun $0, fun @%s", node->var->name);
             return;
         }
 
         // Global variable
-        println("  mov ptr $res, ptr @%s", node->var->name);
+        println("  mov ptr $0, ptr @%s", node->var->name);
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
@@ -220,7 +221,7 @@ static void gen_addr(Node *node) {
         return;
     case ND_MEMBER:
         gen_addr(node->lhs);
-        println("  add ptr $res, ptr $res, ptr %d", node->member->offset);
+        println("  add ptr $0, ptr $0, ptr %d", node->member->offset);
         return;
     case ND_FUNCALL:
         if (node->ret_buffer) {
@@ -236,14 +237,14 @@ static void gen_addr(Node *node) {
         }
         break;
     case ND_VLA_PTR:
-        println("  mov ptr $res, ptr $fp%+d", node->var->offset);
+        println("  mov ptr $0, ptr $fp%+d", node->var->offset);
         return;
     }
 
     error_tok(node->tok, "not an lvalue");
 }
 
-// Load a value from where $res is pointing to.
+// Load a value from where $0 is pointing to.
 static void load(Type *ty) {
     // ok
     switch (ty->kind) {
@@ -262,10 +263,10 @@ static void load(Type *ty) {
     }
 
     const char* type = getTypeName(ty);
-    println("  mov %s $res, %s [$res]", type, type );
+    println("  mov %s $0, %s [$0]", type, type );
 }
 
-// Store $res to the address on top of the stack
+// Store $0 to the address on top of the stack
 static void store(Type *ty) {
     // ok
     const uint8_t tmpReg = buy();
@@ -275,13 +276,13 @@ static void store(Type *ty) {
     switch (ty->kind) {
     case TY_STRUCT:
     case TY_UNION:
-        println("  copy ptr %s, ptr $res, ptr %d", tmp, ty->size);
+        println("  copy ptr %s, ptr $0, ptr %d", tmp, ty->size);
         sell(tmpReg);
         return;
     }
 
     const char* type = getTypeName(ty);
-    println("  mov %s [%s], %s $res", type, tmp, type );
+    println("  mov %s [%s], %s $0", type, tmp, type );
     sell(tmpReg);
 }
 
@@ -314,7 +315,7 @@ static int push_struct(Type *ty) {
     println("  sub	ptr $sp, ptr $sp, ptr %d", sz);
     const int res = sz / codegen_StackAlign;
     depth += res;
-    println("  copy	ptr $sp, ptr $res, ptr %d", sz);
+    println("  copy	ptr $sp, ptr $0, ptr %d", sz);
     return res;
 }
 
@@ -354,7 +355,7 @@ static int push_args(Node *node) {
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
     if (node->ret_buffer) {
-        println("  mov ptr $res, ptr $fp%+d", node->ret_buffer->offset);
+        println("  mov ptr $0, ptr $fp%+d", node->ret_buffer->offset);
         pushRes("ptr");
         stack++;
     }
@@ -362,7 +363,7 @@ static int push_args(Node *node) {
     return stack;
 }
 
-// copy struct pointed to by $res to the local var at offset
+// copy struct pointed to by $0 to the local var at offset
 static void copy_struct_mem(void) {
     // ok
     Type *ty = current_fn->ty->return_ty;
@@ -373,7 +374,7 @@ static void copy_struct_mem(void) {
 
     println("  mov ptr %s, ptr $fp%+d", to, var->offset);
 
-    println("  copy ptr %s, ptr $res, ptr %d", to, ty->size);
+    println("  copy ptr %s, ptr $0, ptr %d", to, ty->size);
 
     sell(tmp);
 }
@@ -391,7 +392,7 @@ static void builtin_alloca(void) {
     println("  sub %%rdi, %%rsp");
     println("  mov %%rsp, %%rdx");
     println("1:");
-    println("  cmp $0, %%rcx");
+    println("  cmp $0x0, %%rcx");
     println("  je 2f");
     println("  mov (%%rax), %%r8b");
     println("  mov %%r8b, (%%rdx)");
@@ -433,9 +434,9 @@ static void loc(Token * tok)
     }
 }
 
-static void setBool(int b, const char* reg)
+static void setUint(uint32_t i, const char* reg)
 {
-    println("  mov u%d %s, u%d %d", codegen_PointerWidth, reg, codegen_PointerWidth, b);
+    println("  mov u%d %s, u%d %d", codegen_PointerWidth, reg, codegen_PointerWidth, i);
 }
 
 // Generate code for a given node.
@@ -454,19 +455,19 @@ static void gen_expr(Node *node) {
         case TY_FLOAT:
         case TY_DOUBLE:
         case TY_LDOUBLE: {
-            println("  mov %s $res, %s %Lf", type, type, node->fval );
+            println("  mov %s $0, %s %Lf", type, type, node->fval );
             return;
         }
         }
 
-        println("  mov %s $res, %s %Ld", type, type, node->val);
+        println("  mov %s $0, %s %Ld", type, type, node->val);
         return;
     }
     case ND_NEG: {
         // ok
         gen_expr(node->lhs);
         const char* type = getTypeName(node->ty);
-        println("  neg %s $res, %s $res", type, type );
+        println("  neg %s $0, %s $0", type, type );
         return;
     }
     case ND_VAR:
@@ -484,8 +485,8 @@ static void gen_expr(Node *node) {
             const uint8_t w = getTypeWidth(mem->ty);
             const char* nm = getTypeName(mem->ty);
             // align the bitfield to the msb of the underlying type
-            println("  lsh %s $res, %s $res, %s %d", nm, nm, nm, w - mem->bit_width - mem->bit_offset);
-            println("  rsh %s $res, %s $res, %s %d",  nm, nm, nm, w - mem->bit_width );
+            println("  lsh %s $0, %s $0, %s %d", nm, nm, nm, w - mem->bit_width - mem->bit_offset);
+            println("  rsh %s $0, %s $0, %s %d",  nm, nm, nm, w - mem->bit_width );
             // TODO: check that nm correlates with mem->ty->is_unsigned
         }
         return;
@@ -548,19 +549,19 @@ static void gen_expr(Node *node) {
     case ND_CAST:
         // ok
         gen_expr(node->lhs);
-        cast(node->lhs->ty, node->ty, "$res");
+        cast(node->lhs->ty, node->ty, "$0");
         return;
     case ND_MEMZERO:
         // ok
-        println("  mov ptr $res, ptr $fp%+d", node->var->offset);
-        println("  fill ptr $res, ptr %d, ptr 0", node->var->ty->size );
+        println("  mov ptr $0, ptr $fp%+d", node->var->offset);
+        println("  fill ptr $0, ptr %d, ptr 0", node->var->ty->size );
         return;
     case ND_COND: {
         // ok
         int c = count();
         gen_expr(node->cond);
         const char* type = getTypeName(node->cond->ty);
-        println("  breq .L.else.%d, %s 0, %s $res", c, type, type );
+        println("  breq .L.else.%d, %s 0, %s $0", c, type, type );
         gen_expr(node->then);
         println("  br .L.end.%d", c);
         println(".L.else.%d:", c);
@@ -572,17 +573,17 @@ static void gen_expr(Node *node) {
         // ok
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
-        println("  breq +2, %s 0, %s $res", type, type );
-        setBool(0,"$res");
+        println("  breq +2, %s 0, %s $0", type, type );
+        setUint(0,"$0");
         println("  br +1");
-        setBool(1,"$res");
+        setUint(1,"$0");
         return;
     }
     case ND_BITNOT: {
         // ok
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
-        println("  not %s $res, %s $res", type, type);
+        println("  not %s $0, %s $0", type, type);
         return;
     }
     case ND_LOGAND: {
@@ -590,14 +591,14 @@ static void gen_expr(Node *node) {
         int c = count();
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
-        println("  breq .L.false.%d, %s 0, %s $res", c, type, type );
+        println("  breq .L.false.%d, %s 0, %s $0", c, type, type );
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
-        println("  breq .L.false.%d, %s 0, %s $res", c, type, type );
-        setBool(1,"$res");
+        println("  breq .L.false.%d, %s 0, %s $0", c, type, type );
+        setUint(1,"$0");
         println("  br .L.end.%d", c);
         println(".L.false.%d:", c);
-        setBool(0,"$res");
+        setUint(0,"$0");
         println(".L.end.%d:", c);
         return;
     }
@@ -606,14 +607,14 @@ static void gen_expr(Node *node) {
         int c = count();
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
-        println("  brne .L.true.%d, %s 0, %s $res", c, type, type);
+        println("  brne .L.true.%d, %s 0, %s $0", c, type, type);
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
-        println("  brne .L.true.%d, %s 0, %s $res", c, type, type);
-        setBool(0,"$res");
+        println("  brne .L.true.%d, %s 0, %s $0", c, type, type);
+        setUint(0,"$0");
         println("  br .L.end.%d", c);
         println(".L.true.%d:", c);
-        setBool(1,"$res");
+        setUint(1,"$0");
         println(".L.end.%d:", c);
         return;
     }
@@ -632,7 +633,7 @@ static void gen_expr(Node *node) {
         const int stack_slots = push_args(node);
         gen_expr(node->lhs);
 
-        println("  call fun $res, %d", stack_slots * codegen_StackAlign);
+        println("  call fun $0, %d", stack_slots * codegen_StackAlign);
 
         depth -= stack_slots;
 
@@ -704,52 +705,52 @@ static void gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
-        println("  add %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  add %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_SUB:
-        println("  sub %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  sub %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_MUL:
-        println("  mul %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  mul %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_DIV:
-        println("  div %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  div %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_MOD:
-        println("  mod %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  mod %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITAND:
-        println("  and %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  and %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITOR:
-        println("  or %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  or %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITXOR:
-        println("  xor %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  xor %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_EQ:
     case ND_NE:
     case ND_LT:
     case ND_LE:
         if (node->kind == ND_EQ) {
-            println("  breq +2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  breq +2, %s $0, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_NE) {
-            println("  brne +2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  brne +2, %s $0, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_LT) {
-            println("  brlt +2, %s $res, %s %s", lhsT, rhsT, tmpname );
+            println("  brlt +2, %s $0, %s %s", lhsT, rhsT, tmpname );
         } else if (node->kind == ND_LE) {
-            println("  brge +2, %s %s, %s $res", rhsT, tmpname, lhsT );
+            println("  brge +2, %s %s, %s $0", rhsT, tmpname, lhsT );
         }
 
-        setBool(0,"$res");
+        setUint(0,"$0");
         println("  br +1");
-        setBool(1,"$res");
+        setUint(1,"$0");
         break;
     case ND_SHL:
-        println("  lsh %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  lsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_SHR:
-        println("  rsh %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
+        println("  rsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     default:
         error_tok(node->tok, "invalid expression");
@@ -769,7 +770,7 @@ static void gen_stmt(Node *node) {
         int c = count();
         gen_expr(node->cond);
         const char* type = getTypeName(node->cond->ty);
-        println("  breq .L.else.%d, %s 0, %s $res", c, type, type );
+        println("  breq .L.else.%d, %s 0, %s $0", c, type, type );
         gen_stmt(node->then);
         println("  br .L.end.%d", c);
         println(".L.else.%d:", c);
@@ -787,7 +788,7 @@ static void gen_stmt(Node *node) {
         if (node->cond) {
             gen_expr(node->cond);
             const char* type = getTypeName(node->cond->ty);
-            println("  breq %s, %s 0, %s $res", node->brk_label, type, type );
+            println("  breq %s, %s 0, %s $0", node->brk_label, type, type );
         }
         gen_stmt(node->then);
         println("%s:", node->cont_label);
@@ -805,7 +806,7 @@ static void gen_stmt(Node *node) {
         println("%s:", node->cont_label);
         gen_expr(node->cond);
         const char* type = getTypeName(node->cond->ty);
-        println("  brne .L.begin.%d, %s 0, %s $res", c, type, type );
+        println("  brne .L.begin.%d, %s 0, %s $0", c, type, type );
         println("%s:", node->brk_label);
         return;
     }
@@ -817,14 +818,14 @@ static void gen_stmt(Node *node) {
 
         for (Node *n = node->case_next; n; n = n->case_next) {
             if (n->begin == n->end) {
-                println("  breq %s, %s %ld, %s $res", n->label, cond_type, n->begin, cond_type );
+                println("  breq %s, %s %ld, %s $0", n->label, cond_type, n->begin, cond_type );
                 continue;
             }
 
             // [GNU] Case ranges
             const uint8_t tmp = buy();
             const char* di = ecsRegs[tmp].name;
-            println("  mov %s %s, %s $res", cond_type, di, cond_type);
+            println("  mov %s %s, %s $0", cond_type, di, cond_type);
             println("  sub %s %s, %s %s, %s %ld", cond_type, di, cond_type, di, cond_type, n->begin);
             // lhs <= rhs -> rhs >= lhs
             println("  brge %s, %s %s, %s %ld", n->label, cond_type, di, cond_type, n->end - n->begin);
@@ -877,6 +878,7 @@ static void gen_stmt(Node *node) {
                 copy_struct_mem();
                 break;
             }
+            returnType = getTypeName(ty);
         }
 
         println("  br .L.return.%s", current_fn->name);
@@ -986,6 +988,8 @@ static void emit_text(Obj *prog) {
         if (!fn->is_live)
             continue;
 
+        returnType = 0;
+
         // TODO if (fn->is_static)
         println(".code %s", fn->name );
 
@@ -1043,6 +1047,13 @@ static void emit_text(Obj *prog) {
 
         // Epilogue
         println(".L.return.%s:", fn->name);
+        if( fn->ty->return_ty && fn->ty->return_ty->kind != TY_VOID )
+        {
+            if( returnType == 0 )
+                setUint(0,"$res");
+            else
+                println("  mov %s $res, %s $0", returnType, returnType );
+        }
         println("  leave");
         if( strcmp(fn->name,"main") == 0 )
         {

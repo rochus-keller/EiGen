@@ -459,22 +459,22 @@ Interpreter::Value& Interpreter::Value::operator >>= (const Value& other)
 }
 
 Interpreter::Reference::Reference (Segment*const s, const Offset o) :
-	segment {s}, offset {o}
+    segment(s), offset(o)
 {
 }
 
 Interpreter::ProgramCounter::ProgramCounter (const Section& s, const Size o) :
-	section {&s}, offset {o}
+    section(&s), offset(o)
 {
 }
 
 Interpreter::Segment::Segment (const Size size) :
-	data {size}
+    data(size)
 {
 }
 
 Interpreter::Segment::Segment (const Section& s) :
-	section {&s}
+    section(&s)
 {
 }
 
@@ -784,7 +784,7 @@ Interpreter::Value Interpreter::Thread::Evaluate (const Operand& operand) const
 	default:
 		assert (Operand::Unreachable);
 	}
-    if (value.type != operand.type && operand.register_ != Code::RRes)
+    if (value.type != operand.type)
         throw value.type;
 	return value;
 }

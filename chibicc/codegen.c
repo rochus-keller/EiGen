@@ -353,7 +353,7 @@ static int push_args(Node *node) {
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
     if (node->ret_buffer) {
-        // TODO: println("  lea %d(%%rbp), %%rax", node->ret_buffer->offset);
+        println("  mov ptr $res, ptr $fp%+d", node->ret_buffer->offset);
         pushRes("ptr");
         stack++;
     }
@@ -420,10 +420,13 @@ static void loc(Token * tok)
 {
     static int file_no = 0, line_no = 0;
 
-    return; // TEST
     if( tok->file->file_no != file_no || tok->line_no != line_no )
     {
+#if 0
         println("  loc \"%s\", %d, 1", file_name(tok->file->file_no), tok->line_no);
+#else
+        println("  ; line %d", tok->line_no);
+#endif
         file_no = tok->file->file_no;
         line_no = tok->line_no;
     }
@@ -796,30 +799,31 @@ static void gen_stmt(Node *node) {
         return;
     }
     case ND_SWITCH:
-        // TODO
+        // ok
         gen_expr(node->cond);
 
-        for (Node *n = node->case_next; n; n = n->case_next) {
-            char *ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
-            char *di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
+        const char* cond_type = getTypeName(node->cond->ty);
 
+        for (Node *n = node->case_next; n; n = n->case_next) {
             if (n->begin == n->end) {
-                println("  cmp $%ld, %s", n->begin, ax);
-                println("  je %s", n->label);
+                println("  breq %s, %s %ld, %s $res", n->label, cond_type, n->begin, cond_type );
                 continue;
             }
 
             // [GNU] Case ranges
-            println("  mov %s, %s", ax, di);
-            println("  sub $%ld, %s", n->begin, di);
-            println("  cmp $%ld, %s", n->end - n->begin, di);
-            println("  jbe %s", n->label);
+            const uint8_t tmp = buy();
+            const char* di = ecsRegs[tmp].name;
+            println("  mov %s %s, %s $res", cond_type, di, cond_type);
+            println("  sub %s %s, %s %s, %s %ld", cond_type, di, cond_type, di, cond_type, n->begin);
+            // lhs <= rhs -> rhs >= lhs
+            println("  brge %s, %s %s, %s %ld", n->label, cond_type, di, cond_type, n->end - n->begin);
+            sell(tmp);
         }
 
         if (node->default_case)
-            println("  jmp %s", node->default_case->label);
+            println("  br %s", node->default_case->label);
 
-        println("  jmp %s", node->brk_label);
+        println("  br %s", node->brk_label);
         gen_stmt(node->then);
         println("%s:", node->brk_label);
         return;
@@ -1023,7 +1027,8 @@ static void emit_text(Obj *prog) {
 
         // Emit code
         gen_stmt(fn->body);
-        assert(depth == 0);
+        if(depth != 0)
+            error("stack depth not zero when leaving function %s", fn->name);
 
         // Epilogue
         println(".L.return.%s:", fn->name);
@@ -1034,6 +1039,7 @@ static void emit_text(Obj *prog) {
             println("  call fun @_Exit, 0");
         }else
             println("  ret");
+        depth = 0;
     }
 }
 

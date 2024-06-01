@@ -432,6 +432,11 @@ static void loc(Token * tok)
     }
 }
 
+static void setBool(int b)
+{
+    println("  mov u%d $res, u%d %d", codegen_PointerWidth, codegen_PointerWidth, b);
+}
+
 // Generate code for a given node.
 static void gen_expr(Node *node) {
     // ok
@@ -567,9 +572,9 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
         println("  breq +2, %s 0, %s $res", type, type );
-        println("  mov u1 $res, u1 0");
+        setBool(0);
         println("  br +1");
-        println("  mov u1 $res, u1 1");
+        setBool(1);
         return;
     }
     case ND_BITNOT: {
@@ -588,10 +593,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  breq .L.false.%d, %s 0, %s $res", c, type, type );
-        println("  mov u1 $res, u1 1");
+        setBool(1);
         println("  br .L.end.%d", c);
         println(".L.false.%d:", c);
-        println("  mov u1 $res, u1 0");
+        setBool(0);
         println(".L.end.%d:", c);
         return;
     }
@@ -604,10 +609,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  brne .L.true.%d, %s 0, %s $res", c, type, type);
-        println("  mov u1 $res, u1 0");
+        setBool(0);
         println("  br .L.end.%d", c);
         println(".L.true.%d:", c);
-        println("  mov u1 $res, u1 1");
+        setBool(1);
         println(".L.end.%d:", c);
         return;
     }
@@ -730,9 +735,9 @@ static void gen_expr(Node *node) {
             println("  brge +2, %s %s, %s $res", rhsT, tmpname, lhsT );
         }
 
-        println("  mov u1 $res, u1 0");
+        setBool(0);
         println("  br +1");
-        println("  mov u1 $res, u1 1");
+        setBool(1);
         break;
     case ND_SHL:
         println("  lsh %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );

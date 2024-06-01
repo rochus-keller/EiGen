@@ -16,6 +16,18 @@
 # define __attribute__(x)
 #endif
 
+//
+// Target
+//
+
+// TODO: configurable
+#define CHIBICC_POINTER_WIDTH sizeof(void*)
+#define CHIBICC_INT_WIDTH sizeof(int)
+#define CHIBICC_LONG_WIDTH sizeof(long)
+#define CHIBICC_STACK_ALIGN sizeof(void*)
+
+////////////////
+
 typedef struct Type Type;
 typedef struct Node Node;
 typedef struct Member Member;
@@ -398,11 +410,6 @@ void add_type(Node *node);
 //
 // codegen.c
 //
-
-extern int codegen_PointerWidth;
-extern int codegen_IntWidth;
-extern int codegen_LongWidth;
-extern int codegen_StackAlign;
 
 void codegen(Obj *prog, FILE *out);
 int align_to(int n, int align);

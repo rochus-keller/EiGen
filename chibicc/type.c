@@ -5,17 +5,17 @@ Type *ty_bool = &(Type){TY_BOOL, 1, 1};
 
 Type *ty_char = &(Type){TY_CHAR, 1, 1};
 Type *ty_short = &(Type){TY_SHORT, 2, 2};
-Type *ty_int = &(Type){TY_INT, 4, 4};
-Type *ty_long = &(Type){TY_LONG, 8, 8};
+Type *ty_int = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH};
+Type *ty_long = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH};
 
 Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
 Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
-Type *ty_uint = &(Type){TY_INT, 4, 4, true};
-Type *ty_ulong = &(Type){TY_LONG, 8, 8, true};
+Type *ty_uint = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH, true};
+Type *ty_ulong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH, true};
 
 Type *ty_float = &(Type){TY_FLOAT, 4, 4};
 Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
-Type *ty_ldouble = &(Type){TY_LDOUBLE, 16, 16};
+Type *ty_ldouble = &(Type){TY_LDOUBLE, 8, 8}; // TODO
 
 static Type *new_type(TypeKind kind, int size, int align) {
   Type *ty = calloc(1, sizeof(Type));
@@ -95,7 +95,7 @@ Type *copy_type(Type *ty) {
 }
 
 Type *pointer_to(Type *base) {
-  Type *ty = new_type(TY_PTR, codegen_PointerWidth, codegen_PointerWidth);
+  Type *ty = new_type(TY_PTR, CHIBICC_POINTER_WIDTH, CHIBICC_POINTER_WIDTH);
   ty->base = base;
   ty->is_unsigned = true;
   return ty;
@@ -117,7 +117,7 @@ Type *array_of(Type *base, int len) {
 }
 
 Type *vla_of(Type *base, Node *len) {
-  Type *ty = new_type(TY_VLA, codegen_PointerWidth, codegen_PointerWidth);
+  Type *ty = new_type(TY_VLA, CHIBICC_POINTER_WIDTH, CHIBICC_POINTER_WIDTH);
   ty->base = base;
   ty->vla_len = len;
   return ty;

@@ -285,7 +285,7 @@ static void store(Type *ty) {
     sell(tmpReg);
 }
 
-static void cast(Type *from, Type *to) {
+static void cast(Type *from, Type *to, const char* reg) {
     // ok
 
     if (to->kind == TY_VOID)
@@ -293,18 +293,19 @@ static void cast(Type *from, Type *to) {
 
     if (to->kind == TY_BOOL) {
         const char* type = getTypeName(from);
-        println("  breq +2, %s 0, %s $res", type, type );
+        println("  breq +2, %s 0, %s %s", type, type, reg );
         type = getTypeName(to);
-        println("  mov %s $res, %s 0", type, type);
+        println("  mov %s %s, %s 0", type, reg, type);
+        // TODO: do we need setBool here?
         println("  br +1");
-        println("  mov %s $res, %s 1", type, type);
+        println("  mov %s %s, %s 1", type, reg, type);
         return;
     }
 
     const uint8_t t1 = getTypeId(from);
     const uint8_t t2 = getTypeId(to);
     if( t1 != t2 )
-        println("  conv %s $res, %s $res", ecsTypes[t2].name, ecsTypes[t1].name);
+        println("  conv %s %s, %s %s", ecsTypes[t2].name, reg, ecsTypes[t1].name, reg);
 }
 
 static int push_struct(Type *ty) {
@@ -432,9 +433,9 @@ static void loc(Token * tok)
     }
 }
 
-static void setBool(int b)
+static void setBool(int b, const char* reg)
 {
-    println("  mov u%d $res, u%d %d", codegen_PointerWidth, codegen_PointerWidth, b);
+    println("  mov u%d %s, u%d %d", codegen_PointerWidth, reg, codegen_PointerWidth, b);
 }
 
 // Generate code for a given node.
@@ -547,7 +548,7 @@ static void gen_expr(Node *node) {
     case ND_CAST:
         // ok
         gen_expr(node->lhs);
-        cast(node->lhs->ty, node->ty);
+        cast(node->lhs->ty, node->ty, "$res");
         return;
     case ND_MEMZERO:
         // ok
@@ -572,9 +573,9 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
         println("  breq +2, %s 0, %s $res", type, type );
-        setBool(0);
+        setBool(0,"$res");
         println("  br +1");
-        setBool(1);
+        setBool(1,"$res");
         return;
     }
     case ND_BITNOT: {
@@ -593,10 +594,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  breq .L.false.%d, %s 0, %s $res", c, type, type );
-        setBool(1);
+        setBool(1,"$res");
         println("  br .L.end.%d", c);
         println(".L.false.%d:", c);
-        setBool(0);
+        setBool(0,"$res");
         println(".L.end.%d:", c);
         return;
     }
@@ -609,10 +610,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  brne .L.true.%d, %s 0, %s $res", c, type, type);
-        setBool(0);
+        setBool(0,"$res");
         println("  br .L.end.%d", c);
         println(".L.true.%d:", c);
-        setBool(1);
+        setBool(1,"$res");
         println(".L.end.%d:", c);
         return;
     }
@@ -692,34 +693,39 @@ static void gen_expr(Node *node) {
     const uint8_t tmp = buy();
     pop(rhsT,ecsRegs[tmp].name);
 
-    const char* resT = getTypeName(node->ty);
     const char* lhsT = getTypeName(node->lhs->ty);
     const char* tmpname = ecsRegs[tmp].name;
 
+    if( getTypeId(node->lhs->ty) != getTypeId(node->rhs->ty) )
+    {
+        cast(node->rhs->ty, node->lhs->ty, ecsRegs[tmp].name);
+        rhsT = lhsT;
+    }
+
     switch (node->kind) {
     case ND_ADD:
-        println("  add %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  add %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_SUB:
-        println("  sub %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  sub %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_MUL:
-        println("  mul %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  mul %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_DIV:
-        println("  div %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  div %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_MOD:
-        println("  mod %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  mod %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITAND:
-        println("  and %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  and %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITOR:
-        println("  or %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  or %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_BITXOR:
-        println("  xor %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  xor %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_EQ:
     case ND_NE:
@@ -735,15 +741,15 @@ static void gen_expr(Node *node) {
             println("  brge +2, %s %s, %s $res", rhsT, tmpname, lhsT );
         }
 
-        setBool(0);
+        setBool(0,"$res");
         println("  br +1");
-        setBool(1);
+        setBool(1,"$res");
         break;
     case ND_SHL:
-        println("  lsh %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  lsh %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_SHR:
-        println("  rsh %s $res, %s $res, %s %s", resT, lhsT, rhsT, tmpname );
+        println("  rsh %s $res, %s $res, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     default:
         error_tok(node->tok, "invalid expression");

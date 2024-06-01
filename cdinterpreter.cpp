@@ -31,7 +31,6 @@
 #include <set>
 #include <stdexcept>
 #include <utility>
-#include <iostream>
 
 using namespace ECS;
 using namespace Code;
@@ -572,8 +571,6 @@ bool Interpreter::Thread::Execute ()
 
 	try
 	{
-        if( pc.offset == 34 )
-            std::cout << "hit";
 		if (Execute (pc.section->instructions[pc.offset])) ++pc.offset;
 	}
 	catch (const Type&)

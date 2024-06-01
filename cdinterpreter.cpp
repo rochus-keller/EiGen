@@ -1,20 +1,21 @@
 // Intermediate code interpreter
 // Copyright (C) Florian Negele
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "assembly.hpp"
 #include "cdinterpreter.hpp"
@@ -30,6 +31,7 @@
 #include <set>
 #include <stdexcept>
 #include <utility>
+#include <iostream>
 
 using namespace ECS;
 using namespace Code;
@@ -94,7 +96,7 @@ struct Interpreter::ProgramCounter
 	ProgramCounter (const Section&, Size = 0);
 };
 
-using Segment = class Interpreter::Segment
+class Interpreter::Segment
 {
 public:
 	const Section* section = nullptr;
@@ -118,10 +120,10 @@ private:
 	Size Validate (Displacement, Size) const;
 };
 
-using Thread = class Interpreter::Thread
+class Interpreter::Thread
 {
 public:
-	explicit Thread (Context&);
+    explicit Thread (Interpreter::Context&);
 
 	bool Execute ();
 	void Execute (const Section&);
@@ -131,7 +133,7 @@ public:
 	Value GetArgument (Displacement, const Type&) const;
 
 private:
-	Context& context;
+    Interpreter::Context& context;
 
 	Segment stack;
 	ProgramCounter pc;
@@ -140,7 +142,7 @@ private:
 	Value registers[Registers];
 	std::vector<ProgramCounter> counters;
 
-	void EmitError [[noreturn]] (const Message&) const;
+    void EmitError /*[[noreturn]]*/ (const Message&) const;
 
 	Value& Designate (const Operand&);
 	Value Evaluate (const Operand&) const;
@@ -162,7 +164,7 @@ private:
 	static constexpr Displacement StackSize = 10000;
 };
 
-using Context = class Interpreter::Context
+class Interpreter::Context
 {
 public:
 	const Interpreter& interpreter;
@@ -185,7 +187,7 @@ public:
 	Segment* Allocate (Pointer::Value);
 	Size Validate (const Value&) const;
 
-	void EmitError [[noreturn]] (const ProgramCounter&, const Message&) const;
+    void EmitError /*[[noreturn]]*/ (const ProgramCounter&, const Message&) const;
 
 private:
 	Environment& environment;
@@ -216,7 +218,7 @@ private:
 };
 
 Interpreter::Interpreter (Diagnostics& d, StringPool& sp, Charset& c, Platform& p) :
-	diagnostics {d}, platform {p}, parser {d, sp, false}, checker {d, c, p}
+    diagnostics(d), platform(p), parser(d, sp, false), checker(d, c, p)
 {
 	assert (platform.return_.size || platform.link.size);
 }
@@ -227,25 +229,25 @@ Signed::Value Interpreter::Execute (const Sections& sections, Environment& envir
 }
 
 Interpreter::Value::Value () :
-	displacement {0}
+    displacement(0)
 {
 }
 
 Interpreter::Value::Value (const Type& t, Segment*const s, const Displacement d) :
-	type {t}, segment {s}, displacement {d}
+    type(t), segment(s), displacement(d)
 {
 	assert (IsAddress (type));
 }
 
 Interpreter::Value::Value (const Type& t, const Reference& reference, const Displacement d) :
-	type {t}, segment {reference.segment}, displacement {reference.offset + d}
+    type(t), segment(reference.segment), displacement(reference.offset + d)
 {
 	assert (segment);
 	assert (IsAddress (type));
 }
 
 Interpreter::Value::Value (const Operand& operand) :
-	type {operand.type}
+    type(operand.type)
 {
 	assert (operand.address.empty () && !HasRegister (operand));
 
@@ -467,17 +469,17 @@ Interpreter::ProgramCounter::ProgramCounter (const Section& s, const Size o) :
 {
 }
 
-Segment::Segment (const Size size) :
+Interpreter::Segment::Segment (const Size size) :
 	data {size}
 {
 }
 
-Segment::Segment (const Section& s) :
+Interpreter::Segment::Segment (const Section& s) :
 	section {&s}
 {
 }
 
-Interpreter::Value& Segment::Designate (const Displacement displacement, const Type& type, const Platform& platform)
+Interpreter::Value& Interpreter::Segment::Designate (const Displacement displacement, const Type& type, const Platform& platform)
 {
 	auto size = type.size;
 	if (section && section->type != Section::Data) throw section;
@@ -487,7 +489,7 @@ Interpreter::Value& Segment::Designate (const Displacement displacement, const T
 	return data[index];
 }
 
-Interpreter::Value Segment::Evaluate (const Displacement displacement, const Type& type, const Platform& platform) const
+Interpreter::Value Interpreter::Segment::Evaluate (const Displacement displacement, const Type& type, const Platform& platform) const
 {
 	auto size = type.size;
 	if (section && !IsData (section->type)) throw section;
@@ -498,7 +500,7 @@ Interpreter::Value Segment::Evaluate (const Displacement displacement, const Typ
 	return data[index];
 }
 
-Pointer::Value Segment::GetAddress (const Displacement displacement) const
+Pointer::Value Interpreter::Segment::GetAddress (const Displacement displacement) const
 {
 	if (section && !IsData (section->type))
 		if (displacement < 0 && displacement >= Displacement (section->instructions.size ())) throw this;
@@ -506,55 +508,55 @@ Pointer::Value Segment::GetAddress (const Displacement displacement) const
 	return reinterpret_cast<Pointer::Value> (data.data ()) + Validate (displacement, 0);
 }
 
-void Segment::Copy (const Displacement displacement, const Segment& source, const Displacement sourceDisplacement, const Size size)
+void Interpreter::Segment::Copy (const Displacement displacement, const Segment& source, const Displacement sourceDisplacement, const Size size)
 {
 	std::copy_n (source.data.begin () + source.Validate (sourceDisplacement, size), size, data.begin () + Validate (displacement, size));
 }
 
-void Segment::Fill (const Displacement displacement, Size size, const Value& value)
+void Interpreter::Segment::Fill (const Displacement displacement, Size size, const Value& value)
 {
 	const auto typeSize = value.type.size;
 	auto index = Validate (displacement, size);
 	for (size *= typeSize; size; ++index, --size) data[index] = size % typeSize ? Value {} : value;
 }
 
-Size Segment::Validate (const Displacement displacement, const Size size) const
+Size Interpreter::Segment::Validate (const Displacement displacement, const Size size) const
 {
 	if (displacement < 0 || displacement > Displacement (data.size ()) || Size (displacement + size) > data.size ()) throw this;
 	return Size (displacement);
 }
 
-void Segment::Reserve (const Size size)
+void Interpreter::Segment::Reserve (const Size size)
 {
 	assert (!section || IsData (section->type));
 	data.resize (data.size () + size);
 }
 
-void Segment::Define (const Size offset, const Value& value)
+void Interpreter::Segment::Define (const Size offset, const Value& value)
 {
 	assert (!section || IsData (section->type));
 	if (offset + value.type.size > data.size ()) data.resize (offset + value.type.size);
 	data[offset] = value;
 }
 
-Thread::Thread (Context& c) :
-	context {c}, stack {StackSize}, environment {0}
+Interpreter::Thread::Thread (Context& c) :
+    context(c), stack(StackSize), environment(0)
 {
 	registers[RSP] = registers[RFP] = {context.platform.pointer, &stack, StackSize - context.platform.stackDisplacement};
 }
 
-void Thread::EmitError (const Message& message) const
+void Interpreter::Thread::EmitError (const Message& message) const
 {
 	context.EmitError (pc, message);
 }
 
-void Thread::Execute (const Section& section)
+void Interpreter::Thread::Execute (const Section& section)
 {
 	counters.push_back (pc);
 	pc = section;
 }
 
-bool Thread::Execute ()
+bool Interpreter::Thread::Execute ()
 {
 	while (pc.offset == pc.section->instructions.size ())
 		if (!inlinedSections.empty () && pc.section == &inlinedSections.back ())
@@ -570,6 +572,8 @@ bool Thread::Execute ()
 
 	try
 	{
+        if( pc.offset == 34 )
+            std::cout << "hit";
 		if (Execute (pc.section->instructions[pc.offset])) ++pc.offset;
 	}
 	catch (const Type&)
@@ -596,7 +600,7 @@ bool Thread::Execute ()
 	return false;
 }
 
-bool Thread::Execute (const Instruction& instruction)
+bool Interpreter::Thread::Execute (const Instruction& instruction)
 {
 	assert (IsValid (instruction, *pc.section, context.platform));
 
@@ -748,20 +752,20 @@ bool Thread::Execute (const Instruction& instruction)
 	return true;
 }
 
-Interpreter::Value& Thread::Designate (const Operand& operand)
+Interpreter::Value& Interpreter::Thread::Designate (const Operand& operand)
 {
 	if (IsRegister (operand)) return registers[operand.register_];
 	assert (IsMemory (operand)); const auto address = Address (context.platform.pointer, operand);
 	return address.segment->Designate (address.displacement, operand.type, context.platform);
 }
 
-Interpreter::Value Thread::Address (const Type& type, const Operand& operand) const
+Interpreter::Value Interpreter::Thread::Address (const Type& type, const Operand& operand) const
 {
 	auto address = operand.address.empty () ? Imm (type, operand.ptrimm) : context.Address (type, operand, pc);
 	if (operand.register_ != RVoid) address += registers[operand.register_]; if (!address.segment) throw address.segment; return address;
 }
 
-Interpreter::Value Thread::Evaluate (const Operand& operand) const
+Interpreter::Value Interpreter::Thread::Evaluate (const Operand& operand) const
 {
 	Value value;
 	switch (operand.model)
@@ -783,18 +787,19 @@ Interpreter::Value Thread::Evaluate (const Operand& operand) const
 	default:
 		assert (Operand::Unreachable);
 	}
-	if (value.type != operand.type) throw value.type;
+    if (value.type != operand.type && operand.register_ != Code::RRes)
+        throw value.type;
 	return value;
 }
 
-void Thread::Push (const Value& value)
+void Interpreter::Thread::Push (const Value& value)
 {
 	context.Check (registers[RSP].segment);
 	registers[RSP].displacement -= context.platform.GetStackSize (value.type);
 	registers[RSP].segment->Designate (registers[RSP].displacement + context.platform.stackDisplacement, value.type, context.platform) = value;
 }
 
-Interpreter::Value Thread::Pop (const Type& type)
+Interpreter::Value Interpreter::Thread::Pop (const Type& type)
 {
 	context.Check (registers[RSP].segment);
 	const auto displacement = registers[RSP].displacement + context.platform.stackDisplacement;
@@ -802,13 +807,13 @@ Interpreter::Value Thread::Pop (const Type& type)
 	return registers[RSP].segment->Evaluate (displacement, type, context.platform);
 }
 
-Interpreter::Value Thread::GetArgument (const Displacement displacement, const Type& type) const
+Interpreter::Value Interpreter::Thread::GetArgument (const Displacement displacement, const Type& type) const
 {
 	context.Check (registers[RSP].segment);
 	return registers[RSP].segment->Evaluate (registers[RSP].displacement + !context.platform.link.size * context.platform.GetStackSize (context.platform.return_) + context.platform.stackDisplacement + displacement, type, context.platform);
 }
 
-void Thread::Call (const Value& target)
+void Interpreter::Thread::Call (const Value& target)
 {
 	context.Check (registers[RSP].segment);
 	context.Check (target.segment);
@@ -821,7 +826,7 @@ void Thread::Call (const Value& target)
 	ExecuteStandardFunction ();
 }
 
-void Thread::ExecuteStandardFunction ()
+void Interpreter::Thread::ExecuteStandardFunction ()
 {
 	if (context.Call (*pc.section, *this, registers[RRes]))
 		if (!pc.section) return; else if (context.platform.link.size) Jump (registers[RLink]); else Return ();
@@ -829,7 +834,7 @@ void Thread::ExecuteStandardFunction ()
 		registers[RSP].displacement += pc.section->instructions[pc.offset - 1].operand2.size;
 }
 
-void Thread::Return ()
+void Interpreter::Thread::Return ()
 {
 	context.Check (registers[RSP].segment);
 	while (!inlinedSections.empty () && pc.section == &inlinedSections.back ())
@@ -847,7 +852,7 @@ void Thread::Return ()
 	ExecuteStandardFunction ();
 }
 
-void Thread::Jump (const Value& target)
+void Interpreter::Thread::Jump (const Value& target)
 {
 	context.Check (target.segment);
 	if (!target.segment->section || target.displacement > Displacement (target.segment->section->instructions.size ())) throw target.segment;
@@ -856,20 +861,20 @@ void Thread::Jump (const Value& target)
 	ExecuteStandardFunction ();
 }
 
-void Thread::Copy (const Value& target, const Value& source, const Value& size)
+void Interpreter::Thread::Copy (const Value& target, const Value& source, const Value& size)
 {
 	context.Check (target.segment);
 	context.Check (source.segment);
 	target.segment->Copy (target.displacement, *source.segment, source.displacement, context.Validate (size));
 }
 
-void Thread::Fill (const Value& target, const Value& size, const Value& value)
+void Interpreter::Thread::Fill (const Value& target, const Value& size, const Value& value)
 {
 	context.Check (target.segment);
 	target.segment->Fill (target.displacement, context.Validate (size), value);
 }
 
-void Thread::Assemble (const Source& source, const Line line, const String& code)
+void Interpreter::Thread::Assemble (const Source& source, const Line line, const String& code)
 {
 	std::stringstream assembly;
 	for (auto& instruction: pc.section->instructions) if (IsSymbolDeclaration (instruction)) DefineSymbol (instruction.operand2.address, instruction.operand3, assembly);
@@ -881,16 +886,18 @@ void Thread::Assemble (const Source& source, const Line line, const String& code
 	context.Add (inlinedSections.back ()); Execute (inlinedSections.back ());
 }
 
-bool Thread::IsSymbolDeclaration (const Instruction& instruction) const
+bool Interpreter::Thread::IsSymbolDeclaration (const Instruction& instruction) const
 {
 	if (instruction.mnemonic != Instruction::SYM) return false;
 	const auto offset = GetIndex (instruction, pc.section->instructions);
 	return pc.offset >= offset && pc.offset <= offset + instruction.operand1.offset;
 }
 
-Context::Context (const Interpreter& i, const Sections& sections, Environment& e) :
-	interpreter {i}, platform {i.platform}, environment {e}, abort {AddFunction ("abort")}, exit {AddFunction ("_Exit")}, fflush (AddFunction ("fflush")), floor {AddFunction ("floor")},
-	fputc {AddFunction ("fputc")}, free {AddFunction ("free")}, getchar {AddFunction ("getchar")}, malloc {AddFunction ("malloc")}, putchar {AddFunction ("putchar")}
+Interpreter::Context::Context (const Interpreter& i, const Sections& sections, Environment& e) :
+    interpreter(i), platform(i.platform), environment(e), abort(AddFunction ("abort")), exit(AddFunction ("_Exit")),
+    fflush (AddFunction ("fflush")), floor(AddFunction ("floor")),
+    fputc(AddFunction ("fputc")), free(AddFunction ("free")),
+    getchar(AddFunction ("getchar")), malloc(AddFunction ("malloc")), putchar(AddFunction ("putchar"))
 {
 	AddVariable ("_argc", SImm {platform.integer, 0});
 	const auto argv = Allocate (0); argv->Define (0, PtrImm {platform.pointer, 0});
@@ -906,13 +913,15 @@ Context::Context (const Interpreter& i, const Sections& sections, Environment& e
 	Batch (segments, [this] (Segment& segment) {InitializeData (segment);});
 }
 
-void Context::EmitError (const ProgramCounter& pc, const Message& message) const
+void Interpreter::Context::EmitError (const ProgramCounter& pc, const Message& message) const
 {
 	assert (pc.section);
-	interpreter.diagnostics.Emit (Diagnostics::Error, pc.section->name, pc.offset + 1, message); throw Error {};
+    interpreter.diagnostics.Emit (Diagnostics::Error,
+                                  pc.section->name, pc.offset + 1, message);
+    throw Error {};
 }
 
-Segment* Context::Allocate (const Pointer::Value size)
+Interpreter::Segment* Interpreter::Context::Allocate (const Pointer::Value size)
 {
 	try {segments.emplace_back (size);}
 	catch (const std::bad_alloc&) {return nullptr;}
@@ -920,7 +929,7 @@ Segment* Context::Allocate (const Pointer::Value size)
 	return &segments.back ();
 }
 
-void Context::Deallocate (Segment*const segment)
+void Interpreter::Context::Deallocate (Segment*const segment)
 {
 	assert (segment);
 	const auto iterator = std::find_if (segments.begin (), segments.end (), [segment] (const Segment& s) {return &s == segment;});
@@ -929,12 +938,12 @@ void Context::Deallocate (Segment*const segment)
 	segments.erase (iterator);
 }
 
-void Context::Check (const Segment*const segment) const
+void Interpreter::Context::Check (const Segment*const segment) const
 {
 	if (!segment) throw segment;
 }
 
-Size Context::Validate (const Value& size) const
+Size Interpreter::Context::Validate (const Value& size) const
 {
 	assert (size.type == platform.pointer);
 	if (size.segment) throw size.segment;
@@ -942,19 +951,20 @@ Size Context::Validate (const Value& size) const
 	return Size (size.ptrimm);
 }
 
-Segment& Context::Add (const Section& section)
+Interpreter::Segment& Interpreter::Context::Add (const Section& section)
 {
 	assert (!IsAssembly (section)); assert (!IsType (section.type));
-	auto& segment = segments.emplace_back (section); Add (section.name, segment, 0); return segment;
+    segments.emplace_back (section);
+    auto& segment = segments.back(); Add (section.name, segment, 0); return segment;
 }
 
-void Context::AddAssembly (const Section& section)
+void Interpreter::Context::AddAssembly (const Section& section)
 {
 	assert (IsAssembly (section));
 	Batch (section.instructions, [this, &section] (const Instruction& instruction) {Assemble (instruction, section);});
 }
 
-void Context::Assemble (const Instruction& instruction, const Section& section)
+void Interpreter::Context::Assemble (const Instruction& instruction, const Section& section)
 {
 	assert (IsValid (instruction, section, interpreter.platform));
 	Assembly::Program program {instruction.operand1.address};
@@ -963,7 +973,7 @@ void Context::Assemble (const Instruction& instruction, const Section& section)
 	interpreter.checker.Check (program, assembledSections);
 }
 
-void Context::Add (const Section::Name& name, Segment& segment, const Offset offset)
+void Interpreter::Context::Add (const Section::Name& name, Segment& segment, const Offset offset)
 {
 	assert (!name.empty ());
 
@@ -980,7 +990,7 @@ void Context::Add (const Section::Name& name, Segment& segment, const Offset off
 	else interpreter.diagnostics.Emit (Diagnostics::Error, name, {}, "duplicated section"), throw Error {};
 }
 
-void Context::Replace (Segment& segment, const Reference& reference)
+void Interpreter::Context::Replace (Segment& segment, const Reference& reference)
 {
 	assert (segment.section); auto iterator = directory.find (segment.section->name);
 	if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
@@ -989,7 +999,7 @@ void Context::Replace (Segment& segment, const Reference& reference)
 	segment.section = nullptr;
 }
 
-void Context::InitializeNames (Segment& segment)
+void Interpreter::Context::InitializeNames (Segment& segment)
 {
 	if (!segment.section) return;
 
@@ -1005,7 +1015,7 @@ void Context::InitializeNames (Segment& segment)
 		}
 }
 
-void Context::InitializeData (Segment& segment)
+void Interpreter::Context::InitializeData (Segment& segment)
 {
 	if (!segment.section || !IsData (segment.section->type)) return;
 
@@ -1050,7 +1060,7 @@ void Context::InitializeData (Segment& segment)
 	}
 }
 
-bool Context::IsRequired (const Section::Name& name) const
+bool Interpreter::Context::IsRequired (const Section::Name& name) const
 {
 	Section::Name::size_type begin = 0;
 	for (auto next = name.find ('?'); next != name.npos; begin = next + 1, next = name.find ('?', begin))
@@ -1058,20 +1068,20 @@ bool Context::IsRequired (const Section::Name& name) const
 	return begin == 0;
 }
 
-Interpreter::Reference Context::Find (const Section::Name& name) const
+Interpreter::Reference Interpreter::Context::Find (const Section::Name& name) const
 {
 	const auto entry = directory.find (name);
 	return entry != directory.end () ? entry->second : Reference {nullptr, 0};
 }
 
-Interpreter::Reference Context::Find (const Section::Name& name, const ProgramCounter& pc) const
+Interpreter::Reference Interpreter::Context::Find (const Section::Name& name, const ProgramCounter& pc) const
 {
 	const auto result = Find (name);
 	if (!result.segment) if (unresolved.insert (name).second) EmitError (pc, Format ("unresolved symbol '%0'", name)); else throw Error {};
 	return result;
 }
 
-Interpreter::Reference Context::Find (const Type& type, const Section::Name& name, const ProgramCounter& pc) const
+Interpreter::Reference Interpreter::Context::Find (const Type& type, const Section::Name& name, const ProgramCounter& pc) const
 {
 	const auto strippedName = Object::StripConditionals (name, IsRequired (name));
 	if (strippedName.empty ()) return {nullptr, 0}; const auto result = Find (strippedName, pc);
@@ -1080,62 +1090,74 @@ Interpreter::Reference Context::Find (const Type& type, const Section::Name& nam
 	return result;
 }
 
-Interpreter::Value Context::Address (const Type& type, const Operand& operand, const ProgramCounter& pc) const
+Interpreter::Value Interpreter::Context::Address (const Type& type, const Operand& operand, const ProgramCounter& pc) const
 {
 	assert (!operand.address.empty ()); const auto reference = Find (type, operand.address, pc);
 	return reference.segment ? Value {type, reference.segment, reference.offset + operand.displacement} : Imm (type, operand.displacement);
 }
 
-void Context::Execute ()
+void Interpreter::Context::Execute ()
 {
-	while (true) for (auto thread = threads.begin (); thread != threads.end ();) if (thread->Execute ()) thread = threads.erase (thread), assert (!threads.empty ());
+    while (true)
+        for (auto thread = threads.begin (); thread != threads.end ();)
+            if (thread->Execute ())
+                thread = threads.erase (thread),
+                        assert (!threads.empty ());
 }
 
-void Context::CreateThread (const Section& section, const Value& address)
+void Interpreter::Context::CreateThread (const Section& section, const Value& address)
 {
 	assert (address.type == platform.pointer);
-	if (!IsCode (section.type)) interpreter.diagnostics.Emit (Diagnostics::Error, section.name, {}, Format ("executing %0 section", section.type)), throw Error {};
-	auto& thread = threads.emplace_back (*this); thread.Push (address); thread.Execute (section);
+    if (!IsCode (section.type))
+        interpreter.diagnostics.Emit (Diagnostics::Error, section.name, {},
+                                      Format ("executing %0 section", section.type)), throw Error {};
+    threads.emplace_back (*this);
+    auto& thread = threads.back(); thread.Push (address); thread.Execute (section);
 }
 
-void Context::CreateMainThread ()
+void Interpreter::Context::CreateMainThread ()
 {
-	auto& thread = threads.emplace_back (*this); const auto entryPoint = Find (Section::EntryPoint);
+    threads.emplace_back (*this);
+    auto& thread = threads.back(); const auto entryPoint = Find (Section::EntryPoint);
 	if (!entryPoint.segment || !entryPoint.segment->section) interpreter.diagnostics.Emit (Diagnostics::Error, Section::EntryPoint, {}, "missing entry point"), throw Error {};
 	else if (entryPoint.offset || !IsEntryPoint (*entryPoint.segment->section)) EmitError (*entryPoint.segment->section, "invalid entry point");
 	else thread.Execute (*entryPoint.segment->section);
-	for (auto& segment: Reverse {segments}) Execute (segment, Section::InitCode);
-	for (auto& segment: Reverse {segments}) Execute (segment, Section::InitData);
+    for (auto segment = segments.rbegin(); segment != segments.rend(); ++segment )
+        Execute (*segment, Section::InitCode);
+    for (auto segment = segments.rbegin(); segment != segments.rend(); ++segment)
+        Execute (*segment, Section::InitData);
 }
 
-void Context::Execute (const Segment& segment, const Section::Type type)
+void Interpreter::Context::Execute (const Segment& segment, const Section::Type type)
 {
 	if (segment.section && segment.section->type == type && IsRequired (segment.section->name)) threads.back ().Execute (*segment.section);
 }
 
-Segment& Context::AddVariable (const Section::Name& name, const Type& type)
+Interpreter::Segment& Interpreter::Context::AddVariable (const Section::Name& name, const Type& type)
 {
-	return Add (sections.emplace_back (Section::Data, name, platform.GetAlignment (type)));
+    sections.emplace_back (Section::Data, name, platform.GetAlignment (type));
+    return Add (sections.back ());
 }
 
-void Context::AddVariable (const Section::Name& name, const Value& value)
+void Interpreter::Context::AddVariable (const Section::Name& name, const Value& value)
 {
 	AddVariable (name, value.type).Define (0, value);
 }
 
-void Context::AddVariable (const Section::Name& name, const String& string)
+void Interpreter::Context::AddVariable (const Section::Name& name, const String& string)
 {
 	const Unsigned type {1}; auto& segment = AddVariable (name, type);
 	for (auto& character: string) segment.Define (GetIndex (character, string), UImm (type, character));
 	segment.Define (string.size (), UImm (type, 0));
 }
 
-Segment& Context::AddFunction (const Section::Name& name)
+Interpreter::Segment& Interpreter::Context::AddFunction (const Section::Name& name)
 {
-	return Add (sections.emplace_back (Section::Code, name));
+    sections.emplace_back (Section::Code, name);
+    return Add (sections.back ());
 }
 
-bool Context::Call (const Section& function, const Thread& thread, Value& result)
+bool Interpreter::Context::Call (const Section& function, const Thread& thread, Value& result)
 {
 	if (&function == abort.section)
 		throw Error {};

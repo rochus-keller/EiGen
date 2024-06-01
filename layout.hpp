@@ -82,7 +82,7 @@ namespace ECS
     }
 
     constexpr Layout::Type::Type (const std::size_t s) :
-        size (s), alignment {s, s}
+        size (s), alignment{s, s} // alignment has no constructor
     {
     }
 
@@ -92,7 +92,7 @@ namespace ECS
     }
 
     constexpr Layout::Type::Type (const std::size_t s, const std::size_t minimum, const std::size_t maximum) :
-        size (s), alignment {minimum, maximum}
+        size (s), alignment{minimum, maximum}
     {
     }
 

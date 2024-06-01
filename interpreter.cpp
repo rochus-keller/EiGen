@@ -23,7 +23,17 @@
 
 using namespace ECS;
 
+#ifdef USE_CHIBICC_LAYOUT
+static Layout layout(Layout::Type(sizeof(int), sizeof(char), sizeof(long long)), // integer
+                     Layout::Type(sizeof(float),sizeof(float),sizeof(double)), // float
+                     Layout::Type(sizeof(void*)), // ptr
+                     Layout::Type(sizeof(void (*)(void))), // fun
+                     Layout::Type(0,sizeof(void*),sizeof(void*)), // stack alignment
+                     true);
+#else
 static StandardLayout layout;
+#endif
+
 static StandardCharset charset;
 static StreamDiagnostics diagnostics {std::cerr};
 static StandardEnvironment environment {std::cin, std::cout, std::cerr};

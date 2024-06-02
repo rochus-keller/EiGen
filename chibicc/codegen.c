@@ -126,7 +126,10 @@ static uint8_t getTypeId(Type *ty) {
         return ptr; // RISK
 
     }
-    return u8;
+    if( CHIBICC_POINTER_WIDTH == 4 )
+        return u4;
+    else
+        return u8;
 }
 
 static const char* getTypeName(Type *ty) {
@@ -442,9 +445,9 @@ static void loc(Token * tok)
     }
 }
 
-static void setUint(uint32_t i, const char* reg)
+static void setInt(uint32_t i, const char* reg)
 {
-    println("  mov u%d %s, u%d %d", CHIBICC_POINTER_WIDTH, reg, CHIBICC_POINTER_WIDTH, i);
+    println("  mov s%d %s, s%d %d", CHIBICC_POINTER_WIDTH, reg, CHIBICC_POINTER_WIDTH, i);
 }
 
 // Generate code for a given node.
@@ -582,9 +585,9 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
         const char* type = getTypeName(node->lhs->ty);
         println("  breq +2, %s 0, %s $0", type, type );
-        setUint(0,"$0");
+        setInt(0,"$0");
         println("  br +1");
-        setUint(1,"$0");
+        setInt(1,"$0");
         return;
     }
     case ND_BITNOT: {
@@ -603,10 +606,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  breq .L.false.%d, %s 0, %s $0", c, type, type );
-        setUint(1,"$0");
+        setInt(1,"$0");
         println("  br .L.end.%d", c);
         println(".L.false.%d:", c);
-        setUint(0,"$0");
+        setInt(0,"$0");
         println(".L.end.%d:", c);
         return;
     }
@@ -619,10 +622,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         type = getTypeName(node->rhs->ty);
         println("  brne .L.true.%d, %s 0, %s $0", c, type, type);
-        setUint(0,"$0");
+        setInt(0,"$0");
         println("  br .L.end.%d", c);
         println(".L.true.%d:", c);
-        setUint(1,"$0");
+        setInt(1,"$0");
         println(".L.end.%d:", c);
         return;
     }
@@ -642,6 +645,11 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
 
         println("  call fun $0, %d", stack_slots * CHIBICC_STACK_ALIGN);
+        if( node->lhs->ty && node->lhs->ty->return_ty && node->lhs->ty->return_ty->kind != TY_VOID )
+        {
+            const char* type = getTypeName(node->lhs->ty->return_ty);
+            println("  mov %s $0, %s $res", type, type);
+        }
 
         depth -= stack_slots;
 
@@ -750,9 +758,9 @@ static void gen_expr(Node *node) {
             println("  brge +2, %s %s, %s $0", rhsT, tmpname, lhsT );
         }
 
-        setUint(0,"$0");
+        setInt(0,"$0");
         println("  br +1");
-        setUint(1,"$0");
+        setInt(1,"$0");
         break;
     case ND_SHL:
         println("  lsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
@@ -913,7 +921,7 @@ static void assign_lvar_offsets(Obj *prog) {
 
         // Assign offsets to parameters.
         for (Obj *var = fn->params; var; var = var->next) {
-            top = align_to(top, CHIBICC_STACK_ALIGN);
+            top = align_to(top, MAX(CHIBICC_STACK_ALIGN, var->align));
             var->offset = top;
             top += var->ty->size;
         }
@@ -1063,7 +1071,7 @@ static void emit_text(Obj *prog) {
         if( fn->ty->return_ty && fn->ty->return_ty->kind != TY_VOID )
         {
             if( returnType == 0 )
-                setUint(0,"$res");
+                setInt(0,"$res");
             else
                 println("  mov %s $res, %s $0", returnType, returnType );
         }

@@ -70,7 +70,7 @@
 #error fail
 #endif
 
-#if 0 // TODO
+#if 0 // TODO // fails with chibicc
 #if (0 > -1) != 1
 #error fail
 #endif
@@ -88,7 +88,7 @@
 #error fail
 #endif
 
-#if 0 // TODO
+#if 0 // TODO // fails with chibicc
 #if (0 >= -1) != 1
 #error fail
 #endif

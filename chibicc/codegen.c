@@ -1,6 +1,10 @@
 /* This is a version of chibicc codegen which generates Eigen intermediate code
- * instead of x86_64. The changes only affect this file, i.e. it could be used
- * as a drop-in replacement in the original chibicc code base.
+ * instead of x86_64. 
+ * Adjust CHIBICC_POINTER_WIDTH, CHIBICC_INT_WIDTH, CHIBICC_LONG_WIDTH, and
+ * CHIBICC_STACK_ALIGN as needed for the target platform.
+ * Function arguments are passed by stack in reverse order. Struct and union
+ * returns by value are handled via pointer as first argument to caller 
+ * allocated memory.
  *
  * (c) 2024 Rochus Keller (me@rochus-keller.ch)
  *
@@ -943,7 +947,8 @@ static void emit_data(Obj *prog) {
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
-            println("  ; size, align: %d, %d", var->ty->size, align);
+            println("  .alignment %d", align );
+            println("  res %d", var->ty->size );
             continue;
         }
 
@@ -968,9 +973,9 @@ static void emit_data(Obj *prog) {
                     rel = rel->next;
                     pos += CHIBICC_POINTER_WIDTH;
                 } else {
-                    const int d = (uint8_t)var->init_data[pos++];
+                    const char d = var->init_data[pos++];
                     if( isprint(d) )
-                        println("  def s1 %d \t; '%c'", d, (char)d);
+                        println("  def s1 %d \t; '%c'", d, d);
                     else
                         println("  def s1 %d", d);
                 }

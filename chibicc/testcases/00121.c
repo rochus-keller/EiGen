@@ -1,4 +1,4 @@
-// TODO int f(int a), g(int a), a;
+// TODO int f(int a), g(int a), a; // fails with chibicc
 int f(int a);
 int g(int a);
 int a;

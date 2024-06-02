@@ -391,24 +391,24 @@ static bool convert_pp_int(Token *tok) {
   Type *ty;
   if (base == 10) {
     if (l && u)
-      ty = ty_ulong;
+      ty = ty_ulonglong;
     else if (l)
-      ty = ty_long;
+      ty = ty_longlong;
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) ? ty_ulonglong : ty_uint;
     else
-      ty = (val >> 31) ? ty_long : ty_int;
+      ty = (val >> 31) ? ty_longlong : ty_int;
   } else {
     if (l && u)
-      ty = ty_ulong;
+      ty = ty_ulonglong;
     else if (l)
-      ty = (val >> 63) ? ty_ulong : ty_long;
+      ty = (val >> 63) ? ty_ulonglong : ty_longlong;
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) ? ty_ulonglong : ty_uint;
     else if (val >> 63)
-      ty = ty_ulong;
+      ty = ty_ulonglong;
     else if (val >> 32)
-      ty = ty_long;
+      ty = ty_longlong;
     else if (val >> 31)
       ty = ty_uint;
     else

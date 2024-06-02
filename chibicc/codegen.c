@@ -111,6 +111,8 @@ static uint8_t getTypeId(Type *ty) {
             return ty->is_unsigned ? u8 : s8;
         else
             assert(0);
+    case TY_LONGLONG:
+        return ty->is_unsigned ? u8 : s8;
     case TY_FLOAT:
         return f4;
     case TY_DOUBLE:
@@ -448,6 +450,7 @@ static void loc(Token * tok)
 static void setInt(uint32_t i, const char* reg)
 {
     println("  mov s%d %s, s%d %d", CHIBICC_POINTER_WIDTH, reg, CHIBICC_POINTER_WIDTH, i);
+    // using s instead of u: 111 of 149 success with cdrun instead 65
 }
 
 // Generate code for a given node.

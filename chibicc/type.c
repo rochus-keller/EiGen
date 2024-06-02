@@ -7,11 +7,21 @@ Type *ty_char = &(Type){TY_CHAR, 1, 1};
 Type *ty_short = &(Type){TY_SHORT, 2, 2};
 Type *ty_int = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH};
 Type *ty_long = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH};
+#ifdef CHIBICC_HAVE_LLONG
+Type *ty_longlong = &(Type){TY_LONGLONG, 8, CHIBICC_LONG_WIDTH}; // on 32 bit system is 4 byte aligned, two 32 bit regs in use
+#else
+Type *ty_longlong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH};
+#endif
 
 Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
 Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
 Type *ty_uint = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH, true};
 Type *ty_ulong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH, true};
+#ifdef CHIBICC_HAVE_LLONG
+Type *ty_ulonglong = &(Type){TY_LONGLONG, 8, CHIBICC_LONG_WIDTH, true};
+#else
+Type *ty_ulonglong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH, true};
+#endif
 
 Type *ty_float = &(Type){TY_FLOAT, 4, 4};
 Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
@@ -28,7 +38,7 @@ static Type *new_type(TypeKind kind, int size, int align) {
 bool is_integer(Type *ty) {
   TypeKind k = ty->kind;
   return k == TY_BOOL || k == TY_CHAR || k == TY_SHORT ||
-         k == TY_INT  || k == TY_LONG || k == TY_ENUM;
+         k == TY_INT  || k == TY_LONG || k == TY_LONGLONG || k == TY_ENUM;
 }
 
 bool is_flonum(Type *ty) {
@@ -58,6 +68,7 @@ bool is_compatible(Type *t1, Type *t2) {
   case TY_SHORT:
   case TY_INT:
   case TY_LONG:
+  case TY_LONGLONG:
     return t1->is_unsigned == t2->is_unsigned;
   case TY_FLOAT:
   case TY_DOUBLE:

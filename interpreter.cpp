@@ -24,12 +24,21 @@
 using namespace ECS;
 
 #ifdef USE_CHIBICC_LAYOUT
-static Layout layout(Layout::Type(sizeof(int), sizeof(char), sizeof(long long)), // integer
-                     Layout::Type(sizeof(float),sizeof(float),sizeof(double)), // float
-                     Layout::Type(sizeof(void*)), // ptr
-                     Layout::Type(sizeof(void (*)(void))), // fun
-                     Layout::Type(0,sizeof(void*),sizeof(void*)), // stack alignment
+#if __SIZEOF_POINTER__ == 4
+static Layout layout(Layout::Type(4,1,4), // integer
+                     Layout::Type(8,4,4), // float
+                     Layout::Type(4), // ptr
+                     Layout::Type(4), // fun
+                     Layout::Type(0,4,8), // stack alignment (max 4 or 8 makes no difference for the 148 test cases)
                      true);
+#else
+static Layout layout(Layout::Type(4,1,8), // integer
+                     Layout::Type(8,4,8), // float
+                     Layout::Type(8), // ptr
+                     Layout::Type(8), // fun
+                     Layout::Type(0,8,8), // stack alignment
+                     true);
+#endif
 #else
 static StandardLayout layout;
 #endif
@@ -48,7 +57,11 @@ static StandardEnvironment environment {std::cin, std::cout, std::cerr};
 	#define NAMEPREFIX "cd"
 	static StringPool stringPool;
 	static Code::Sections sections;
-	static Code::Platform platform {layout};
+#ifdef USE_CHIBICC_LAYOUT
+    static Code::Platform platform {layout, false}; // makes a difference of ~13 more successful of 148 test cases
+#else
+    static Code::Platform platform {layout};
+#endif
 	static Code::Checker checker {diagnostics, charset, platform};
 	static Assembly::Parser parser {diagnostics, stringPool, true};
 	static Code::Interpreter interpreter {diagnostics, stringPool, charset, platform};

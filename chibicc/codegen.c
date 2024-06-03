@@ -58,6 +58,7 @@ static FILE *output_file;
 static int depth;
 static Obj *current_fn;
 static const char* returnType = 0;
+static int pc, infunc = 0;
 
 __attribute__((format(printf, 1, 2)))
 static void println(char *fmt, ...) {
@@ -66,6 +67,12 @@ static void println(char *fmt, ...) {
     va_start(ap, fmt);
     vfprintf(output_file, fmt, ap);
     va_end(ap);
+    if( infunc && fmt[0] == ' ' && fmt[1] == ' ' && fmt[2] != ';' )
+    {
+        pc++;
+        if( pc % 10 == 0 )
+            fprintf(output_file,"\t; pc %d", pc );
+    }
     fprintf(output_file, "\n");
 }
 
@@ -121,7 +128,10 @@ static uint8_t getTypeId(Type *ty) {
     case TY_ENUM:
         return s4; // RISK
     case TY_PTR:
-        return ptr;
+        if( ty->base && ty->base->kind == TY_FUNC )
+            return fun;
+        else
+            return ptr;
     case TY_FUNC:
         return fun;
     case TY_ARRAY:
@@ -440,7 +450,7 @@ static void loc(Token * tok)
 #if 0
         println("  loc \"%s\", %d, 1", file_name(tok->file->file_no), tok->line_no);
 #else
-        println("  ; line %d", tok->line_no);
+        println("  ; source line %d", tok->line_no);
 #endif
         file_no = tok->file->file_no;
         line_no = tok->line_no;
@@ -451,6 +461,17 @@ static void setInt(uint32_t i, const char* reg)
 {
     println("  mov s%d %s, s%d %d", CHIBICC_POINTER_WIDTH, reg, CHIBICC_POINTER_WIDTH, i);
     // using s instead of u: 111 of 149 success with cdrun instead 65
+}
+
+static Type* getFuncReturn(Type* ty)
+{
+    if( ty == 0 )
+        return 0;
+    if( ty->kind == TY_PTR )
+        return getFuncReturn(ty->base); // function pointer go this way
+    if( ty->kind == TY_FUNC && ty->return_ty && ty->return_ty->kind != TY_VOID )
+        return ty->return_ty;
+    return 0;
 }
 
 // Generate code for a given node.
@@ -648,9 +669,10 @@ static void gen_expr(Node *node) {
         gen_expr(node->lhs);
 
         println("  call fun $0, %d", stack_slots * CHIBICC_STACK_ALIGN);
-        if( node->lhs->ty && node->lhs->ty->return_ty && node->lhs->ty->return_ty->kind != TY_VOID )
+        Type* ret = getFuncReturn(node->lhs->ty);
+        if( ret )
         {
-            const char* type = getTypeName(node->lhs->ty->return_ty);
+            const char* type = getTypeName(ret);
             println("  mov %s $0, %s $res", type, type);
         }
 
@@ -945,6 +967,15 @@ static void assign_lvar_offsets(Obj *prog) {
     }
 }
 
+static Type* getTypeOf(Obj *prog, const char* name )
+{
+    for (Obj *var = prog; var; var = var->next) {
+        if( var->name == name )
+            return var->ty;
+    }
+    return 0;
+}
+
 static void emit_data(Obj *prog) {
     // ok
     for (Obj *var = prog; var; var = var->next) {
@@ -980,7 +1011,11 @@ static void emit_data(Obj *prog) {
             while (pos < var->ty->size) {
                 if (rel && rel->offset == pos) {
                     // println("  ; relocation, addend: %s, %+ld", *rel->label, rel->addend);
-                    println("  def ptr @%s", *rel->label);
+                    Type* ty = getTypeOf(prog,*rel->label);
+                    const char* type = "ptr";
+                    if( ty && ty->kind == TY_FUNC )
+                        type = "fun";
+                    println("  def %s @%s", type, *rel->label);
                     rel = rel->next;
                     pos += CHIBICC_POINTER_WIDTH;
                 } else {
@@ -1013,6 +1048,8 @@ static void emit_text(Obj *prog) {
             continue;
 
         returnType = 0;
+        pc = 0;
+        infunc = 1;
 
         // TODO if (fn->is_static)
         println(".code %s", fn->name );
@@ -1086,6 +1123,7 @@ static void emit_text(Obj *prog) {
         }else
             println("  ret");
         depth = 0;
+        infunc = 0;
     }
 }
 

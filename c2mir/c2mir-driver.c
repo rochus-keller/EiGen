@@ -647,8 +647,15 @@ static void send_to_compile (input_t *input) {
            ? NULL
            : get_output_file_from_parts (&result_file_name, options.output_file_name,
                                          input->input_name, options.asm_p ? ".mir" : ".bmir"));
+
+    fprintf(input->options.message_file, "compiling %s\n", input->input_name);
+    fflush(input->options.message_file);
+
     if (!c2mir_compile (main_ctx, &input->options, t_getc, input, input->input_name, f))
       result_code = 1;
+    else if( result_file_name )
+      fprintf(input->options.message_file, "generated %s\n", result_file_name);
+
     if (input->code_container != NULL) VARR_DESTROY (uint8_t, input->code_container);
     return;
   }
@@ -821,6 +828,7 @@ int main (int argc, char *argv[], char *env[]) {
         }
       }
     } else {
+      // NOTE: here we get with option -S
       curr_input.options = options;
       send_to_compile (&curr_input);
     }
@@ -833,7 +841,9 @@ int main (int argc, char *argv[], char *env[]) {
     fprintf (stderr, "error in writing to file %s\n", options.output_file_name);
     result_code = 1;
   }
-  if (result_code == 0 && !options.prepro_only_p && !options.syntax_only_p && !options.asm_p
+  if( !options.asm_p )
+      fprintf (stderr, "only option -S is currently supported\n");
+  else if (result_code == 0 && !options.prepro_only_p && !options.syntax_only_p && !options.asm_p
       && !options.object_p) {
     MIR_val_t val;
     MIR_module_t module;

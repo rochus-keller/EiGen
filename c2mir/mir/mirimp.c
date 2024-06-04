@@ -1,5 +1,10 @@
-#include "mir.h"
-#include "mir.h"
+/* This file is a part of MIR project.
+   Copyright (C) 2018-2024 Vladimir Makarov <vmakarov.gcc@gmail.com>.
+*/
+// This file is a subset of mir.c; it just includes the functions to manage the AST
+// during parsing
+
+#include "mirimp.h"
 #include "mir-hash.h"
 #include "mir-bitmap.h"
 #include <alloca.h>
@@ -15,19 +20,15 @@ typedef struct string {
 
 DEF_VARR (MIR_insn_t)
 DEF_VARR (MIR_reg_t)
-DEF_VARR (MIR_op_t)
 DEF_VARR (MIR_type_t)
 DEF_VARR (MIR_module_t)
-DEF_VARR (size_t)
 DEF_VARR (char)
 DEF_VARR (uint8_t)
-DEF_VARR (MIR_proto_t)
 DEF_VARR (MIR_str_t)
 DEF_VARR (uint64_t)
 DEF_VARR (MIR_label_t)
 DEF_VARR (string_t)
 
-DEF_HTAB (MIR_item_t)
 DEF_HTAB (string_t)
 DEF_HTAB (size_t)
 
@@ -39,13 +40,6 @@ struct string_ctx {
 
 #define strings ctx->string_ctx->strings
 #define string_tab ctx->string_ctx->string_tab
-
-typedef struct reg_desc {
-  char *name; /* 1st key for the name2rdn hash tab */
-  MIR_type_t type;
-  MIR_reg_t reg; /* 1st key reg2rdn hash tab */
-  char *hard_reg_name; /* NULL unless tied global, key for hrn2rdn */
-} reg_desc_t;
 
 DEF_VARR (reg_desc_t)
 
@@ -61,20 +55,6 @@ typedef struct func_regs {
 struct alias_ctx {
   VARR (string_t) * aliases;
   HTAB (string_t) * alias_tab;
-};
-
-struct MIR_context {
-    int curr_label_num;
-    DLIST (MIR_module_t) all_modules;
-    struct string_ctx* string_ctx;
-    VARR (size_t) * insn_nops;          /* constant after initialization */
-    VARR (MIR_proto_t) * unspec_protos; /* protos of unspec insns (set only during initialization) */
-    MIR_module_t curr_module;
-    HTAB (MIR_item_t) * module_item_tab;
-    MIR_func_t curr_func;
-    struct hard_reg_ctx *hard_reg_ctx;
-    VARR (MIR_op_t) * temp_ops;
-    struct alias_ctx *alias_ctx;
 };
 
 struct hard_reg_desc {
@@ -95,15 +75,9 @@ static const char *const target_hard_reg_names[] = {
   "r0",  "r1",  "r2",  "r3",  "r4",  "r5",  "r6",  "r7" // TODO
 };
 
-struct insn_desc {
-  MIR_insn_code_t code;
-  const char *name;
-  unsigned char op_modes[5];
-};
-
 #define OUT_FLAG (1 << 7)
 
-static const struct insn_desc insn_descs[] = {
+const struct insn_desc insn_descs[] = {
   {MIR_MOV, "mov", {MIR_OP_INT | OUT_FLAG, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_FMOV, "fmov", {MIR_OP_FLOAT | OUT_FLAG, MIR_OP_FLOAT, MIR_OP_BOUND}},
   {MIR_DMOV, "dmov", {MIR_OP_DOUBLE | OUT_FLAG, MIR_OP_DOUBLE, MIR_OP_BOUND}},
@@ -299,8 +273,6 @@ static const struct insn_desc insn_descs[] = {
 ///////////////////////////////////////
 // Implementation
 
-#define TO_IMP printf("not yet implemented: %s\n", __FUNCTION__); fflush(stdout);
-
 void MIR_NO_RETURN default_error (MIR_error_type_t error_type, const char *format, ...)
 {
     va_list argptr;
@@ -420,18 +392,15 @@ int _MIR_get_hard_reg (MIR_context_t ctx, const char *hard_reg_name) {
 }
 
 static inline int target_hard_reg_type_ok_p (MIR_reg_t hard_reg, MIR_type_t type) {
-    TO_IMP
-  return 0;
+  return 0; // TODO
 }
 
 static inline int target_fixed_hard_reg_p (MIR_reg_t hard_reg) {
-    TO_IMP
-  return 0;
+  return 0; // TODO
 }
 
 static int target_locs_num (MIR_reg_t loc MIR_UNUSED, MIR_type_t type) {
-    TO_IMP
-  return 0;
+  return 0; // TODO
 }
 
 static MIR_reg_t create_func_reg (MIR_context_t ctx, MIR_func_t func, const char *name,
@@ -581,7 +550,7 @@ static reg_desc_t *find_rd_by_reg (MIR_context_t ctx, MIR_reg_t reg, MIR_func_t 
   return &VARR_ADDR (reg_desc_t, func_regs->reg_descs)[rdn];
 }
 
-static reg_desc_t *get_func_rd_by_reg (MIR_context_t ctx, MIR_reg_t reg, MIR_func_t func) {
+reg_desc_t *get_func_rd_by_reg (MIR_context_t ctx, MIR_reg_t reg, MIR_func_t func) {
   reg_desc_t *rd;
 
   rd = find_rd_by_reg (ctx, reg, func);
@@ -2148,21 +2117,4 @@ MIR_context_t MIR_init (void) {
     return _MIR_init ();
 }
 
-////////////////////////////////////////////////
-// Generator
-
-void MIR_output_module (MIR_context_t ctx, FILE *f, MIR_module_t module)
-{
-    TO_IMP
-}
-
-void MIR_write_module (MIR_context_t ctx, FILE *f, MIR_module_t module)
-{
-    TO_IMP
-}
-
-void MIR_write (MIR_context_t ctx, FILE *f)
-{
-    TO_IMP
-}
 

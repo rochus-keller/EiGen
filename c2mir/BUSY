@@ -24,5 +24,7 @@ let c2mir ! : Executable {
 		./mirc.h
         ./mir/mirimp.c
         ./mir/mir.h
+        ./mir/mirgen.c
+        ./mir/mirimp.h
     ]
 }

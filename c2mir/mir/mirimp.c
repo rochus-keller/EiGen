@@ -1273,6 +1273,8 @@ MIR_module_t MIR_new_module (MIR_context_t ctx, const char *name)
 void _MIR_get_temp_item_name (MIR_context_t ctx, MIR_module_t module, char *buff,
                                      size_t buff_len)
 {
+    if( module == NULL )
+        module = curr_module;
     mir_assert (module != NULL);
     module->last_temp_item_num++;
     snprintf (buff, buff_len, "%s%u", TEMP_ITEM_NAME_PREFIX, (unsigned) module->last_temp_item_num);

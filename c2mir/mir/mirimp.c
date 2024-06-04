@@ -192,49 +192,7 @@ void MIR_finish (MIR_context_t ctx)
     free(ctx);
 }
 
-void MIR_read_with_func (MIR_context_t ctx, int (*const reader_func) (MIR_context_t))
-{
-    TO_IMP
-}
-
-void MIR_scan_string (MIR_context_t ctx, const char *str)
-{
-    TO_IMP
-}
-
-void MIR_load_module (MIR_context_t ctx, MIR_module_t m)
-{
-    TO_IMP
-}
-
 void MIR_write (MIR_context_t ctx, FILE *f)
-{
-    TO_IMP
-}
-
-void MIR_load_external (MIR_context_t ctx, const char *name, void *addr)
-{
-    TO_IMP
-}
-
-void _MIR_flush_code_cache (void *start, void *bound)
-{
-    TO_IMP
-}
-
-void MIR_set_interp_interface (MIR_context_t ctx, MIR_item_t func_item)
-{
-    TO_IMP
-}
-
-void MIR_link (MIR_context_t ctx, void (*set_interface) (MIR_context_t ctx, MIR_item_t item),
-                      void *(*import_resolver) (const char *) )
-{
-    TO_IMP
-}
-
-void MIR_interp (MIR_context_t ctx, MIR_item_t func_item, MIR_val_t *results, size_t nargs,
-                        ...)
 {
     TO_IMP
 }
@@ -351,31 +309,6 @@ MIR_context_t _MIR_init (void)
     MIR_context_t ctx =
             malloc(sizeof(struct MIR_context));
     return ctx;
-}
-
-void MIR_gen_init (MIR_context_t ctx, int gens_num)
-{
-    TO_IMP
-}
-
-void MIR_gen_set_optimize_level (MIR_context_t ctx, int gen_num, unsigned int level)
-{
-    TO_IMP
-}
-
-void MIR_gen_set_debug_file (MIR_context_t ctx, int gen_num, FILE *f)
-{
-    TO_IMP
-}
-
-void MIR_gen_set_debug_level (MIR_context_t ctx, int gen_num, int level)
-{
-    TO_IMP
-}
-
-void MIR_gen_finish(MIR_context_t ctx)
-{
-    TO_IMP
 }
 
 int _MIR_name_char_p (MIR_context_t ctx, int ch, int first_p)

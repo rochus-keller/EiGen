@@ -800,10 +800,10 @@ int main (int argc, char *argv[], char *env[]) {
       FILE *f;
 
       if (bin_p) {
-        MIR_read_with_func (main_ctx, mir_read_func);
+        // TODO RK MIR_read_with_func (main_ctx, mir_read_func);
       } else {
         curr_input.code_len++; /* include zero byte */
-        MIR_scan_string (main_ctx, (char *) curr_input.code);
+        // TODO RK MIR_scan_string (main_ctx, (char *) curr_input.code);
       }
       if (curr_input.code_container != NULL) VARR_DESTROY (uint8_t, curr_input.code_container);
       if (!options.prepro_only_p && !options.syntax_only_p
@@ -837,7 +837,7 @@ int main (int argc, char *argv[], char *env[]) {
       && !options.object_p) {
     MIR_val_t val;
     MIR_module_t module;
-    MIR_item_t func, main_func = NULL;
+    MIR_item_t func = NULL, main_func = NULL;
     uint64_t (*fun_addr) (int, void *argv, char *env[]);
     double start_time;
 
@@ -851,9 +851,9 @@ int main (int argc, char *argv[], char *env[]) {
          module = DLIST_NEXT (MIR_module_t, module)) {
       for (func = DLIST_HEAD (MIR_item_t, module->items); func != NULL;
            func = DLIST_NEXT (MIR_item_t, func))
-        if (func->item_type == MIR_func_item && strcmp (func->u.func->name, "main") == 0)
+        if (func && func->item_type == MIR_func_item && strcmp (func->u.func->name, "main") == 0)
           main_func = func;
-      MIR_load_module (main_ctx, module);
+      // TODO RK MIR_load_module (main_ctx, module);
     }
     if (main_func == NULL) {
       fprintf (stderr, "cannot link program w/o main function\n");
@@ -879,12 +879,14 @@ int main (int argc, char *argv[], char *env[]) {
       }
     } else {
       open_std_libs ();
-      MIR_load_external (main_ctx, "abort", fancy_abort);
-      MIR_load_external (main_ctx, "_MIR_flush_code_cache", _MIR_flush_code_cache);
+      // TODO RK MIR_load_external (main_ctx, "abort", fancy_abort);
+      // TODO RK MIR_load_external (main_ctx, "_MIR_flush_code_cache", _MIR_flush_code_cache);
       start_time = real_usec_time ();
       if (interp_exec_p) {
         if (options.verbose_p)
           fprintf (stderr, "MIR link interp start  -- %.0f usec\n", real_usec_time () - start_time);
+#if 0
+        // TODO RK
         MIR_link (main_ctx, MIR_set_interp_interface, import_resolver);
         if (options.verbose_p)
           fprintf (stderr, "MIR Link finish        -- %.0f usec\n", real_usec_time () - start_time);
@@ -894,6 +896,7 @@ int main (int argc, char *argv[], char *env[]) {
                     (MIR_val_t){.a = (void *) VARR_ADDR (char_ptr_t, exec_argv)},
                     (MIR_val_t){.a = (void *) env});
         result_code = (int) val.i;
+#endif
         if (options.verbose_p) {
           fprintf (stderr, "  execution       -- %.0f usec\n", real_usec_time () - start_time);
           fprintf (stderr, "exit code: %lu\n", (long unsigned) result_code);
@@ -905,14 +908,15 @@ int main (int argc, char *argv[], char *env[]) {
         if (options.verbose_p)
           fprintf (stderr, "MIR gen init start         -- %.0f usec\n",
                    real_usec_time () - start_time);
-        MIR_gen_init (main_ctx);
+        // TODO RK MIR_gen_init (main_ctx);
         if (options.verbose_p)
           fprintf (stderr, "MIR gen init finish         -- %.0f usec\n",
                    real_usec_time () - start_time);
-        if (optimize_level >= 0) MIR_gen_set_optimize_level (main_ctx, (unsigned) optimize_level);
+        if (optimize_level >= 0)
+            ; // TODO RK MIR_gen_set_optimize_level (main_ctx, (unsigned) optimize_level);
         if (gen_debug_level >= 0) {
-          MIR_gen_set_debug_file (main_ctx, stderr);
-          MIR_gen_set_debug_level (main_ctx, gen_debug_level);
+          // TODO RK MIR_gen_set_debug_file (main_ctx, stderr);
+          // TODO RK MIR_gen_set_debug_level (main_ctx, gen_debug_level);
         }
 #if 0
         // TODO RK
@@ -932,7 +936,7 @@ int main (int argc, char *argv[], char *env[]) {
                    (real_usec_time () - start_time) / 1000.0);
           fprintf (stderr, "exit code: %d\n", result_code);
         }
-        MIR_gen_finish (main_ctx);
+        // TODO RK MIR_gen_finish (main_ctx);
       }
     }
   }

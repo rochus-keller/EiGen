@@ -14189,7 +14189,7 @@ int c2mir_compile (MIR_context_t ctx, struct c2mir_options *ops, int (*getc_func
           fprintf (c2m_options->message_file, "  C2MIR context checker end -- %.0f usec\n",
                    real_usec_time () - start_time);
         m = MIR_new_module (ctx, get_module_name (c2m_ctx));
-        // TODO RK gen_mir (c2m_ctx, r);
+        gen_mir (c2m_ctx, r);
         if ((c2m_options->asm_p || c2m_options->object_p) && n_errors == 0) {
           if (strcmp (source_name, COMMAND_LINE_SOURCE_NAME) == 0) {
             MIR_output_module (ctx, c2m_options->message_file, m);

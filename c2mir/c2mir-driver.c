@@ -698,7 +698,7 @@ static void sort_modules (MIR_context_t ctx) {
 #endif
 
 int main (int argc, char *argv[], char *env[]) {
-  int i, bin_p;
+  int i, bin_p = 1;
   size_t len;
 
   interp_exec_p = gen_exec_p = lazy_gen_exec_p = lazy_bb_gen_exec_p = FALSE;

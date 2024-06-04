@@ -1691,7 +1691,7 @@ static token_t get_next_pptoken_1 (c2m_ctx_t c2m_ctx, int header_p) {
       return t;
     }
     default:
-      if (isalpha (curr_c) || curr_c == '_') {
+      if (isalpha (curr_c) || curr_c == '_' || curr_c == '$') {
         if (curr_c == 'L' || curr_c == 'u' || curr_c == 'U') {
           wide_type = curr_c;
           if ((curr_c = cs_get (c2m_ctx)) == '\"' || curr_c == '\'') {
@@ -1714,7 +1714,7 @@ static token_t get_next_pptoken_1 (c2m_ctx_t c2m_ctx, int header_p) {
         do {
           VARR_PUSH (char, symbol_text, curr_c);
           curr_c = cs_get (c2m_ctx);
-        } while (isalnum (curr_c) || curr_c == '_');
+        } while (isalnum (curr_c) || curr_c == '_' || curr_c == '$');
         cs_unget (c2m_ctx, curr_c);
         VARR_PUSH (char, symbol_text, '\0');
         return new_id_token (c2m_ctx, pos, VARR_ADDR (char, symbol_text));
@@ -7731,10 +7731,12 @@ check_one_value:
       return;
     }
     initializer = NL_NEXT (des_list);
+#ifndef C2MIR_COMPOUND_SCALAR_LITERALS
     if (!top_p) {
       error (c2m_ctx, POS (init), "braces around scalar initializer");
       return;
     }
+#endif
     top_p = FALSE;
     goto check_one_value;
   }
@@ -7753,6 +7755,7 @@ check_one_value:
     assert (init->code == N_INIT);
     des_list = NL_HEAD (init->u.ops);
     value = NL_NEXT (des_list);
+#ifndef C2MIR_COMPOUND_SCALAR_LITERALS
     if ((value->code == N_LIST || value->code == N_COMPOUND_LITERAL) && type->mode != TM_ARR
         && type->mode != TM_STRUCT && type->mode != TM_UNION) {
       error (c2m_ctx, POS (init),
@@ -7760,6 +7763,7 @@ check_one_value:
                                    : "compound literal for scalar initializer");
       break;
     }
+#endif
     if ((curr_des = NL_HEAD (des_list->u.ops)) == NULL) {
       if (!update_path_and_do (c2m_ctx, TRUE, check_initializer, mark, value, const_only_p,
                                &max_index, POS (init), "array/struct/union"))
@@ -10213,7 +10217,7 @@ static reg_var_t get_reg_var (c2m_ctx_t c2m_ctx, MIR_type_t t, const char *reg_n
     reg = (t != MIR_T_UNDEF ? MIR_new_func_reg (ctx, curr_func->u.func, t, reg_name)
                             : MIR_reg (ctx, reg_name, curr_func->u.func));
   } else {
-    reg = MIR_new_global_func_reg (ctx, curr_func->u.func, t, reg_name, asm_str);
+      reg = MIR_new_global_func_reg (ctx, curr_func->u.func, t, reg_name, asm_str);
   }
   str = reg_malloc (c2m_ctx, (strlen (reg_name) + 1) * sizeof (char));
   strcpy (str, reg_name);
@@ -14032,9 +14036,9 @@ static void init_include_dirs (c2m_ctx_t c2m_ctx) {
 static int check_id_p (c2m_ctx_t c2m_ctx, const char *str) {
   int ok_p;
 
-  if ((ok_p = isalpha (str[0]) || str[0] == '_')) {
+  if ((ok_p = isalpha (str[0]) || str[0] == '_' || str[0] == '$')) {
     for (size_t i = 1; str[i] != '\0'; i++)
-      if (!isalnum (str[i]) && str[i] != '_') {
+      if (!isalnum (str[i]) && str[i] != '_' && str[i] != '$') {
         ok_p = FALSE;
         break;
       }
@@ -14185,7 +14189,7 @@ int c2mir_compile (MIR_context_t ctx, struct c2mir_options *ops, int (*getc_func
           fprintf (c2m_options->message_file, "  C2MIR context checker end -- %.0f usec\n",
                    real_usec_time () - start_time);
         m = MIR_new_module (ctx, get_module_name (c2m_ctx));
-        gen_mir (c2m_ctx, r);
+        // TODO RK gen_mir (c2m_ctx, r);
         if ((c2m_options->asm_p || c2m_options->object_p) && n_errors == 0) {
           if (strcmp (source_name, COMMAND_LINE_SOURCE_NAME) == 0) {
             MIR_output_module (ctx, c2m_options->message_file, m);

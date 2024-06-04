@@ -1,0 +1,28 @@
+let config : Config {
+    if (target_toolchain == `gcc) {
+        .lib_names += [ "m" "dl" ]
+        .ldflags += "-shared-libgcc"
+        .cflags_c += "-std=c99"
+    }else if (target_toolchain == `clang) {
+
+    }else if target_toolchain == `msvc {
+    .cflags_cc += [ "/Wall"]
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+
+let c2mir ! : Executable {
+    .configs += config;
+    .include_dirs += ./mir
+    .defines += ["_M_AMD64" "C2MIR_COMPOUND_SCALAR_LITERALS"]
+    .sources += [
+		./c2mir.c
+		./c2mir.h
+        ./c2mir-driver.c
+		./mirc.h
+        ./mir/mirimp.c
+        ./mir/mir.h
+    ]
+}

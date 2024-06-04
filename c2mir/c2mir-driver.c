@@ -52,7 +52,7 @@ typedef pthread_attr_t mir_thread_attr_t;
 #endif
 
 #include "c2mir.h"
-#include "mir-gen.h"
+//#include "mir-gen.h"
 #include "real-time.h"
 
 struct lib {
@@ -446,7 +446,7 @@ static void *import_resolver (const char *name) {
     if (strcmp (name, "dlclose") == 0) return dlclose;
     if (strcmp (name, "dlsym") == 0) return dlsym;
     if (strcmp (name, "stat") == 0) return stat;
-    if (strcmp (name, "lstat") == 0) return lstat;
+    // TODO RK if (strcmp (name, "lstat") == 0) return lstat;
     if (strcmp (name, "fstat") == 0) return fstat;
 #if defined(__APPLE__) && defined(__aarch64__)
     if (strcmp (name, "__nan") == 0) return __nan;
@@ -914,6 +914,8 @@ int main (int argc, char *argv[], char *env[]) {
           MIR_gen_set_debug_file (main_ctx, stderr);
           MIR_gen_set_debug_level (main_ctx, gen_debug_level);
         }
+#if 0
+        // TODO RK
         MIR_link (main_ctx,
                   gen_exec_p        ? MIR_set_gen_interface
                   : lazy_gen_exec_p ? MIR_set_lazy_gen_interface
@@ -921,6 +923,7 @@ int main (int argc, char *argv[], char *env[]) {
                   import_resolver);
         if (options.verbose_p)
           fprintf (stderr, "MIR link finish        -- %.0f usec\n", real_usec_time () - start_time);
+#endif
         fun_addr = main_func->addr;
         start_time = real_usec_time ();
         result_code = (int) fun_addr (fun_argc, fun_argv, env);

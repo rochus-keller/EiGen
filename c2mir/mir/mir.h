@@ -17,6 +17,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdarg.h>
 #include "mir-dlist.h"
 #include "mir-varr.h"
 #include "mir-htab.h"
@@ -469,18 +470,9 @@ static inline int MIR_overflow_insn_code_p (MIR_insn_code_t code) {
 }
 
 extern double _MIR_get_api_version (void);
-extern MIR_context_t _MIR_init (void);
 
 /* Use only the following API to create MIR code.  */
-static inline MIR_context_t MIR_init (void) {
-  if (MIR_API_VERSION != _MIR_get_api_version ()) {
-    fprintf (stderr,
-             "mir.h header has version %g different from used mir code version %g -- good bye!\n",
-             MIR_API_VERSION, _MIR_get_api_version ());
-    exit (1);
-  }
-  return _MIR_init ();
-}
+extern MIR_context_t MIR_init (void);
 
 extern void MIR_finish (MIR_context_t ctx);
 

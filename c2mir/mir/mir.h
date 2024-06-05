@@ -162,11 +162,19 @@ typedef enum {
 #define MIR_BLK_NUM 5
 /* Data types: */
 typedef enum {
+#if 0
   REP8 (TYPE_EL, I8, U8, I16, U16, I32, U32, I64, U64), /* Integer types of different size: */
   REP3 (TYPE_EL, F, D, LD),                             /* Float or (long) double type */
   REP2 (TYPE_EL, P, BLK),                               /* Pointer, memory blocks */
   TYPE_EL (RBLK) = TYPE_EL (BLK) + MIR_BLK_NUM,         /* return block */
   REP2 (TYPE_EL, UNDEF, BOUND),
+#else
+    MIR_T_I8, MIR_T_U8, MIR_T_I16, MIR_T_U16, MIR_T_I32, MIR_T_U32, MIR_T_I64, MIR_T_U64,
+    MIR_T_F, MIR_T_D, MIR_T_LD,
+    MIR_T_P, MIR_T_BLK,
+    MIR_T_RBLK = MIR_T_BLK + MIR_BLK_NUM,
+    MIR_T_UNDEF, MIR_T_BOUND
+#endif
 } MIR_type_t;
 
 static inline int MIR_int_type_p (MIR_type_t t) {
@@ -181,9 +189,11 @@ static inline int MIR_all_blk_type_p (MIR_type_t t) { return MIR_T_BLK <= t && t
 #if UINTPTR_MAX == 0xffffffff
 #define MIR_PTR32 1
 #define MIR_PTR64 0
+#define MIR_T_INT MIR_T_I32
 #elif UINTPTR_MAX == 0xffffffffffffffffu
 #define MIR_PTR32 0
 #define MIR_PTR64 1
+#define MIR_T_INT MIR_T_I64
 #else
 #error MIR can work only for 32- or 64-bit targets
 #endif

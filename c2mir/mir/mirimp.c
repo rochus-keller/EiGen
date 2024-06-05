@@ -63,7 +63,7 @@ struct hard_reg_desc {
 };
 typedef struct hard_reg_desc hard_reg_desc_t;
 
-DEF_HTAB (hard_reg_desc_t);
+DEF_HTAB (hard_reg_desc_t)
 
 struct hard_reg_ctx {
   HTAB (hard_reg_desc_t) * hard_reg_desc_tab;
@@ -72,7 +72,7 @@ struct hard_reg_ctx {
 #define hard_reg_desc_tab ctx->hard_reg_ctx->hard_reg_desc_tab
 
 static const char *const target_hard_reg_names[] = {
-  "r0",  "r1",  "r2",  "r3",  "r4",  "r5",  "r6",  "r7" // TODO
+  "$0",  "$1",  "$2",  "$3",  "$4",  "$5",  "$6",  "$7"
 };
 
 #define OUT_FLAG (1 << 7)
@@ -198,16 +198,16 @@ const struct insn_desc insn_descs[] = {
   {MIR_UMULOS, "umulos", {MIR_OP_INT | OUT_FLAG, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_JMP, "jmp", {MIR_OP_LABEL, MIR_OP_BOUND}},
   {MIR_BT, "bt", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BTS, "bts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BF, "bf", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BFS, "bfs", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BEQ, "beq", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_BTS, "bts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}}, // Not used
+  {MIR_BF, "bf", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}}, // Not used
+  {MIR_BFS, "bfs", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_BOUND}}, // Not used
+  {MIR_BEQ, "beq", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}}, // Not used
   {MIR_BEQS, "beqs", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_FBEQ, "fbeq", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
-  {MIR_DBEQ, "dbeq", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
-  {MIR_LDBEQ, "ldbeq", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
-  {MIR_BNE, "bne", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BNES, "bnes", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_FBEQ, "fbeq", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},// Not used
+  {MIR_DBEQ, "dbeq", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_LDBEQ, "ldbeq", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_BNE, "bne", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
+  {MIR_BNES, "bnes", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
   {MIR_FBNE, "fbne", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
   {MIR_DBNE, "dbne", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
   {MIR_LDBNE, "ldbne", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
@@ -215,34 +215,34 @@ const struct insn_desc insn_descs[] = {
   {MIR_BLTS, "blts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_UBLT, "ublt", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_UBLTS, "ublts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_FBLT, "fblt", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
-  {MIR_DBLT, "dblt", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
-  {MIR_LDBLT, "ldblt", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
+  {MIR_FBLT, "fblt", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},// Not used
+  {MIR_DBLT, "dblt", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_LDBLT, "ldblt", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},// Not used
   {MIR_BLE, "ble", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_BLES, "bles", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_UBLE, "uble", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_UBLES, "ubles", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_FBLE, "fble", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
-  {MIR_DBLE, "dble", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
-  {MIR_LDBLE, "ldble", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
+  {MIR_FBLE, "fble", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},// Not used
+  {MIR_DBLE, "dble", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_LDBLE, "ldble", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},// Not used
   {MIR_BGT, "bgt", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BGTS, "bgts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_BGTS, "bgts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}}, // Not used
   {MIR_UBGT, "ubgt", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_UBGTS, "ubgts", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_FBGT, "fbgt", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
-  {MIR_DBGT, "dbgt", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
-  {MIR_LDBGT, "ldbgt", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
-  {MIR_BGE, "bge", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BGES, "bges", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_UBGE, "ubge", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_UBGES, "ubges", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_FBGE, "fbge", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},
-  {MIR_DBGE, "dbge", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},
-  {MIR_LDBGE, "ldbge", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},
+  {MIR_FBGT, "fbgt", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},// Not used
+  {MIR_DBGT, "dbgt", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_LDBGT, "ldbgt", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_BGE, "bge", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
+  {MIR_BGES, "bges", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
+  {MIR_UBGE, "ubge", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
+  {MIR_UBGES, "ubges", {MIR_OP_LABEL, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},// Not used
+  {MIR_FBGE, "fbge", {MIR_OP_LABEL, MIR_OP_FLOAT, MIR_OP_FLOAT, MIR_OP_BOUND}},// Not used
+  {MIR_DBGE, "dbge", {MIR_OP_LABEL, MIR_OP_DOUBLE, MIR_OP_DOUBLE, MIR_OP_BOUND}},// Not used
+  {MIR_LDBGE, "ldbge", {MIR_OP_LABEL, MIR_OP_LDOUBLE, MIR_OP_LDOUBLE, MIR_OP_BOUND}},// Not used
   {MIR_BO, "bo", {MIR_OP_LABEL, MIR_OP_BOUND}},
   {MIR_UBO, "ubo", {MIR_OP_LABEL, MIR_OP_BOUND}},
-  {MIR_BNO, "bno", {MIR_OP_LABEL, MIR_OP_BOUND}},
-  {MIR_UBNO, "ubno", {MIR_OP_LABEL, MIR_OP_BOUND}},
+  {MIR_BNO, "bno", {MIR_OP_LABEL, MIR_OP_BOUND}},// Not used
+  {MIR_UBNO, "ubno", {MIR_OP_LABEL, MIR_OP_BOUND}},// Not used
   {MIR_LADDR, "laddr", {MIR_OP_INT, MIR_OP_LABEL, MIR_OP_BOUND}},
   {MIR_JMPI, "jmpi", {MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_CALL, "call", {MIR_OP_BOUND}},
@@ -252,22 +252,20 @@ const struct insn_desc insn_descs[] = {
   {MIR_RET, "ret", {MIR_OP_BOUND}},
   {MIR_JRET, "jret", {MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_ALLOCA, "alloca", {MIR_OP_INT | OUT_FLAG, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_BSTART, "bstart", {MIR_OP_INT | OUT_FLAG, MIR_OP_BOUND}},
-  {MIR_BEND, "bend", {MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_BSTART, "bstart", {MIR_OP_INT | OUT_FLAG, MIR_OP_BOUND}},// Not used
+  {MIR_BEND, "bend", {MIR_OP_INT, MIR_OP_BOUND}},// Not used
   {MIR_VA_ARG, "va_arg", {MIR_OP_INT | OUT_FLAG, MIR_OP_INT, MIR_OP_UNDEF, MIR_OP_BOUND}},
-  {MIR_VA_BLOCK_ARG,
-   "va_block_arg",
-   {MIR_OP_INT, MIR_OP_INT, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_VA_BLOCK_ARG, "va_block_arg", {MIR_OP_INT, MIR_OP_INT, MIR_OP_INT, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_VA_START, "va_start", {MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_VA_END, "va_end", {MIR_OP_INT, MIR_OP_BOUND}},
+  {MIR_VA_END, "va_end", {MIR_OP_INT, MIR_OP_BOUND}},// Not used
   {MIR_LABEL, "label", {MIR_OP_BOUND}},
-  {MIR_UNSPEC, "unspec", {MIR_OP_BOUND}},
+  {MIR_UNSPEC, "unspec", {MIR_OP_BOUND}},// Not used
   {MIR_PRSET, "prset", {MIR_OP_UNDEF, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_PRBEQ, "prbeq", {MIR_OP_LABEL, MIR_OP_UNDEF, MIR_OP_INT, MIR_OP_BOUND}},
   {MIR_PRBNE, "prbne", {MIR_OP_LABEL, MIR_OP_UNDEF, MIR_OP_INT, MIR_OP_BOUND}},
-  {MIR_USE, "use", {MIR_OP_BOUND}},
-  {MIR_PHI, "phi", {MIR_OP_BOUND}},
-  {MIR_INVALID_INSN, "invalid-insn", {MIR_OP_BOUND}},
+  {MIR_USE, "use", {MIR_OP_BOUND}},// Not used
+  {MIR_PHI, "phi", {MIR_OP_BOUND}},// Not used
+  {MIR_INVALID_INSN, "invalid-insn", {MIR_OP_BOUND}},// Not used
 };
 
 ///////////////////////////////////////
@@ -475,7 +473,7 @@ static MIR_reg_t new_func_reg (MIR_context_t ctx, MIR_func_t func, MIR_type_t ty
 
   if (func == NULL)
     MIR_get_error_func (ctx) (MIR_reg_type_error, "func can not be NULL for new reg creation");
-  if (type != MIR_T_I64 && type != MIR_T_F && type != MIR_T_D && type != MIR_T_LD)
+  if (type != MIR_T_INT && type != MIR_T_F && type != MIR_T_D && type != MIR_T_LD)
     MIR_get_error_func (ctx) (MIR_reg_type_error, "wrong type for var %s: got '%s'", name,
                               type_str (ctx, type));
   reg = (MIR_reg_t) VARR_LENGTH (MIR_var_t, func->vars) + 1;
@@ -1332,7 +1330,7 @@ size_t _MIR_type_size (MIR_context_t ctx, MIR_type_t type)
     case MIR_T_F: return sizeof (float);
     case MIR_T_D: return sizeof (double);
     case MIR_T_LD: return sizeof (long double);
-    case MIR_T_P: return sizeof (void *);
+    case MIR_T_P: return sizeof (void *); // TODO: crosscompiler
     default: mir_assert (FALSE); return 1;
     }
 }
@@ -1445,7 +1443,7 @@ static htab_hash_t reg2rdn_hash (size_t rdn, void *arg) {
 
 static void func_regs_init (MIR_context_t ctx, MIR_func_t func) {
   func_regs_t func_regs;
-  reg_desc_t rd = {MIR_T_I64, 0, NULL, NULL};
+  reg_desc_t rd = {MIR_T_INT, 0, NULL, NULL};
 
   if ((func_regs = func->internal = malloc (sizeof (struct func_regs))) == NULL)
     MIR_get_error_func (ctx) (MIR_alloc_error, "Not enough memory for func regs info");
@@ -1503,7 +1501,7 @@ static MIR_item_t new_func_arr (MIR_context_t ctx, const char *name, size_t nres
     MIR_type_t type = canon_type (vars[i].type);
     MIR_reg_t reg
       = create_func_reg (ctx, func, vars[i].name, NULL, (MIR_reg_t) (i + 1),
-                         type == MIR_T_F || type == MIR_T_D || type == MIR_T_LD ? type : MIR_T_I64,
+                         type == MIR_T_F || type == MIR_T_D || type == MIR_T_LD ? type : MIR_T_INT,
                          FALSE, &stored_name);
     mir_assert (i + 1 == reg);
     vars[i].name = stored_name;

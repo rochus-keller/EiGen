@@ -20,20 +20,21 @@
 // Target
 //
 
+// TODO: runtime configurable
 #if defined TARGET_ARM32
 #define TARGET_32
 #define CHIBICC_USE_LINKREGISTER
 #elif defined TARGET_ARM64
 #define TARGET_64
-#elif defined TARGET_x86
+#elif defined TARGET_X86
 #define TARGET_32
-#elif defined TARGET_x64
+#elif defined TARGET_X64
 #define TARGET_64
 #else
 #error select a target architecture
 #endif
 
-// TODO: configurable
+// TODO: runtime configurable
 #if defined TARGET_32
 #define CHIBICC_POINTER_WIDTH 4
 #define CHIBICC_INT_WIDTH 4

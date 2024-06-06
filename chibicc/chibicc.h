@@ -20,12 +20,34 @@
 // Target
 //
 
+#if defined TARGET_ARM32
+#define TARGET_32
+#define CHIBICC_USE_LINKREGISTER
+#elif defined TARGET_ARM64
+#define TARGET_64
+#elif defined TARGET_x86
+#define TARGET_32
+#elif defined TARGET_x64
+#define TARGET_64
+#else
+#error select a target architecture
+#endif
+
 // TODO: configurable
-#define CHIBICC_POINTER_WIDTH sizeof(void*)
-#define CHIBICC_INT_WIDTH sizeof(int)
-#define CHIBICC_LONG_WIDTH sizeof(long)
-#define CHIBICC_STACK_ALIGN sizeof(void*)
-//#define CHIBICC_HAVE_LLONG
+#if defined TARGET_32
+#define CHIBICC_POINTER_WIDTH 4
+#define CHIBICC_INT_WIDTH 4
+#define CHIBICC_LONG_WIDTH 4
+#define CHIBICC_STACK_ALIGN 4
+#elif defined TARGET_64
+#define CHIBICC_POINTER_WIDTH 8
+#define CHIBICC_INT_WIDTH 4
+#define CHIBICC_LONG_WIDTH 8
+#define CHIBICC_STACK_ALIGN 8
+#endif
+
+//TODO #define CHIBICC_HAVE_LLONG
+
 
 ////////////////
 

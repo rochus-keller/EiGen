@@ -6,6 +6,5 @@ for t in *.c
 do
     echo "compiling $t"
     ./chibicc -S $t
-    ecsd -g "${t%.*}.cod"
-    ./${t%.*}; echo $?
+    ecsd -g -t arma32linux "${t%.*}.cod"
 done

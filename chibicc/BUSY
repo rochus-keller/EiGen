@@ -14,6 +14,8 @@ let config : Config {
 
 let chibicc ! : Executable {
     .configs += config;
+    .defines += "TARGET_x86" # "TARGET_ARM32"
+    # both TARGET_x86 and TARGET_ARM32 successfully tested so far
     .sources += [
     ./chibicc.h
     ./codegen.c

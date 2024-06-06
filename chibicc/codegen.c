@@ -1057,7 +1057,9 @@ static void emit_text(Obj *prog) {
         current_fn = fn;
 
         // Prologue
-        // TODO println("  push fun $lnk");
+#ifdef CHIBICC_USE_LINKREGISTER
+        println("  push fun $lnk");
+#endif
         println("  enter %d", fn->stack_size);
         // TODO println("  ; alloca_bottom offset: %d", fn->alloca_bottom->offset);
 

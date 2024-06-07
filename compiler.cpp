@@ -29,11 +29,34 @@ static StringPool stringPool;
 static StreamDiagnostics diagnostics {std::cerr};
 
 #if defined CODEBACKEND
+    // CODEBACKEND can optionally be declared together with one of AMD32BACKEND, AMD64BACKEND
+    // ARMA32BACKEND or ARMA64BACKEND to generate IR compatible with the corresponding cdamd32,
+    // cdamd64, cdarma32 or cdarma64 code generator; by default the standard layout of the
+    // machine, where this code is compiled, is used.
 
 	#include "cdgenerator.hpp"
 
 	#define NAMESUFFIX "code"
-	static Code::Generator generator;
+#if defined AMD32BACKEND
+    static Layout l { {4, 1, 4}, {8, 4, 4}, 4, 4, {0, 4, 4}, true };
+    static Code::Platform p {l, false};
+    static Code::Generator generator(l, p);
+#elif defined AMD64BACKEND
+    static Layout l { {4, 1, 8}, {8, 4, 8}, 8, 8, {0, 4, 8}, true };
+    static Code::Platform p {l, false};
+    static Code::Generator generator(l, p);
+#elif defined ARMA32BACKEND
+    static const bool floatingPointExtension = true;
+    static Layout l { {4, 1, 8}, {floatingPointExtension ? 8u : 4u, 4, 4}, 4, 4, {0, 4, 4}, true };
+    static Code::Platform p {l, true};
+    static Code::Generator generator(l, p);
+#elif defined ARMA64BACKEND
+    static Layout l { {4, 1, 8}, {8, 4, 8}, 8, 8, {0, 16, 16}, true };
+    static Code::Platform p {l, true};
+    static Code::Generator generator(l, p);
+#else
+    static Code::Generator generator; // using StandardLayout
+#endif
 
 #elif defined AMD16BACKEND
 

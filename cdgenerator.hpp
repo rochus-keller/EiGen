@@ -32,22 +32,13 @@ namespace Code
     class Generator
     {
     public:
-    #if 1
-        StandardLayout layout;
-    #else
-        Layout layout {
-            {4, 1, 4},  // Integer: size, alignment{minimum, maximum}
-            {8, 4, 4},  // Float: dito
-            4,          // Pointer: dito, only size
-            4,          // Function: dito
-            {0, 4, 8},  // Stack: dito
-            true        // CallStack
-        };
-    #endif
+        Layout layout = StandardLayout();
         Platform platform {layout};
 
         void Generate (const Sections&, const Source&, std::ostream&) const;
 
+        Generator() = default;
+        Generator( const Layout& l, const Platform& p):layout(l),platform(p){}
     private:
         void Generate (const Section&, std::ostream&) const;
         void Generate (const Instruction&, Size, std::ostream&) const;

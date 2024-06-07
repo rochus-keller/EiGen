@@ -210,8 +210,7 @@ private:
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const OperatingMode m, const MediaFloat mf, const DirectAddressing da) :
     Assembly::Generator {d, sp, assembler, "amd", "AMD64",
-#if 1
-                         // with 0.0.41 fixes
+        // with 0.0.41 fixes
         Layout(
             {m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u}, // Integer: size, alignment{minimum, maximum}
             {8, 4, m == LongMode ? 8u : 4u},      // Float: dito
@@ -220,9 +219,6 @@ Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const Operatin
             {0, m >> 3, m == LongMode ? 8u : 4u}, // Stack: displacement, alignment{minimum, maximum}
             true                                  // CallStack
         )
-#else
-        StandardLayout()
-#endif
         , false},
     assembler (d, c, m), mode (m), mediaFloat (mf), directAddressing (da)
 {

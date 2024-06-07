@@ -21,6 +21,7 @@
 #include "driver.hpp"
 #include "stdcharset.hpp"
 #include "stringpool.hpp"
+#include "cdgenerator.hpp"
 
 using namespace ECS;
 
@@ -33,8 +34,6 @@ static StreamDiagnostics diagnostics {std::cerr};
     // ARMA32BACKEND or ARMA64BACKEND to generate IR compatible with the corresponding cdamd32,
     // cdamd64, cdarma32 or cdarma64 code generator; by default the standard layout of the
     // machine, where this code is compiled, is used.
-
-	#include "cdgenerator.hpp"
 
 	#define NAMESUFFIX "code"
 #if defined AMD32BACKEND
@@ -223,6 +222,12 @@ static void Generate (const Code::Sections& sections, const Source& source)
 		#else
 			std::ostream listing {nullptr};
 		#endif
+
+#if defined CODELISTING
+        File cod {source, ".cod"};
+        Code::Generator g { generator.layout, Code::Platform(generator.layout,generator.platform.link.size != 0) };
+        g.Generate (sections, source, cod);
+#endif
 
 		generator.Generate (sections, source, binaries, information, listing);
 		File object {source, ".obf"};

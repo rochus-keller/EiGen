@@ -14,8 +14,10 @@ let config : Config {
 
 let chibicc ! : Executable {
     .configs += config;
-    .defines += "TARGET_X86"
+    .defines += "TARGET_ARM64"
     # on TARGET_X86, TARGET_X64 and TARGET_ARM32 successfully tested so far
+    # TARGET_ARM64 tested on Raspi Zero 2W Linux x64, 90% crashes
+    # TARGET_ARM32 on the same Raspi works 100%
     .sources += [
     ./chibicc.h
     ./codegen.c

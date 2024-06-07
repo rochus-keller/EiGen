@@ -1056,9 +1056,12 @@ static void emit_text(Obj *prog) {
 
         current_fn = fn;
 
+        const int isMain = strcmp(fn->name,"main") == 0;
+
         // Prologue
 #ifdef CHIBICC_USE_LINKREGISTER
-        println("  push fun $lnk");
+        if( !isMain )
+            println("  push fun $lnk");
 #endif
         println("  enter %d", fn->stack_size);
         // TODO println("  ; alloca_bottom offset: %d", fn->alloca_bottom->offset);
@@ -1118,7 +1121,7 @@ static void emit_text(Obj *prog) {
                 println("  mov %s $res, %s $0", returnType, returnType );
         }
         println("  leave");
-        if( strcmp(fn->name,"main") == 0 )
+        if( isMain )
         {
             pushRes("s4");
             println("  call fun @_Exit, 0");

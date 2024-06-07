@@ -26,6 +26,7 @@
 #define CHIBICC_USE_LINKREGISTER
 #elif defined TARGET_ARM64
 #define TARGET_64
+#define CHIBICC_USE_LINKREGISTER
 #elif defined TARGET_X86
 #define TARGET_32
 #elif defined TARGET_X64
@@ -44,7 +45,11 @@
 #define CHIBICC_POINTER_WIDTH 8
 #define CHIBICC_INT_WIDTH 4
 #define CHIBICC_LONG_WIDTH 8
+#if defined TARGET_ARM64
+#define CHIBICC_STACK_ALIGN 16
+#else
 #define CHIBICC_STACK_ALIGN 8
+#endif
 #endif
 
 //TODO #define CHIBICC_HAVE_LLONG

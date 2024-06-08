@@ -411,7 +411,7 @@ void Generator::Context::Generate (const Code::Instruction& instruction)
 
 	case Code::Instruction::ENTER:
 		Emit (STR {X29, {SP, -16, true}}); Emit (MOV {X29, SP});
-		Displace (SP, -operand1.size);
+        Displace (SP, -Immediate (operand1.size));
 		break;
 
 	case Code::Instruction::LEAVE:

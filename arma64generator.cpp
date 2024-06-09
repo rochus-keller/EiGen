@@ -510,9 +510,9 @@ void Generator::Context::Operation (const Instruction::Mnemonic mnemonic, const 
 
 void Generator::Context::Modulo (const Code::Operand& target, const Code::Operand& value1, const Code::Operand& value2)
 {
-	const auto dividend = Load (value1), divisor = Load (value2), result = Acquire (target), temporary = Acquire (target.type);
-	Emit ({IsSigned (target) ? Instruction::SDIV : Instruction::UDIV, result, dividend, divisor});
-	Emit (MUL {temporary, result, divisor}); Emit (SUB {result, dividend, temporary}); Store (result, target);
+    const auto dividend = Load (value1), divisor = Load (value2), result = Acquire (target), quotient = Acquire (target.type), product = Acquire (target.type);
+    Emit ({IsSigned (target) ? Instruction::SDIV : Instruction::UDIV, quotient, dividend, divisor});
+    Emit (MUL {product, quotient, divisor}); Emit (SUB {result, dividend, product}); Store (result, target);
 }
 
 void Generator::Context::Push (const Code::Operand& value)

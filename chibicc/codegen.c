@@ -431,7 +431,7 @@ static void builtin_alloca(void) {
     println("  mov %%rax, %d(%%rbp)", current_fn->alloca_bottom->offset);
 }
 
-static const char* file_name(int file_no)
+static const char* file_path(int file_no)
 {
     // ok
     File **files = get_input_files();
@@ -441,6 +441,17 @@ static const char* file_name(int file_no)
     return "";
 }
 
+static const char* file_name(const char* path)
+{
+    const char* pos = strrchr(path, '/');
+    if( pos == 0 )
+        pos = strrchr(path, '\\');
+    if( pos == 0 )
+        return path;
+    else
+        return pos+1;
+}
+
 static void loc(Token * tok)
 {
     static int file_no = 0, line_no = 0;
@@ -448,9 +459,9 @@ static void loc(Token * tok)
     if( tok->file->file_no != file_no || tok->line_no != line_no )
     {
 #if 0
-        println("  loc \"%s\", %d, 1", file_name(tok->file->file_no), tok->line_no);
+        println("  loc \"%s\", %d, 1", file_path(tok->file->file_no), tok->line_no);
 #else
-        println("  ; source line %d", tok->line_no);
+        println("  ; line %s:%d", file_name(file_path(tok->file->file_no)), tok->line_no);
 #endif
         file_no = tok->file->file_no;
         line_no = tok->line_no;
@@ -589,7 +600,7 @@ static void gen_expr(Node *node) {
     case ND_MEMZERO:
         // ok
         println("  mov ptr $0, ptr $fp%+d", node->var->offset);
-        println("  fill ptr $0, ptr %d, ptr 0", node->var->ty->size );
+        println("  fill ptr $0, ptr %d, u1 0", node->var->ty->size );
         return;
     case ND_COND: {
         // ok
@@ -1043,6 +1054,8 @@ static void print_var_names(Obj* fn)
                 var->offset, var->ty->size, var->align );
     }
     for (Obj *var = fn->locals; var; var = var->next) {
+        if( var->offset > 0 )
+            break; // hit a param; apparently chibicc links params just behind locals
         println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
                 var->offset, var->ty->size, var->align );
     }

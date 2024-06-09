@@ -1051,15 +1051,6 @@ void init_macros(void) {
   define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__ELF__", "1");
   define_macro("__LP64__", "1");
-  define_macro("__SIZEOF_DOUBLE__", "8");
-  define_macro("__SIZEOF_FLOAT__", "4");
-  define_macro("__SIZEOF_INT__", "4");
-  define_macro("__SIZEOF_LONG_DOUBLE__", "8");
-  define_macro("__SIZEOF_LONG_LONG__", "8");
-  define_macro("__SIZEOF_LONG__", "8");
-  define_macro("__SIZEOF_POINTER__", "8");
-  define_macro("__SIZEOF_PTRDIFF_T__", "8");
-  define_macro("__SIZEOF_SHORT__", "2");
   define_macro("__SIZEOF_SIZE_T__", "8");
   define_macro("__SIZE_TYPE__", "unsigned long");
   define_macro("__STDC_HOSTED__", "1");
@@ -1086,8 +1077,20 @@ void init_macros(void) {
   define_macro("unix", "1");
 #endif
 
+  define_macro("__SIZEOF_DOUBLE__", "8");
+  define_macro("__SIZEOF_FLOAT__", "4");
+  define_macro("__SIZEOF_INT__", STR(CHIBICC_INT_WIDTH));
+  define_macro("__SIZEOF_LONG_DOUBLE__", "8");
+  define_macro("__SIZEOF_LONG_LONG__", "4"); // TODO: until ecs fixed, then 8
+  define_macro("__SIZEOF_LONG__", STR(CHIBICC_LONG_WIDTH));
+  define_macro("__SIZEOF_SHORT__", "2");
+  define_macro("__SIZEOF_POINTER__", STR(CHIBICC_POINTER_WIDTH));
+  define_macro("__SIZEOF_PTRDIFF_T__", STR(CHIBICC_POINTER_WIDTH));
+  define_macro("__STACK_ALIGNMENT__", STR(CHIBICC_STACK_ALIGN));
+
   define_macro("__chibicc__", "1");
-  define_macro("__STDC_VERSION__", "201112L");
+  define_macro("__ecs_chibicc__", "1");
+  define_macro("__STDC_VERSION__", "199901L"); // orig: 201112L");
   define_macro("__STDC__", "1");
 
 

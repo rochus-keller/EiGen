@@ -1036,6 +1036,18 @@ static void emit_data(Obj *prog) {
     }
 }
 
+static void print_var_names(Obj* fn)
+{
+    for (Obj *var = fn->params; var; var = var->next) {
+        println("  ; param '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
+                var->offset, var->ty->size, var->align );
+    }
+    for (Obj *var = fn->locals; var; var = var->next) {
+        println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
+                var->offset, var->ty->size, var->align );
+    }
+}
+
 static void emit_text(Obj *prog) {
     // ok
     for (Obj *fn = prog; fn; fn = fn->next) {
@@ -1057,6 +1069,8 @@ static void emit_text(Obj *prog) {
         current_fn = fn;
 
         const int isMain = strcmp(fn->name,"main") == 0;
+
+        print_var_names(fn);
 
         // Prologue
 #ifdef CHIBICC_USE_LINKREGISTER

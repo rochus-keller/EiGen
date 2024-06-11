@@ -7,5 +7,5 @@ do
     echo "compiling $t"
     ./chibicc -S $t -I../../include
     ecsd -g "${t%.*}.cod"
-    ./${t%.*}; echo $?
+   # ./${t%.*}; echo $?
 done

@@ -441,7 +441,7 @@ static const char* file_path(int file_no)
     return "";
 }
 
-static const char* file_name(const char* path)
+const char* file_name(const char* path)
 {
     const char* pos = strrchr(path, '/');
     if( pos == 0 )

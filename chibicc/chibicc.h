@@ -493,6 +493,8 @@ extern bool opt_fpic;
 extern bool opt_fcommon;
 extern char *base_file;
 
+extern const char* file_name(const char* path);
+
 //
 // helper.c
 //

@@ -5,7 +5,8 @@ export PATH=$PATH:/home/me/Programme/ecs/bin
 for t in *.c
 do
     echo "compiling $t"
-    ./chibicc -S $t -I../../include
-    ecsd "${t%.*}.cod" libc.lib
-    ./${t%.*}; echo $?
+    ./chibicc -S $t -I../include
 done
+
+ecsd -l *.cod
+

@@ -1,0 +1,33 @@
+let config : Config {
+    if target_toolchain == `gcc {
+        .lib_names += [ "m" "stdc++" ]
+        .ldflags += "-shared-libgcc"
+        .cflags += ["-std=c99" "-Werror" ]
+    }else if target_toolchain == `msvc {
+        # nothing to do
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+
+
+let ecc ! : Executable {
+    .configs += config;
+    .defines += "TARGET_X86"
+    # on TARGET_X86, TARGET_X64, TARGET_ARM32, TARGET_ARM64 successfully tested so far
+    # TARGET_ARM32 and TARGET_ARM64 tested on Raspi Zero 2W Linux x64 and on
+    # Ampere Altra (https://www.hetzner.com/cloud/), all 149 cases successful
+    .sources += [
+    ./chibicc.h
+    ./codegen.c
+    ./hashmap.c
+    ./main.c
+    ./parse.c
+    ./preprocess.c
+    ./strings.c
+    ./tokenize.c
+    ./type.c
+    ./unicode.c
+    ]
+}

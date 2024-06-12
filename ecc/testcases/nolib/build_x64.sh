@@ -5,8 +5,6 @@ export PATH=$PATH:/home/me/Programme/ecs/bin
 for t in *.c
 do
     echo "compiling $t"
-    ./chibicc -S $t -I../include
+    ./ecc -S $t
+    ecsd -g -t amd64linux "${t%.*}.cod"
 done
-
-ecsd -l *.cod
-

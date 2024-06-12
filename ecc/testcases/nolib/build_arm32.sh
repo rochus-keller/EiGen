@@ -5,7 +5,6 @@ export PATH=$PATH:/home/me/Programme/ecs/bin
 for t in *.c
 do
     echo "compiling $t"
-    ./chibicc -S $t
-    ecsd -g "${t%.*}.cod"
-    ./${t%.*}; echo $?
+    ./ecc -S $t
+    ecsd -g -t arma32linux "${t%.*}.cod"
 done

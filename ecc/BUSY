@@ -12,7 +12,7 @@ let config : Config {
 
 
 
-let chibicc ! : Executable {
+let ecc ! : Executable {
     .configs += config;
     .defines += "TARGET_X86"
     # on TARGET_X86, TARGET_X64, TARGET_ARM32, TARGET_ARM64 successfully tested so far

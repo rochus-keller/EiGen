@@ -1,4 +1,0 @@
-Downloaded from https://github.com/rui314/chibicc
-on 04.04.2024 
-This is commit 90d1f7f from Dec 7, 2020
-

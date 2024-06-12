@@ -35,7 +35,7 @@ static StringArray input_paths;
 static StringArray tmpfiles;
 
 static void usage(int status) {
-  fprintf(stderr, "chibicc [ -o <path> ] <file>\n");
+  fprintf(stderr, "ecc [ -o <path> ] <file>\n");
   exit(status);
 }
 

@@ -2,14 +2,6 @@
 
 int putchar(int);
 
-void print(const char* str)
-{
-    while( *str != 0 )
-    {
-    	putchar(*str);
-    	str++;
-    }
-}
 
 void f(int a, ...)
 {
@@ -21,7 +13,11 @@ void f(int a, ...)
 	const char c = va_arg(l,char);
 	const int d = va_arg(l,int);
 	va_end(l);
-	print(str);
+    while( *str != 0 )
+    {
+    	putchar(*str);
+    	str++;
+    }
 	putchar(a);
 	putchar('\n');
 	putchar(c);

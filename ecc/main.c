@@ -591,33 +591,20 @@ static void cc1(void) {
 }
 
 static void assemble(char *input, char *output) {
-  char *cmd[] = {"as", "-c", input, "-o", output, NULL};
-  // TODO;
+#ifdef ECC_HAVE_BACKEND
+  run_codegen(input,output);
+#else
   error("this version of ecc has no integrated backend; call 'ecsd -t %s <cod-file>' instead",
         targets[target].name);
+#endif
 }
 
-static void run_linker(StringArray *inputs, char *output) {
-  StringArray arr = {};
-
-  strarray_push(&arr, "ld");
-  strarray_push(&arr, "-o");
-  strarray_push(&arr, output);
-  strarray_push(&arr, "-m");
-  strarray_push(&arr, "elf_x86_64");
-
-  for (int i = 0; i < ld_extra_args.len; i++)
-    strarray_push(&arr, ld_extra_args.data[i]);
-
-  for (int i = 0; i < inputs->len; i++)
-    strarray_push(&arr, inputs->data[i]);
-
+static void link(StringArray *inputs, char *output) {
   // TODO if (opt_static) {
   // TODO if (opt_shared)
-
-  strarray_push(&arr, NULL);
-
-  // TODO run_subprocess(arr.data);
+#ifdef ECC_HAVE_BACKEND
+  run_linker(inputs, &ld_extra_args, output);
+#endif
 }
 
 static FileType get_file_type(char *filename) {
@@ -723,7 +710,7 @@ int main(int argc, char **argv) {
   }
 
   if (ld_args.len > 0)
-    run_linker(&ld_args, opt_o ? opt_o : "a.out");
+    link(&ld_args, opt_o ? opt_o : "a.out");
   return 0;
 }
 

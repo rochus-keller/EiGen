@@ -463,6 +463,8 @@ extern bool opt_fcommon;
 extern char *base_file;
 
 extern const char* file_name(const char* path);
+extern void run_linker(StringArray *inputs, StringArray *extra_args, const char *output);
+extern void run_codegen(const char *input, const char *output);
 
 //
 // helper.c

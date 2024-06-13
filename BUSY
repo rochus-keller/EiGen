@@ -3,6 +3,7 @@ let config : Config {
         .lib_names += [ "m" "stdc++" ]
         .ldflags += "-shared-libgcc"
         .cflags_cc += "-std=c++11"
+        .cflags_c += "-std=c99"
     }else if target_toolchain == `msvc {
     }else {
         error("target toolchain not supported")
@@ -296,6 +297,22 @@ let linkmem : Executable {
     .defines += "MEMORYLINKFILEFORMAT"
 }
 
+############# ECC ####################################
+submod ecc
+
+let compiler : Executable {
+    .configs += config;
+    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 ]
+    .sources += [
+        ./ecc/backend.cpp
+        ./ecc/main.c
+        ]
+    .defines += "ECC_HAVE_BACKEND"
+    .include_dirs += .
+
+    # cannot use name "ecc" because of collision with ecc subdir
+}
+
 
 ############# All tools ##############################
 
@@ -303,4 +320,5 @@ let tools ! : Group {
     .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe cdrun ]
     .deps += [ amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
     .deps += [ linkbin linkmem ]
+    .deps += compiler
 }

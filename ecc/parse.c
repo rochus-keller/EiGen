@@ -218,14 +218,14 @@ static Node *new_num(int64_t val, Token *tok) {
 static Node *new_long(int64_t val, Token *tok) {
   Node *node = new_node(ND_NUM, tok);
   node->val = val;
-  node->ty = ty_long;
+  node->ty = basic_type(TY_LONG);
   return node;
 }
 
 static Node *new_ulong(long val, Token *tok) {
   Node *node = new_node(ND_NUM, tok);
   node->val = val;
-  node->ty = ty_ulong;
+  node->ty = basic_utype(TY_LONG);
   return node;
 }
 
@@ -397,7 +397,7 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
     UNSIGNED = 1 << 18,
   };
 
-  Type *ty = ty_int;
+  Type *ty = basic_type(TY_INT);
   int counter = 0;
   bool is_atomic = false;
 
@@ -507,65 +507,65 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
     switch (counter) {
     case VOID:
-      ty = ty_void;
+      ty = basic_type(TY_VOID);
       break;
     case BOOL:
-      ty = ty_bool;
+      ty = basic_type(TY_BOOL);
       break;
     case CHAR:
     case SIGNED + CHAR:
-      ty = ty_char;
+      ty = basic_type(TY_CHAR);
       break;
     case UNSIGNED + CHAR:
-      ty = ty_uchar;
+      ty = basic_utype(TY_CHAR);
       break;
     case SHORT:
     case SHORT + INT:
     case SIGNED + SHORT:
     case SIGNED + SHORT + INT:
-      ty = ty_short;
+      ty = basic_type(TY_SHORT);
       break;
     case UNSIGNED + SHORT:
     case UNSIGNED + SHORT + INT:
-      ty = ty_ushort;
+      ty = basic_utype(TY_SHORT);
       break;
     case INT:
     case SIGNED:
     case SIGNED + INT:
-      ty = ty_int;
+      ty = basic_type(TY_INT);
       break;
     case UNSIGNED:
     case UNSIGNED + INT:
-      ty = ty_uint;
+      ty = basic_utype(TY_INT);
       break;
     case LONG:
     case LONG + INT:
     case SIGNED + LONG:
     case SIGNED + LONG + INT:
-        ty = ty_long;
+        ty = basic_type(TY_LONG);
         break;
     case LONG + LONG:
     case LONG + LONG + INT:
     case SIGNED + LONG + LONG:
     case SIGNED + LONG + LONG + INT:
-      ty = ty_longlong;
+      ty = basic_type(TY_LONGLONG);
       break;
     case UNSIGNED + LONG:
     case UNSIGNED + LONG + INT:
-        ty = ty_ulong;
+        ty = basic_utype(TY_LONG);
         break;
     case UNSIGNED + LONG + LONG:
     case UNSIGNED + LONG + LONG + INT:
-      ty = ty_ulonglong;
+      ty = basic_utype(TY_LONGLONG);
       break;
     case FLOAT:
-      ty = ty_float;
+      ty = basic_type(TY_FLOAT);
       break;
     case DOUBLE:
-      ty = ty_double;
+      ty = basic_type(TY_DOUBLE);
       break;
     case LONG + DOUBLE:
-      ty = ty_ldouble;
+      ty = basic_type(TY_LDOUBLE);
       break;
     default:
       error_tok(tok, "invalid type");
@@ -828,7 +828,7 @@ static Node *compute_vla_size(Type *ty, Token *tok) {
   else
     base_sz = new_num(ty->base->size, tok);
 
-  ty->vla_size = new_lvar("", ty_ulong);
+  ty->vla_size = new_lvar("", basic_utype(TY_LONG));
   Node *expr = new_binary(ND_ASSIGN, new_var_node(ty->vla_size, tok),
                           new_binary(ND_MUL, ty->vla_len, base_sz, tok),
                           tok);
@@ -2410,8 +2410,8 @@ static Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
   // ptr - ptr, which returns how many elements are between the two.
   if (lhs->ty->base && rhs->ty->base) {
     Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-    // RK node->ty = ty_long;
-    node = new_cast(node,ty_long);
+    // RK node->ty = basic_type(TY_LONG);
+    node = new_cast(node,basic_type(TY_LONG));
     return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
   }
 
@@ -2907,7 +2907,7 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
     } else if (arg->ty->kind == TY_FLOAT) {
       // If parameter type is omitted (e.g. in "..."), float
       // arguments are promoted to double.
-      arg = new_cast(arg, ty_double);
+      arg = new_cast(arg, basic_type(TY_DOUBLE));
     }
 
     cur = cur->next = arg;
@@ -3245,7 +3245,7 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
 
 #if 0
   // TODO
-  fn->alloca_bottom = new_lvar("__alloca_size__", pointer_to(ty_char));
+  fn->alloca_bottom = new_lvar("__alloca_size__", pointer_to(basic_type(TY_CHAR)));
 #endif
 
   tok = skip(tok, "{");
@@ -3254,11 +3254,11 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   // automatically defined as a local variable containing the
   // current function name.
   push_scope("__func__")->var =
-    new_string_literal(fn->name, array_of(ty_char, strlen(fn->name) + 1));
+    new_string_literal(fn->name, array_of(basic_type(TY_CHAR), strlen(fn->name) + 1));
 
   // [GNU] __FUNCTION__ is yet another name of __func__.
   push_scope("__FUNCTION__")->var =
-    new_string_literal(fn->name, array_of(ty_char, strlen(fn->name) + 1));
+    new_string_literal(fn->name, array_of(basic_type(TY_CHAR), strlen(fn->name) + 1));
 
   fn->body = compound_stmt(&tok, tok);
   fn->locals = locals;
@@ -3333,8 +3333,8 @@ static void scan_globals(void) {
 }
 
 static void declare_builtin_functions(void) {
-  Type *ty = func_type(pointer_to(ty_void));
-  ty->params = copy_type(ty_int);
+  Type *ty = func_type(pointer_to(basic_type(TY_VOID)));
+  ty->params = copy_type(basic_type(TY_INT));
   builtin_alloca = new_gvar("alloca", ty);
   builtin_alloca->is_definition = false;
 }

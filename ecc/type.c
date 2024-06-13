@@ -1,31 +1,95 @@
 #include "chibicc.h"
 
-Type *ty_void = &(Type){TY_VOID, 1, 1};
-Type *ty_bool = &(Type){TY_BOOL, 1, 1};
+#define ECC_BASIC_TYPE_COUNT TY_LDOUBLE+6
+static Type* basic_types[ECC_BASIC_TYPE_COUNT] = {0};
 
-Type *ty_char = &(Type){TY_CHAR, 1, 1};
-Type *ty_short = &(Type){TY_SHORT, 2, 2};
-Type *ty_int = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH};
-Type *ty_long = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH};
+void cleanup_base_types()
+{
+    for( int i = 0; i < ECC_BASIC_TYPE_COUNT; i++ )
+    {
+        if(basic_types[i])
+            free(basic_types[i]);
+    }
+}
+
+static Type* new_basic_type(TypeKind k)
+{
+    assert( k >= TY_VOID && k <= TY_LDOUBLE);
+
+    Type* t = (Type*)calloc(1,sizeof(Type));
+    t->kind = k;
+    switch(k)
+    {
+    case TY_VOID:
+    case TY_BOOL:
+    case TY_CHAR:
+        t->size = t->align = 1;
+        break;
+    case TY_SHORT:
+        t->size = t->align = 2;
+        break;
+    case TY_INT:
+        // CHIBICC_INT_WIDTH
+        t->size = t->align = sizeof(int); // default to compiled host
+        break;
+    case TY_LONG:
+        // CHIBICC_LONG_WIDTH
+        t->size = t->align = sizeof(long);
+        break;
+    case TY_LONGLONG:
 #ifdef CHIBICC_HAVE_LLONG
-Type *ty_longlong = &(Type){TY_LONGLONG, 8, CHIBICC_LONG_WIDTH}; // on 32 bit system is 4 byte aligned, two 32 bit regs in use
+        t->size = 8;
+        // on 32 bit system is 4 byte aligned, two 32 bit regs in use:
+        t->align = new_basic_type(TY_LONG)->align;
 #else
-Type *ty_longlong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH};
+        // TODO: this is a temporary work-around because of a bug in ECS 32 bit code gen:
+        t->size = t->align = sizeof(long);
+        t->kind = TY_LONG;
 #endif
+        break;
+    case TY_FLOAT:
+        t->size = t->align = 4;
+        break;
+    case TY_DOUBLE:
+        t->size = t->align = 8;
+        break;
+    case TY_LDOUBLE:
+        t->size = t->align = 8;
+        break;
+    }
+    return t;
+}
 
-Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
-Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
-Type *ty_uint = &(Type){TY_INT, CHIBICC_INT_WIDTH, CHIBICC_INT_WIDTH, true};
-Type *ty_ulong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH, true};
-#ifdef CHIBICC_HAVE_LLONG
-Type *ty_ulonglong = &(Type){TY_LONGLONG, 8, CHIBICC_LONG_WIDTH, true};
-#else
-Type *ty_ulonglong = &(Type){TY_LONG, CHIBICC_LONG_WIDTH, CHIBICC_LONG_WIDTH, true};
-#endif
+Type *basic_type(TypeKind k)
+{
+    assert( k >= TY_VOID && k <= TY_LDOUBLE);
 
-Type *ty_float = &(Type){TY_FLOAT, 4, 4};
-Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
-Type *ty_ldouble = &(Type){TY_LDOUBLE, 8, 8}; // TODO
+    Type* res = basic_types[k];
+    if( res != 0 )
+        return res;
+
+    res = new_basic_type(k);
+    basic_types[k] = res;
+
+    return res;
+}
+
+Type *basic_utype(TypeKind k)
+{
+    assert( k >= TY_CHAR && k <= TY_LONGLONG);
+
+    const int idx = k - TY_CHAR + TY_LDOUBLE + 1;
+    Type* res = basic_types[idx];
+    if( res != 0 )
+        return res;
+
+    res = new_basic_type(k);
+    res->is_unsigned = 1;
+    basic_types[idx] = res;
+
+    return res;
+}
+
 
 static Type *new_type(TypeKind kind, int size, int align) {
   Type *ty = calloc(1, sizeof(Type));
@@ -106,7 +170,7 @@ Type *copy_type(Type *ty) {
 }
 
 Type *pointer_to(Type *base) {
-  Type *ty = new_type(TY_PTR, CHIBICC_POINTER_WIDTH, CHIBICC_POINTER_WIDTH);
+  Type *ty = new_type(TY_PTR, target_pointer_width, target_pointer_width);
   ty->base = base;
   ty->is_unsigned = true;
   return ty;
@@ -128,7 +192,7 @@ Type *array_of(Type *base, int len) {
 }
 
 Type *vla_of(Type *base, Node *len) {
-  Type *ty = new_type(TY_VLA, CHIBICC_POINTER_WIDTH, CHIBICC_POINTER_WIDTH);
+  Type *ty = new_type(TY_VLA, target_pointer_width, target_pointer_width);
   ty->base = base;
   ty->vla_len = len;
   return ty;
@@ -152,16 +216,16 @@ static Type *get_common_type(Type *ty1, Type *ty2) {
     return pointer_to(ty2);
 
   if (ty1->kind == TY_LDOUBLE || ty2->kind == TY_LDOUBLE)
-    return ty_ldouble;
+    return basic_type(TY_LDOUBLE);
   if (ty1->kind == TY_DOUBLE || ty2->kind == TY_DOUBLE)
-    return ty_double;
+    return basic_type(TY_DOUBLE);
   if (ty1->kind == TY_FLOAT || ty2->kind == TY_FLOAT)
-    return ty_float;
+    return basic_type(TY_FLOAT);
 
   if (ty1->size < 4)
-    ty1 = ty_int;
+    ty1 = basic_type(TY_INT);
   if (ty2->size < 4)
-    ty2 = ty_int;
+    ty2 = basic_type(TY_INT);
 
   if (ty1->size != ty2->size)
     return (ty1->size < ty2->size) ? ty2 : ty1;
@@ -203,7 +267,7 @@ void add_type(Node *node) {
 
   switch (node->kind) {
   case ND_NUM:
-    node->ty = ty_int;
+    node->ty = basic_type(TY_INT);
     return;
   case ND_ADD:
   case ND_SUB:
@@ -217,7 +281,7 @@ void add_type(Node *node) {
     node->ty = node->lhs->ty;
     return;
   case ND_NEG: {
-    Type *ty = get_common_type(ty_int, node->lhs->ty);
+    Type *ty = get_common_type(basic_type(TY_INT), node->lhs->ty);
     node->lhs = new_cast(node->lhs, ty);
     node->ty = ty;
     return;
@@ -234,7 +298,7 @@ void add_type(Node *node) {
   case ND_LT:
   case ND_LE:
     usual_arith_conv(&node->lhs, &node->rhs);
-    node->ty = ty_int;
+    node->ty = basic_type(TY_INT);
     return;
   case ND_FUNCALL:
     node->ty = node->func_ty->return_ty;
@@ -242,7 +306,7 @@ void add_type(Node *node) {
   case ND_NOT:
   case ND_LOGOR:
   case ND_LOGAND:
-    node->ty = ty_int;
+    node->ty = basic_type(TY_INT);
     return;
   case ND_BITNOT:
   case ND_SHL:
@@ -255,7 +319,7 @@ void add_type(Node *node) {
     return;
   case ND_COND:
     if (node->then->ty->kind == TY_VOID || node->els->ty->kind == TY_VOID) {
-      node->ty = ty_void;
+      node->ty = basic_type(TY_VOID);
     } else {
       usual_arith_conv(&node->then, &node->els);
       node->ty = node->then->ty;
@@ -296,13 +360,13 @@ void add_type(Node *node) {
     error_tok(node->tok, "statement expression returning void is not supported");
     return;
   case ND_LABEL_VAL:
-    node->ty = pointer_to(ty_void);
+    node->ty = pointer_to(basic_type(TY_VOID));
     return;
   case ND_CAS:
     add_type(node->cas_addr);
     add_type(node->cas_old);
     add_type(node->cas_new);
-    node->ty = ty_bool;
+    node->ty = basic_type(TY_BOOL);
 
     if (node->cas_addr->ty->kind != TY_PTR)
       error_tok(node->cas_addr->tok, "pointer expected");

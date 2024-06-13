@@ -36,6 +36,9 @@ static StringArray tmpfiles;
 
 static void usage(int status) {
   fprintf(stderr, "ecc [ -o <path> ] <file>\n");
+  fprintf(stderr,     "  -t  target\tselect one of the following targets:\n\n");
+  for( int i = 1; i < MaxTarget; i++ )
+      fprintf(stderr, "      %s\t%s\n", targets[i].name, targets[i].description);
   exit(status);
 }
 
@@ -56,6 +59,67 @@ static void define(char *str) {
     define_macro(mystrndup(str, eq - str), eq + 1);
   else
     define_macro(str, "1");
+}
+
+static int set_target(char *str) {
+    for( int i = 1; i < MaxTarget; i++ )
+    {
+        if( strcmp(str,targets[i].name) == 0 )
+        {
+            target = i;
+            Type* int_type = basic_type(TY_INT);
+            Type* uint_type = basic_utype(TY_INT);
+            Type* long_type = basic_type(TY_LONG);
+            Type* ulong_type = basic_utype(TY_LONG);
+            switch(targets[i].architecture)
+            {
+            case Amd16:
+                target_pointer_width = 2;
+                target_has_linkregister = 0;
+                target_stack_align = 2;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 2;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 2;
+               break;
+            case Amd32:
+                target_pointer_width = 4;
+                target_has_linkregister = 0;
+                target_stack_align = 4;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
+                break;
+            case Amd64:
+                target_pointer_width = 8;
+                target_has_linkregister = 0;
+                target_stack_align = 8;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 8;
+               break;
+            case Arma32:
+                target_pointer_width = 4;
+                target_has_linkregister = 1;
+                target_stack_align = 4;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
+                break;
+            case Armt32:
+                target_pointer_width = 4;
+                target_has_linkregister = 1;
+                target_stack_align = 4;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
+                break;
+            case Arma64:
+                target_pointer_width = 8;
+                target_has_linkregister = 1;
+                target_stack_align = 16;
+                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
+                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 8;
+                break;
+            }
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static FileType parse_opt_x(char *s) {
@@ -112,7 +176,7 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-    if (!strcmp(argv[i], "--help"))
+    if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h"))
       usage(0);
 
     if (!strcmp(argv[i], "-o")) {
@@ -162,6 +226,12 @@ static void parse_args(int argc, char **argv) {
 
     if (!strncmp(argv[i], "-D", 2)) {
       define(argv[i] + 2);
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-t")) {
+      if( !set_target(argv[++i]) )
+          error("unknown target: %s", argv[i]);
       continue;
     }
 
@@ -346,7 +416,7 @@ static char *replace_extn(char *tmpl, char *extn) {
   char* res = (char*)malloc(len3);
   memcpy(res, tmpl, len1);
   memcpy(res + len1, extn, len2 );
-  res[len3] = 0;
+  res[len3-1] = 0;
   return res;
 }
 
@@ -356,6 +426,7 @@ static void cleanup(void) {
     remove(tmpfiles.data[i]);
     free(tmpfiles.data[i]);
   }
+  cleanup_base_types();
 }
 
 static char *create_tmpfile(void) {
@@ -422,7 +493,7 @@ static void print_dependencies(void) {
   if (opt_MT)
     fprintf(out, "%s:", opt_MT);
   else
-    fprintf(out, "%s:", quote_makefile(replace_extn(base_file, ".o")));
+    fprintf(out, "%s:", quote_makefile(replace_extn(base_file, ".obf")));
 
   File **files = get_input_files();
 
@@ -522,21 +593,44 @@ static void cc1(void) {
 static void assemble(char *input, char *output) {
   char *cmd[] = {"as", "-c", input, "-o", output, NULL};
   // TODO;
+  error("this version of ecc has no integrated backend; call 'ecsd -t %s <cod-file>' instead",
+        targets[target].name);
+}
+
+static void run_linker(StringArray *inputs, char *output) {
+  StringArray arr = {};
+
+  strarray_push(&arr, "ld");
+  strarray_push(&arr, "-o");
+  strarray_push(&arr, output);
+  strarray_push(&arr, "-m");
+  strarray_push(&arr, "elf_x86_64");
+
+  for (int i = 0; i < ld_extra_args.len; i++)
+    strarray_push(&arr, ld_extra_args.data[i]);
+
+  for (int i = 0; i < inputs->len; i++)
+    strarray_push(&arr, inputs->data[i]);
+
+  // TODO if (opt_static) {
+  // TODO if (opt_shared)
+
+  strarray_push(&arr, NULL);
+
+  // TODO run_subprocess(arr.data);
 }
 
 static FileType get_file_type(char *filename) {
   if (opt_x != FILE_NONE)
     return opt_x;
 
-  if (endswith(filename, ".a"))
+  if (endswith(filename, ".lib"))
     return FILE_AR;
-  if (endswith(filename, ".so"))
-    return FILE_DSO;
-  if (endswith(filename, ".o"))
+  if (endswith(filename, ".obf"))
     return FILE_OBJ;
   if (endswith(filename, ".c"))
     return FILE_C;
-  if (endswith(filename, ".s"))
+  if (endswith(filename, ".cod"))
     return FILE_ASM;
 
   error("<command line>: unknown file extension: %s", filename);
@@ -544,8 +638,12 @@ static FileType get_file_type(char *filename) {
 
 int main(int argc, char **argv) {
   atexit(cleanup);
-  init_macros();
   parse_args(argc, argv);
+
+  if( target == NoTarget )
+      error("please specify a valid target using the -t option");
+
+  init_macros();
 
   if (input_paths.len > 1 && opt_o && (opt_c || opt_S | opt_E))
     error("cannot specify '-o' with '-c,' '-S' or '-E' with multiple files");
@@ -576,7 +674,7 @@ int main(int argc, char **argv) {
     else if (opt_S)
       output = replace_extn(input, ".cod");
     else
-      output = replace_extn(input, ".o");
+      output = replace_extn(input, ".obf");
 
     FileType type = get_file_type(input);
 
@@ -624,8 +722,63 @@ int main(int argc, char **argv) {
     continue;
   }
 
-  // TODO
-  //if (ld_args.len > 0)
-  //  run_linker(&ld_args, opt_o ? opt_o : "a.out");
+  if (ld_args.len > 0)
+    run_linker(&ld_args, opt_o ? opt_o : "a.out");
   return 0;
 }
+
+#include "hostdetect.h"
+
+uint8_t target_pointer_width = sizeof(void*);
+uint8_t target_stack_align = sizeof(void*);
+
+#ifdef Q_PROCESSOR_ARM
+uint8_t target_has_linkregister = 1;
+#else
+uint8_t target_has_linkregister = 0;
+#endif
+
+#ifdef Q_PROCESSOR_ARM
+#ifdef Q_OS_LINUX
+uint8_t target = sizeof(void*) == 8 ? ARMA64Linux : ARMA32Linux;
+#elif defined Q_OS_MACOS
+uint8_t target = NoTarget; // TODO
+#else
+uint8_t target = NoTarget;
+#endif
+#elif defined Q_PROCESSOR_X86
+#ifdef Q_OS_LINUX
+uint8_t target = sizeof(void*) == 8 ? AMD64Linux : AMD32Linux;
+#elif defined Q_OS_WIN32
+uint8_t target = sizeof(void*) == 8 ? Win64 : Win32;
+#elif defined Q_OS_MACOS
+uint8_t target = sizeof(void*) == 8 ? OSX64 : OSX32;
+#else
+uint8_t target = NoTarget;
+#endif
+#else
+uint8_t target = NoTarget;
+#endif
+
+struct TargetData targets[] = {
+    // all linkbin or linklib
+    {"", "none", NoProcessor, true, "undefined", "none"},
+    {"amd32linux", "amd32", Amd32, true, "Linux-based 32-bit systems", "dbgdwarf"},
+    {"amd64linux", "amd64", Amd64, true, "Linux-based 64-bit systems", "dbgdwarf"},
+    {"arma32linux", "arma32", Arma32, true, "Linux-based systems", "dbgdwarf"},
+    {"arma64linux", "arma64", Arma64, true, "Linux-based systems", "dbgdwarf"},
+    {"armt32linux", "armt32", Armt32, true, "Linux-based systems", "dbgdwarf"},
+    {"armt32fpelinux", "armt32fpe", Armt32, true, "Linux-based systems", "dbgdwarf"},
+    {"bios16", "amd16", Amd16, false, "BIOS-based 16-bit systems"},
+    {"bios32", "amd32", Amd32, false, "BIOS-based 32-bit systems"},
+    {"bios64", "amd64", Amd64, false, "BIOS-based 64-bit systems"},
+    {"dos", "amd16", Amd16, false, "DOS systems"},
+    {"efi32", "amd32", Amd32, false, "EFI-based 32-bit systems"},
+    {"efi64", "amd64", Amd64, false, "EFI-based 64-bit systems"},
+    {"osx32", "amd32", Amd32, true, "32-bit OS X systems", "dbgdwarf"},
+    {"osx64", "amd64", Amd64, true, "64-bit OS X systems", "dbgdwarf"},
+    {"rpi2b", "arma32", Arma32, false, "Raspberry Pi 2 Model B"},
+    {"win32", "amd32", Amd32, false, "32-bit Windows systems"},
+    {"win64", "amd64", Amd64, false, "64-bit Windows systems"},
+};
+

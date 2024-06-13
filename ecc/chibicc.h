@@ -20,42 +20,26 @@
 // Target
 //
 
-// TODO: runtime configurable
-#if defined TARGET_ARM32
-#define TARGET_32
-#define CHIBICC_USE_LINKREGISTER
-#elif defined TARGET_ARM64
-#define TARGET_64
-#define CHIBICC_USE_LINKREGISTER
-#elif defined TARGET_X86
-#define TARGET_32
-#elif defined TARGET_X64
-#define TARGET_64
-#else
-#error select a target architecture
-#endif
+typedef enum {NoTarget, AMD32Linux, AMD64Linux, ARMA32Linux, ARMA64Linux, ARMT32Linux, ARMT32FPELinux,
+              BIOS16, BIOS32, BIOS64, DOS, EFI32, EFI64, OSX32, OSX64, RPi2B, Win32, Win64, MaxTarget} Target;
+typedef enum { NoProcessor, Amd16, Amd32, Amd64, Arma32, Armt32, Arma64} Processor;
 
-// TODO: runtime configurable
-#if defined TARGET_32
-#define CHIBICC_POINTER_WIDTH 4
-#define CHIBICC_INT_WIDTH 4
-#define CHIBICC_LONG_WIDTH 4
-#define CHIBICC_STACK_ALIGN 4
-#elif defined TARGET_64
-#define CHIBICC_POINTER_WIDTH 8
-#define CHIBICC_INT_WIDTH 4
-#define CHIBICC_LONG_WIDTH 8
-#if defined TARGET_ARM64
-#define CHIBICC_STACK_ALIGN 16
-#else
-#define CHIBICC_STACK_ALIGN 8
-#endif
-#endif
+struct TargetData
+{
+    const char*const name;
+    const char*const backend;
+    Processor architecture;
+    const bool executable;
+    const char*const description;
+    const char*const converter;
+};
+extern struct TargetData targets[];
+extern uint8_t target_pointer_width; // 2, 4, 8
+extern uint8_t target_has_linkregister; // 0, 1
+extern uint8_t target_stack_align; // 4, 8, 16
+extern uint8_t target; // Target
 
 //TODO #define CHIBICC_HAVE_LLONG
-
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
 
 ////////////////
 
@@ -409,24 +393,9 @@ struct Member {
   int bit_width;
 };
 
-extern Type *ty_void;
-extern Type *ty_bool;
-
-extern Type *ty_char;
-extern Type *ty_short;
-extern Type *ty_int;
-extern Type *ty_long;
-extern Type *ty_longlong;
-
-extern Type *ty_uchar;
-extern Type *ty_ushort;
-extern Type *ty_uint;
-extern Type *ty_ulong;
-extern Type *ty_ulonglong;
-
-extern Type *ty_float;
-extern Type *ty_double;
-extern Type *ty_ldouble;
+extern Type *basic_type(TypeKind);
+extern Type *basic_utype(TypeKind);
+extern void cleanup_base_types();
 
 bool is_integer(Type *ty);
 bool is_flonum(Type *ty);

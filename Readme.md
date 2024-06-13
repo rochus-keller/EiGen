@@ -20,6 +20,12 @@ Therefore the resulting tools (i.e. the ones listed in the BUSY file) seem to be
 
 The chibicc C compiler was refactored so it no longer depends on Posix; the ECS IR backend is work in progress.
 
+#### Status on June 13, 2024
+
+The chibicc C compiler (renamed to ecc) now generates Eigen IR. The IR generated from 213 testcases successfully runs on x86 and arm linux, both 32 and 64 bit. The compiler was merged with the master branch and is ready for extended testing.
+
+More refactorings and patches have been applied to the Eigen source code. 
+
 #### Precompiled versions
 
 Not available at this time.

@@ -23,6 +23,7 @@
 // https://github.com/rui314/chibicc/wiki/cpp.algo.pdf
 
 #include "chibicc.h"
+#include <stdlib.h>
 
 typedef struct MacroParam MacroParam;
 struct MacroParam {
@@ -1043,12 +1044,18 @@ static char *format_time(struct tm *tm) {
   return format("\"%02d:%02d:%02d\"", tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
 
+static void define_int_macro(char* name, int val)
+{
+    char buf[16];
+    sprintf(buf,"%d",val);
+    define_macro(name,buf);
+}
+
 void init_macros(void) {
   // Define predefined macros
 #if 0
     // TODO
   define_macro("_LP64", "1");
-  define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__ELF__", "1");
   define_macro("__LP64__", "1");
   define_macro("__SIZEOF_SIZE_T__", "8");
@@ -1077,16 +1084,17 @@ void init_macros(void) {
   define_macro("unix", "1");
 #endif
 
+  define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__SIZEOF_DOUBLE__", "8");
   define_macro("__SIZEOF_FLOAT__", "4");
-  define_macro("__SIZEOF_INT__", STR(CHIBICC_INT_WIDTH));
+  define_int_macro("__SIZEOF_INT__", basic_type(TY_INT)->size);
   define_macro("__SIZEOF_LONG_DOUBLE__", "8");
-  define_macro("__SIZEOF_LONG_LONG__", "4"); // TODO: until ecs fixed, then 8
-  define_macro("__SIZEOF_LONG__", STR(CHIBICC_LONG_WIDTH));
+  define_int_macro("__SIZEOF_LONG_LONG__", basic_type(TY_LONGLONG)->size);
+  define_int_macro("__SIZEOF_LONG__", basic_type(TY_LONG)->size);
   define_macro("__SIZEOF_SHORT__", "2");
-  define_macro("__SIZEOF_POINTER__", STR(CHIBICC_POINTER_WIDTH));
-  define_macro("__SIZEOF_PTRDIFF_T__", STR(CHIBICC_POINTER_WIDTH));
-  define_macro("__STACK_ALIGNMENT__", STR(CHIBICC_STACK_ALIGN));
+  define_int_macro("__SIZEOF_POINTER__", target_pointer_width);
+  define_int_macro("__SIZEOF_PTRDIFF_T__", target_pointer_width);
+  define_int_macro("__STACK_ALIGNMENT__", target_stack_align);
 
   define_macro("__chibicc__", "1");
   define_macro("__ecs_chibicc__", "1");

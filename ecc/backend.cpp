@@ -143,14 +143,19 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
     try
     {
     Object::Linker linker(diagnostics);
-    Object::MappedByteArrangement arrangement;
     Object::Binaries binaries;
 
     std::deque<std::string> paths;
     std::deque<std::string> libs;
+    bool linkLib = false;
     for (int i = 0; i < extra_args->len; i++)
     {
         const std::string path = extra_args->data[i];
+        if( path == "-lib" )
+        {
+            linkLib = true;
+            continue;
+        }
         if( path.size() < 2 || path[0] != '-' || ( path[1] != 'L' && path[1] != 'l' ) )
             continue;
         i++;
@@ -163,12 +168,15 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
     }
 
     // add internal libs
-    std::string lib = targets[target].name;
-    lib += "run.obf";
-    libs.push_back(lib);
-    lib = targets[target].backend;
-    lib += "run.obf";
-    libs.push_back(lib);
+    if( !linkLib && target > NoTarget && target <= Win64 )
+    {
+        std::string lib = targets[target].name;
+        lib += "run.obf";
+        libs.push_back(lib);
+        lib = targets[target].backend;
+        lib += "run.obf";
+        libs.push_back(lib);
+    }
 
     for (int i = 0; i < inputs->len; i++)
     {
@@ -209,18 +217,37 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
             error("could not find library: %s", libs[i].c_str());
     }
 
-    linker.Link (binaries, arrangement);
     std::string path = output;
-    std::string ext = GetContents ("_extension", binaries, charset, ".bin");
-    if( ext.empty() )
-        ext = extensionOf(path);
-    ECS::File file(path, ext, ECS::File::binary);
-    Object::WriteBinary (file, arrangement.bytes);
+    if( target >= BareAmd16 && target <= BareArmA64)
+    {
+        Object::MappedByteArrangement ram, rom;
+        linker.Link (binaries, rom, ram, rom);
+        ECS::File ramfile {path, ".ram", ramfile.binary};
+        Object::WriteBinary (ramfile, ram.bytes);
+        ECS::File romfile {path, ".rom", romfile.binary};
+        Object::WriteBinary (romfile, rom.bytes);
+        ECS::File map {path, ".map"};
+        map << ram.map << rom.map;
+    }else if( linkLib )
+    {
+        linker.Combine (binaries);
+        ECS::File library {path, ".lib"};
+        library << binaries;
+    }else
+    {
+        Object::MappedByteArrangement arrangement;
+        linker.Link (binaries, arrangement);
+        std::string ext = GetContents ("_extension", binaries, charset, ".bin");
+        if( ext.empty() )
+            ext = extensionOf(path);
+        ECS::File file(path, ext, ECS::File::binary);
+        Object::WriteBinary (file, arrangement.bytes);
 #if defined Q_OS_LINUX || defined Q_OS_UNIX
-    chmod(file.getPath().c_str (), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+        chmod(file.getPath().c_str (), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 #endif
-    // ECS::File map(output, ".map");
-    // map << arrangement.map;
+        ECS::File map(output, ".map");
+        map << arrangement.map;
+    }
     }catch(...)
     {
         // already reported

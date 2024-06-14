@@ -21,6 +21,7 @@ static bool opt_cc1;
 static bool opt_hash_hash_hash;
 static bool opt_static;
 static bool opt_shared;
+static bool opt_lib = 0;
 static char *opt_MF;
 static char *opt_MT;
 static char *opt_o;
@@ -44,8 +45,10 @@ static void usage(int status) {
   fprintf (stderr, "  -w -- do not print any warnings\n");
   fprintf (stderr, "  -S, -c -- generate corresponding cod or obf files\n");
   fprintf (stderr, "  -o file -- put output code into given file\n");
+  fprintf (stderr, "  -M, -MD   -- write a list of input files to stdout\n");
+  fprintf (stderr, "  -lib   -- combine files to a library instead of an executable\n");
 
-  fprintf(stderr,  "  -t  target\tselect one of the following targets:\n\n");
+  fprintf(stderr,  "  -t  target\tselect one of the following targets (default: as host):\n\n");
   for( int i = 1; i < MaxTarget; i++ )
       fprintf(stderr, "      %s\t%s\n", targets[i].name, targets[i].description);
   exit(status);
@@ -203,6 +206,7 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
+#if 0
     if (!strcmp(argv[i], "-fcommon")) {
       opt_fcommon = true;
       continue;
@@ -212,6 +216,7 @@ static void parse_args(int argc, char **argv) {
       opt_fcommon = false;
       continue;
     }
+#endif
 
     if (!strcmp(argv[i], "-c")) {
       opt_c = true;
@@ -225,6 +230,12 @@ static void parse_args(int argc, char **argv) {
 
     if (!strncmp(argv[i], "-I", 2)) {
       strarray_push(&include_paths, argv[i] + 2);
+      continue;
+    }
+
+    if (!strncmp(argv[i], "-lib", 4)) {
+      opt_lib = 1;
+      strarray_push(&ld_extra_args, "-lib");
       continue;
     }
 
@@ -274,10 +285,12 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
+#if 0
     if (!strcmp(argv[i], "-Xlinker")) {
       strarray_push(&ld_extra_args, argv[++i]);
       continue;
     }
+#endif
 
     if (!strcmp(argv[i], "-s")) {
       strarray_push(&ld_extra_args, "-s");
@@ -325,6 +338,7 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
+#if 0
     if (!strcmp(argv[i], "-fpic") || !strcmp(argv[i], "-fPIC")) {
       opt_fpic = true;
       continue;
@@ -346,6 +360,7 @@ static void parse_args(int argc, char **argv) {
       strarray_push(&ld_extra_args, "-shared");
       continue;
     }
+#endif
 
     if (!strcmp(argv[i], "-L")) {
       strarray_push(&ld_extra_args, "-L");
@@ -359,6 +374,7 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
+#if 0
     if (!strcmp(argv[i], "-hashmap-test")) {
       hashmap_test();
       exit(0);
@@ -378,6 +394,7 @@ static void parse_args(int argc, char **argv) {
         !strcmp(argv[i], "-mno-red-zone") ||
         !strcmp(argv[i], "-w"))
       continue;
+#endif
 
     if (argv[i][0] == '-' && argv[i][1] != '\0')
       error("unknown argument: %s", argv[i]);
@@ -719,7 +736,7 @@ int main(int argc, char **argv) {
   }
 
   if (ld_args.len > 0)
-    link(&ld_args, opt_o ? opt_o : "a.out");
+    link(&ld_args, opt_o ? opt_o : opt_lib ? "a.lib" : "a.out");
   return 0;
 }
 
@@ -776,5 +793,11 @@ struct TargetData targets[] = {
     {"rpi2b", "arma32", Arma32, false, "Raspberry Pi 2 Model B"},
     {"win32", "amd32", Amd32, false, "32-bit Windows systems"},
     {"win64", "amd64", Amd64, false, "64-bit Windows systems"},
+    {"amd16", "amd16", Amd16, false, "barebone x86 real mode"},
+    {"amd32", "amd32", Amd32, false, "barebone x86 protected mode"},
+    {"amd64", "amd64", Amd64, false, "barebone x86 long mode"},
+    {"arma32", "arma32", Arma32, false, "barebone ARMv7"},
+    {"armt32", "armt32", Armt32, false, "barebone ARMv7 thumb"},
+    {"arma64", "arma64", Arma64, false, "barebone ARMv8"},
 };
 

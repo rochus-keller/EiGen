@@ -1054,10 +1054,8 @@ static void define_int_macro(char* name, int val)
 void init_macros(void) {
   // Define predefined macros
 #if 0
-    // TODO
-  define_macro("_LP64", "1");
+    // TODO: chibicc had these:
   define_macro("__ELF__", "1");
-  define_macro("__LP64__", "1");
   define_macro("__SIZEOF_SIZE_T__", "8");
   define_macro("__SIZE_TYPE__", "unsigned long");
   define_macro("__STDC_HOSTED__", "1");
@@ -1066,23 +1064,75 @@ void init_macros(void) {
   define_macro("__STDC_UTF_32__", "1");
   define_macro("__USER_LABEL_PREFIX__", "");
   define_macro("__alignof__", "_Alignof");
-  define_macro("__amd64", "1");
-  define_macro("__amd64__", "1");
   define_macro("__const__", "const");
   define_macro("__gnu_linux__", "1");
   define_macro("__inline__", "inline");
-  define_macro("__linux", "1");
-  define_macro("__linux__", "1");
   define_macro("__signed__", "signed");
   define_macro("__typeof__", "typeof");
-  define_macro("__unix", "1");
-  define_macro("__unix__", "1");
   define_macro("__volatile__", "volatile");
-  define_macro("__x86_64", "1");
-  define_macro("__x86_64__", "1");
-  define_macro("linux", "1");
-  define_macro("unix", "1");
 #endif
+
+  switch(targets[target].architecture)
+  {
+  case Amd16:
+      define_macro("__AS386_16__", "1");
+      // ?
+      break;
+  case Amd32:
+      define_macro("i386", "1");
+      define_macro("__i386__", "1");
+      define_macro("__i386", "1");
+      define_macro("_M_IX86", "1");
+      break;
+  case Amd64:
+      define_macro("__amd64", "1");
+      define_macro("__amd64__", "1");
+      define_macro("__x86_64", "1");
+      define_macro("__x86_64__", "1");
+      define_macro("_M_X64", "1");
+      break;
+  case Arma32:
+      define_macro("__ARM_ARCH_7__", "1");
+      define_macro("__arm__", "1");
+      break;
+  case Armt32:
+      define_macro("__ARM_ARCH_7__", "1");
+      define_macro("__arm__", "1");
+      break;
+  case Arma64:
+      define_macro("_M_ARM64", "1");
+      define_macro("__aarch64__", "1");
+      break;
+  }
+
+  if( target >= AMD32Linux && target <= ARMT32FPELinux )
+  {
+      define_macro("__unix", "1");
+      define_macro("__unix__", "1");
+      define_macro("__linux", "1");
+      define_macro("__linux__", "1");
+      define_macro("linux", "1");
+      define_macro("unix", "1");
+      if( target == AMD64Linux || target == ARMA64Linux )
+         define_macro("_LP64", "1");
+  }else if( target == OSX32 || target == OSX64 )
+  {
+      define_macro("__APPLE__", "1");
+      if( target == OSX64 )
+         define_macro("_LP64", "1");
+  }else if( target == Win32 || target == Win64 )
+  {
+      define_macro("WIN32", "1");
+      define_macro("_WIN32", "1");
+      define_macro("__WIN32__", "1");
+      define_macro("__NT__", "1");
+      if( target == Win64 )
+      {
+          define_macro("WIN64", "1");
+          define_macro("_WIN64", "1");
+          define_macro("__WIN64__", "1");
+      }
+  }
 
   define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__SIZEOF_DOUBLE__", "8");

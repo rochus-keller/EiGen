@@ -35,8 +35,17 @@ static StringArray input_paths;
 static StringArray tmpfiles;
 
 static void usage(int status) {
-  fprintf(stderr, "ecc [ -o <path> ] <file>\n");
-  fprintf(stderr,     "  -t  target\tselect one of the following targets:\n\n");
+  fprintf (stderr,
+           "Usage: ecc options <source files>; where options are:\n");
+  fprintf (stderr, "\n");
+  fprintf (stderr, "  -E -- output C preprocessed code into stdout\n");
+  fprintf (stderr, "  -Dname[=value], -Uname -- predefine or unpredefine macros\n");
+  fprintf (stderr, "  -Idir, -Ldir -- add directories to search include headers or lbraries\n");
+  fprintf (stderr, "  -w -- do not print any warnings\n");
+  fprintf (stderr, "  -S, -c -- generate corresponding cod or obf files\n");
+  fprintf (stderr, "  -o file -- put output code into given file\n");
+
+  fprintf(stderr,  "  -t  target\tselect one of the following targets:\n\n");
   for( int i = 1; i < MaxTarget; i++ )
       fprintf(stderr, "      %s\t%s\n", targets[i].name, targets[i].description);
   exit(status);
@@ -750,13 +759,13 @@ uint8_t target = NoTarget;
 struct TargetData targets[] = {
     // all linkbin or linklib
     {"", "none", NoProcessor, true, "undefined", "none"},
-    {"amd32linux", "amd32", Amd32, true, "Linux-based 32-bit systems", "dbgdwarf"},
-    {"amd64linux", "amd64", Amd64, true, "Linux-based 64-bit systems", "dbgdwarf"},
-    {"arma32linux", "arma32", Arma32, true, "Linux-based systems", "dbgdwarf"},
+    {"amd32linux", "amd32", Amd32, true, "Linux-based 32-bit systems", "dbgdwarf"}, // amd32run.obf amd32linuxrun.obf
+    {"amd64linux", "amd64", Amd64, true, "Linux-based 64-bit systems", "dbgdwarf"}, // amd64run.obf amd64linuxrun.obf
+    {"arma32linux", "arma32", Arma32, true, "Linux-based systems", "dbgdwarf"}, // arma32run.obf arma32linuxrun.obf
     {"arma64linux", "arma64", Arma64, true, "Linux-based systems", "dbgdwarf"},
     {"armt32linux", "armt32", Armt32, true, "Linux-based systems", "dbgdwarf"},
-    {"armt32fpelinux", "armt32fpe", Armt32, true, "Linux-based systems", "dbgdwarf"},
-    {"bios16", "amd16", Amd16, false, "BIOS-based 16-bit systems"},
+    {"armt32fpelinux", "armt32fpe", Armt32, true, "Linux-based systems", "dbgdwarf"}, // armt32fperun.obf armt32fpelinuxrun.obf
+    {"bios16", "amd16", Amd16, false, "BIOS-based 16-bit systems"}, // amd16run.obf bios16run.obf
     {"bios32", "amd32", Amd32, false, "BIOS-based 32-bit systems"},
     {"bios64", "amd64", Amd64, false, "BIOS-based 64-bit systems"},
     {"dos", "amd16", Amd16, false, "DOS systems"},

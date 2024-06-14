@@ -103,14 +103,18 @@ static uint8_t getTypeId(Type *ty) {
     case TY_SHORT:
         return ty->is_unsigned ? u2 : s2;
     case TY_INT:
-        if( ty->size == 4 )
+        if( ty->size == 2 )
+            return ty->is_unsigned ? u2 : s2;
+        else if( ty->size == 4 )
             return ty->is_unsigned ? u4 : s4;
         else if( ty->size == 8 )
             return ty->is_unsigned ? u8 : s8;
         else
             assert(0);
     case TY_LONG:
-        if( ty->size == 4 )
+        if( ty->size == 2 )
+            return ty->is_unsigned ? u2 : s2;
+        else if( ty->size == 4 )
             return ty->is_unsigned ? u4 : s4;
         else if( ty->size == 8 )
             return ty->is_unsigned ? u8 : s8;

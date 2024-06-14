@@ -51,6 +51,7 @@ namespace ECS
         static constexpr auto binary = std::ios_base::binary;
 
         static bool is_directory(const std::string&);
+        const std::string& getPath() const { return path; }
     private:
         const std::string path;
         std::ofstream file;

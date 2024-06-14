@@ -15,12 +15,23 @@ extern "C" {
 #include "asmparser.hpp"
 #include "assembly.hpp"
 #include "cdchecker.hpp"
+#include "objlinker.hpp"
+#include <deque>
 
 using namespace ECS;
 
 static ASCIICharset charset;
 static StringPool stringPool;
 static StreamDiagnostics diagnostics {std::cerr};
+
+static std::string extensionOf(const std::string& path)
+{
+    const size_t pos = path.find_last_of(".");
+    std::string extension;
+    if( pos != std::string::npos )
+        extension = path.substr(pos);
+    return extension;
+}
 
 static void generate(const Assembly::Program& program, Assembly::Generator& generator, const char* output)
 {
@@ -32,7 +43,10 @@ static void generate(const Assembly::Program& program, Assembly::Generator& gene
     Debugging::Information information;
     std::ostream listing {nullptr};
     generator.Generate (sections, program.source, binaries, information, listing);
-    ECS::File object( output, "" );
+
+    std::string path(output);
+
+    ECS::File object( path, extensionOf(path) ); // File constructor wants to replace the extension of path in any case, even if empty
     object << binaries;
 }
 
@@ -85,6 +99,8 @@ extern "C" {
 
 void run_codegen(const char *input, const char *output)
 {
+    try
+    {
     Assembly::Program program{input};
     Assembly::Parser parser {diagnostics, stringPool, true};
     std::ifstream file;
@@ -93,7 +109,6 @@ void run_codegen(const char *input, const char *output)
         error("failed to open input file '%s'", input);
     parser.Parse (file, GetLine (Position(file, input, 1, 1)), program);
 
-    // TODO: catch exceptions
     const char* backend = targets[target].backend;
     if( strcmp(backend,"amd16") == 0 )
         generate_amd16(program,output);
@@ -111,11 +126,105 @@ void run_codegen(const char *input, const char *output)
         generate_armt32fpe(program,output);
     else
         error("no generator available for '%s'", backend);
+    }catch(...)
+    {
+        // already reported
+    }
 }
+
+#include "hostdetect.h"
+
+#if defined Q_OS_LINUX || defined Q_OS_UNIX
+#include <sys/stat.h>
+#endif
 
 void run_linker(StringArray *inputs, StringArray *extra_args, const char *output)
 {
-    // TODO
+    try
+    {
+    Object::Linker linker(diagnostics);
+    Object::MappedByteArrangement arrangement;
+    Object::Binaries binaries;
+
+    std::deque<std::string> paths;
+    std::deque<std::string> libs;
+    for (int i = 0; i < extra_args->len; i++)
+    {
+        const std::string path = extra_args->data[i];
+        if( path.size() < 2 || path[0] != '-' || ( path[1] != 'L' && path[1] != 'l' ) )
+            continue;
+        i++;
+        if( i >= extra_args->len )
+            break;
+        if( path[1] == 'L' )
+            paths.push_back(extra_args->data[i]);
+        else
+            libs.push_back(extra_args->data[i]);
+    }
+
+    // add internal libs
+    std::string lib = targets[target].name;
+    lib += "run.obf";
+    libs.push_back(lib);
+    lib = targets[target].backend;
+    lib += "run.obf";
+    libs.push_back(lib);
+
+    for (int i = 0; i < inputs->len; i++)
+    {
+      std::ifstream file;
+      file.open (inputs->data[i], file.binary);
+      if (!file.is_open ())
+          error("failed to open input file '%s'", inputs->data[i]);
+      // Position(file, source, 1, 1)
+      file >> binaries;
+      if (!file)
+          error("invalid object file: %s", inputs->data[i]);
+    }
+
+    for( int i = 0; i < libs.size(); i++ )
+    {
+        bool found = false;
+        for( int j = 0; j < paths.size(); j++ )
+        {
+            std::string path = paths[j];
+            if( path.empty() )
+                continue;
+            const char last = path[path.size()-1];
+            if( last != '/' && last != '\\' )
+                path += '/';
+            path += libs[i];
+            std::ifstream file;
+            file.open(path, file.binary);
+            if (!file.is_open ())
+                continue;
+            file >> binaries;
+            if (!file)
+                error("invalid object file: %s", path.c_str());
+            else
+                found = true;
+            break;
+        }
+        if( !found )
+            error("could not find library: %s", libs[i].c_str());
+    }
+
+    linker.Link (binaries, arrangement);
+    std::string path = output;
+    std::string ext = GetContents ("_extension", binaries, charset, ".bin");
+    if( ext.empty() )
+        ext = extensionOf(path);
+    ECS::File file(path, ext, ECS::File::binary);
+    Object::WriteBinary (file, arrangement.bytes);
+#if defined Q_OS_LINUX || defined Q_OS_UNIX
+    chmod(file.getPath().c_str (), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+#endif
+    // ECS::File map(output, ".map");
+    // map << arrangement.map;
+    }catch(...)
+    {
+        // already reported
+    }
 }
 
 }

@@ -254,7 +254,7 @@ let cdrun : Executable {
 
 ############# Linker #################################
 
-let lcommon : SourceSet {
+let lcore : SourceSet {
     .configs += config;
     .sources += [
         ./objlinker.cpp
@@ -262,7 +262,12 @@ let lcommon : SourceSet {
         ./rangeset.hpp
         ./objmap.cpp
         ./objmap.hpp
+    ]
+}
 
+let lcommon : SourceSet {
+    .configs += config;
+    .sources += [
         # the only things we need from common
         ./driver.cpp
         ./driver.hpp
@@ -281,7 +286,7 @@ let lcommon : SourceSet {
 
 let linkbin : Executable {
     .configs += config;
-    .deps += lcommon;
+    .deps += [ lcommon lcore ]
     .sources += [
         ./linker.cpp
         ]
@@ -290,7 +295,7 @@ let linkbin : Executable {
 
 let linkmem : Executable {
     .configs += config;
-    .deps += lcommon;
+    .deps += [ lcommon lcore ]
     .sources += [
         ./linker.cpp
         ]
@@ -302,7 +307,7 @@ submod ecc
 
 let compiler : Executable {
     .configs += config;
-    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 ]
+    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
     .sources += [
         ./ecc/backend.cpp
         ./ecc/main.c

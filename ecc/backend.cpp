@@ -245,8 +245,11 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
 #if defined Q_OS_LINUX || defined Q_OS_UNIX
         chmod(file.getPath().c_str (), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 #endif
+#if 0
+        // TODO: why do we need this?
         ECS::File map(output, ".map");
         map << arrangement.map;
+#endif
     }
     }catch(...)
     {

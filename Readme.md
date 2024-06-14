@@ -26,6 +26,12 @@ The chibicc C compiler (renamed to ecc) now generates Eigen IR. The IR generated
 
 More refactorings and patches have been applied to the Eigen source code. 
 
+#### Status on June 14, 2024
+
+There is now a version of ecc which is integrated with all the ECS generators and linkers in this repository resulting in a single executable which combines the C compiler and the linker; to generate executables still some of the obf files from the ECS runtime directory are required (the latter to be referenced by -L). The compiler can be used in the same way as other C compilers, with options like -c, -o and -I; in addition the target architecture, for which an executable, object file or library is to be created, can be set using the -t option. See -h for the available options.
+
+The generated code by chibicc is not (yet) particularly efficient; others (see e.g. https://github.com/vnmakarov/mir) have chibicc found to generate code which is about factor 0.3 as fast as gcc -O2, and 0.6 as fast as TCC. I intend to add a peephole optimizer to improve performance, but it's not a high priority. The focus is now on a runtime library based on Newlib.
+
 #### Precompiled versions
 
 Not available at this time.

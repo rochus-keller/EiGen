@@ -656,7 +656,7 @@ static char *read_file(char *path) {
   const int len = ftell(fp);
   fseek(fp,0,SEEK_SET);
 
-  char *buf = (char*)malloc(len+2);
+  char *buf = (char*)malloc(len+2); // NOTE: allocated an never freed!
 
   // Read the entire file.
   int n = 0;

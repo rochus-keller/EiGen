@@ -1048,7 +1048,9 @@ static void define_int_macro(char* name, int val)
 {
     char buf[16];
     sprintf(buf,"%d",val);
-    define_macro(name,buf);
+    char* str = malloc(strlen(buf)+1); // NOTE like read_file this mem is allocated and never freed!
+    strcpy(str,buf);
+    define_macro(name,str);
 }
 
 void init_macros(void) {

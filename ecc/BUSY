@@ -14,7 +14,6 @@ let sources * : SourceSet {
     .configs += config;
     .sources += [
         ./chibicc.h
-        ./codegen.c
         ./hashmap.c
         ./parse.c
         ./preprocess.c
@@ -28,5 +27,8 @@ let sources * : SourceSet {
 let ecc ! : Executable {
     .configs += config;
     .deps += sources;
-    .sources += ./main.c
+    .sources += [
+        ./main.c
+        ./codegen.c
+    ]
 }

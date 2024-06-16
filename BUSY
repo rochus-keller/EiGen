@@ -311,6 +311,11 @@ let compiler : Executable {
     .sources += [
         ./ecc/backend.cpp
         ./ecc/main.c
+        ./ecc/codegen.cpp
+        ./cdemitter2.cpp
+        ./cdemitter2.hpp
+        ./cdgenerator.cpp
+        ./cdgenerator.hpp
         ]
     .defines += "ECC_HAVE_BACKEND"
     .include_dirs += .

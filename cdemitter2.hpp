@@ -159,7 +159,7 @@ namespace ECS
             static Hint Reuse (const Operand&);
             static Hint Reuse (Hint, const Operand&);
 
-        private:
+        protected:
             struct State
             {
                 using Counters = Size[UserRegisters];
@@ -181,7 +181,8 @@ namespace ECS
             SmartOperand ReuseRegister (const Operand&, const Type&, Hint);
             SmartOperand ReuseRegister (const Operand&, const Operand&, Hint);
 
-            void Emit (const Instruction&);
+            virtual void Emit (const Instruction&);
+            void EmitImp (const Instruction&);
             void Emit (Instruction::Mnemonic, Operand (*) (const Operand&), const Operand&, const Operand&);
             void Emit (Instruction::Mnemonic, Operand (*) (const Operand&, const Operand&), const Operand&,
                        const Operand&, const Operand&);
@@ -208,6 +209,7 @@ namespace ECS
             static bool HaveSameUserRegister (const Operand&, const Operand&);
 
             friend class SmartOperand;
+
         protected:
             Sections& sections;
             Diagnostics& diagnostics;

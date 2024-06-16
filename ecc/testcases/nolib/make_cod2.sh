@@ -3,5 +3,5 @@
 for t in *.c
 do
     echo "compiling $t"
-    ./ecc -S  $t 
+    ./compiler -S  $t 
 done

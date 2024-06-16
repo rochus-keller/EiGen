@@ -151,7 +151,7 @@ Section& Emitter2::Begin (const Section::Type type, const Section::Name& name, c
 {
     sections.emplace_back (type, name, alignment, required, duplicable, replaceable);
     current->section = &sections.back();
-	if (!current->comment.empty ()) current->comment.swap (current->section->comment); return *current->section;
+    if (!current->comment.empty ()) current->comment.swap (current->section->comment); return *current->section;
 }
 
 Section& Emitter2::BeginAssembly ()
@@ -841,13 +841,19 @@ Emitter2::SmartOperand Emitter2::Minimize (const Operand& value1, const Operand&
     return result;
 }
 
-void Emitter2::Emit (const Instruction& instruction)
+void Emitter2::EmitImp (const Instruction& instruction)
 {
     assert (IsValid (instruction));
     assert (current->section);
 	current->section->instructions.push_back (instruction);
     if (!current->comment.empty ())
         current->comment.swap (current->section->instructions.back ().comment);
+}
+
+void Emitter2::Emit (const Instruction& instruction)
+{
+    // default implementation; override to filter and compact
+    EmitImp(instruction);
 }
 
 void Emitter2::Emit (const Instruction::Mnemonic mnemonic,

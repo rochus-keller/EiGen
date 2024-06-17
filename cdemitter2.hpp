@@ -246,6 +246,32 @@ namespace ECS
 
             friend class Emitter2;
         };
+
+        class Emitter2::SmartOperand : public Operand
+        {
+        public:
+            ~SmartOperand ();
+            SmartOperand () = default;
+            SmartOperand (const Operand&);
+            SmartOperand (const SmartOperand&);
+            SmartOperand (SmartOperand&&) noexcept;
+
+            SmartOperand& operator = (const SmartOperand&);
+            SmartOperand& operator = (SmartOperand&&) noexcept;
+
+            void swap (SmartOperand&);
+
+        private:
+            State::Counters* counters = nullptr;
+            bool saved = false;
+
+            SmartOperand (State::Counters&, const Operand&);
+
+            void ReplaceRegister (const SmartOperand&);
+
+            friend class Emitter2;
+        };
+
     }
 }
 

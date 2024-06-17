@@ -319,6 +319,7 @@ static void load(Type *ty) {
 
     const Code::Type type = getCodeType(ty);
     r0 = e->MakeRegister(e->MakeMemory(type,r0)); // mov %s $0, %s [$0]
+    // like Move, but reuses the register of r0 instead of allocating another one and really move
 }
 
 // Store $0 to the address on top of the stack
@@ -599,7 +600,7 @@ static void gen_expr(Node *node) {
             cast(node->rhs->ty,mem->ty, rdi);
             rdi = e->ShiftLeft(rdi, Code::Imm(mty,mem->bit_offset)); // lsh %s %s, %s %s, %s %d
 
-            r0 = e->MakeRegister(Code::Mem(types[ptr],Code::RSP)); // mov ptr $0, ptr [$sp]
+            r0 = e->Move(Code::Mem(types[ptr],Code::RSP)); // mov ptr $0, ptr [$sp]
             // $0 is now adr(lhs)
             load(mem->ty);
             // $0 is now val(lhs)
@@ -639,7 +640,7 @@ static void gen_expr(Node *node) {
         return;
     case ND_MEMZERO:
 
-        r0 = e->MakeRegister(Code::Reg(types[ptr],Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
+        r0 = e->Move(Code::Reg(types[ptr],Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
         e->Fill(r0,Code::Imm(types[ptr],node->var->ty->size), Code::Imm(types[u1],0)); // fill ptr $0, ptr %d, u1 0
         return;
     case ND_COND: {
@@ -731,7 +732,7 @@ static void gen_expr(Node *node) {
         if( ret )
         {
             const Code::Type type = getCodeType(ret);
-            r0 = e->MakeRegister(Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
+            r0 = e->Move(Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
         }
 
         depth -= stack_slots;
@@ -958,7 +959,7 @@ static void gen_stmt(Node *node) {
             }
 
             // [GNU] Case ranges
-            Smop tmp = e->MakeRegister(e->Convert(cond_type,r0)); // mov %s %s, %s $0
+            Smop tmp = e->Move(e->Convert(cond_type,r0)); // mov %s %s, %s $0
             tmp = e->Subtract(tmp, Code::Imm(cond_type,n->begin));
                    // sub %s %s, %s %s, %s %ld", cond_type, di, cond_type, di, cond_type, n->begin
             // lhs <= rhs -> rhs >= lhs
@@ -1280,20 +1281,22 @@ protected:
 
         Code::Instruction cur = instruction;
 
+#if 1
         // check whether last and present can be combined
         if( last.mnemonic == Code::Instruction::MOV && cur.mnemonic == Code::Instruction::PUSH &&
                 last.operand1 == cur.operand1 )
         {
-            std::cout << "MOV-PUSH" << std::endl;
+            //std::cout << "MOV-PUSH" << std::endl;
             cur.operand1 = last.operand2;
             current->section->instructions.back() = cur;
         }else if( last.mnemonic == Code::Instruction::MOV && cur.mnemonic == Code::Instruction::CALL &&
                   last.operand1 == cur.operand1 )
         {
-            std::cout << "MOV-CALL" << std::endl;
+            //std::cout << "MOV-CALL" << std::endl;
             cur.operand1 = last.operand2;
             current->section->instructions.back() = cur;
         }else
+#endif
         {
             // no matching rule found
             EmitImp(cur);

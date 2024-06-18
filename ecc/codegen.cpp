@@ -21,6 +21,8 @@
 #include "cdgenerator.hpp"
 using namespace ECS;
 
+#define _patch_315_
+
 using Smop = Code::Emitter2::SmartOperand;
 
 extern "C" {
@@ -225,13 +227,21 @@ static void gen_addr(Node *node) {
     case ND_VAR:
         // Variable-length array, which is always local.
         if (node->var->ty->kind == TY_VLA) {
+#ifdef _patch_315_
+            r0 = (Code::Reg(types[ptr],Code::RFP, node->var->offset)); // mov ptr $0, ptr $fp%+d"
+#else
             r0 = e->Move(Code::Reg(types[ptr],Code::RFP, node->var->offset)); // mov ptr $0, ptr $fp%+d"
+#endif
             return;
         }
 
         // Local variable
         if (node->var->is_local) {
+#ifdef _patch_315_
+            r0 = (Code::Reg(types[ptr],Code::RFP, node->var->offset)); // mov ptr $0, ptr $fp%+d"
+#else
             r0 = e->Move(Code::Reg(types[ptr],Code::RFP, node->var->offset)); // mov ptr $0, ptr $fp%+d"
+#endif
               return;
         }
 
@@ -261,12 +271,20 @@ static void gen_addr(Node *node) {
 #endif
         // Function
         if (node->ty->kind == TY_FUNC) {
+#ifdef _patch_315_
+            r0 = (Code::Adr(types[fun],node->var->name)); // mov fun $0, fun @%s
+#else
             r0 = e->Move(Code::Adr(types[fun],node->var->name)); // mov fun $0, fun @%s
+#endif
             return;
         }
 
         // Global variable
+#ifdef _patch_315_
+        r0 = (Code::Adr(types[ptr],node->var->name)); // mov ptr $0, ptr @%s
+#else
         r0 = e->Move(Code::Adr(types[ptr],node->var->name)); // mov ptr $0, ptr @%s
+#endif
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
@@ -293,7 +311,11 @@ static void gen_addr(Node *node) {
         }
         break;
     case ND_VLA_PTR:
+#ifdef _patch_315_
+        r0 = (Code::Reg(types[ptr], Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
+#else
         r0 = e->Move(Code::Reg(types[ptr], Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
+#endif
         return;
     }
 
@@ -319,14 +341,22 @@ static void load(Type *ty) {
     }
 
     const Code::Type type = getCodeType(ty);
+#ifdef _patch_315_
+    r0 = (e->MakeMemory(type,r0)); // mov %s $0, %s [$0]
+#else
     r0 = e->MakeRegister(e->MakeMemory(type,r0)); // mov %s $0, %s [$0]
+#endif
     // like Move, but reuses the register of r0 instead of allocating another one and really move
 }
 
 // Store $0 to the address on top of the stack
+#ifdef _patch_315_
+static void store(Type *ty, const Smop& tmpReg) {
+#else
 static void store(Type *ty) {
 
     Smop tmpReg = pop(types[ptr]);
+#endif
 
     switch (ty->kind) {
     case TY_STRUCT:
@@ -350,6 +380,10 @@ static void cast(Type *from, Type *to, Smop& reg) {
     if (to->kind == TY_BOOL) {
         Code::Type type = getCodeType(from);
         Code::Emitter2::Label yes = e->CreateLabel();
+#ifdef _patch_315_
+        e->BranchNotEqual(yes,Code::Imm(type,0),reg); // breq +2, %s 0, %s %s", type, type, reg
+        r0 = e->Set (yes, Code::Imm(type,0), Code::Imm(type,1));
+#else
         e->BranchEqual(yes,Code::Imm(type,0),reg); // breq +2, %s 0, %s %s", type, type, reg
         type = getCodeType(to);
         reg = e->Move(Code::Imm(type,0)); // mov %s %s, %s 0", type, reg, type
@@ -358,6 +392,7 @@ static void cast(Type *from, Type *to, Smop& reg) {
         yes();
         reg = e->Move(Code::Imm(type,1)); // mov %s %s, %s 1", type, reg, type
         end();
+#endif
         return;
     }
 
@@ -414,7 +449,11 @@ static int push_args(Node *node) {
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
     if (node->ret_buffer) {
+#ifdef _patch_315_
+        r0 = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
+#else
         r0 = e->Move(Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset)); // mov ptr $0, ptr $fp%+d
+#endif
         pushRes(types[ptr]);
         stack++;
     }
@@ -535,11 +574,19 @@ static void gen_expr(Node *node) {
         case TY_FLOAT:
         case TY_DOUBLE:
         case TY_LDOUBLE: {
+#ifdef _patch_315_
+            r0 = (Code::FImm(ty,node->fval)); // mov %s $0, %s %Lf
+#else
             r0 = e->Move(Code::FImm(ty,node->fval)); // mov %s $0, %s %Lf
+#endif
             return;
         }
         }
+#ifdef _patch_315_
+        r0 = (Code::Imm(ty,node->val)); // mov %s $0, %s %Ld
+#else
         r0 = e->Move(Code::Imm(ty,node->val)); // mov %s $0, %s %Ld
+#endif
         return;
     }
     case ND_NEG: {
@@ -578,10 +625,14 @@ static void gen_expr(Node *node) {
 
         gen_addr(node->lhs);
         return;
-    case ND_ASSIGN:
+    case ND_ASSIGN: {
 
         gen_addr(node->lhs);
+#ifdef _patch_315_
+        auto lhs = std::move (r0);
+#else
         pushRes(types[ptr]);
+#endif
         gen_expr(node->rhs);
 
         if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield) {
@@ -615,15 +666,24 @@ static void gen_expr(Node *node) {
                 r9 = e->Move(Code::Imm(mty,~mask)); // mov %s %s, %s %ld
             r0 = e->And(e->Convert(mty,r0), r9); // and %s $0, %s $0, %s %s
             r0 = e->Or(r0, rdi); // or %s $0, %s $0, %s %s
+#ifdef _patch_315_
+            store(node->ty, lhs);
+#else
             store(node->ty);
+#endif
 
             // restore from r8:
             r0 = e->Move(r8); // mov %s $0, %s %s
             return;
         }else {
+#ifdef _patch_315_
+            store(node->ty, lhs);
+#else
             store(node->ty);
+#endif
             return;
         }
+    }
     case ND_STMT_EXPR:
 
         for (Node *n = node->body; n; n = n->next)
@@ -641,7 +701,11 @@ static void gen_expr(Node *node) {
         return;
     case ND_MEMZERO:
 
+#ifdef _patch_315_
+        r0 = (Code::Reg(types[ptr],Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
+#else
         r0 = e->Move(Code::Reg(types[ptr],Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
+#endif
         e->Fill(r0,Code::Imm(types[ptr],node->var->ty->size), Code::Imm(types[u1],0)); // fill ptr $0, ptr %d, u1 0
         return;
     case ND_COND: {
@@ -733,7 +797,11 @@ static void gen_expr(Node *node) {
         if( ret )
         {
             const Code::Type type = getCodeType(ret);
+#ifdef _patch_315_
+            r0 = (Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
+#else
             r0 = e->Move(Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
+#endif
         }
 
         depth -= stack_slots;
@@ -1043,6 +1111,14 @@ static void gen_stmt(Node *node) {
             case TY_UNION:
                 copy_struct_mem();
                 break;
+#ifdef _patch_315_
+            case TY_VOID:
+            case TY_VLA:
+                break;
+            default:
+                e->Move (Code::Reg {getCodeType(ty), Code::RRes}, r0);
+                break;
+#endif
             }
             returnType = getCodeType(ty);
         }
@@ -1217,13 +1293,21 @@ static void emit_text(Obj *prog) {
             {
                 Smop res = Code::Reg(returnType,Code::RRes);
                 setInt(0,res);
+#ifdef _patch_315_
+            }
+#else
             }else
                 e->Move(Code::Reg(returnType,Code::RRes), e->Convert(returnType,r0));
+#endif
         }
         e->Leave();
         if( isMain )
         {
+#ifdef _patch_315_
+            e->Push(Code::Reg {returnType, Code::RRes});
+#else
             pushRes(types[s4]);
+#endif
             e->Call(Code::Adr(types[fun],"_Exit"),0); // call fun @_Exit, 0
         }else
             e->Return();
@@ -1327,7 +1411,7 @@ protected:
 
         Code::Instruction cur = instruction;
 
-#if 1
+#if 0
         // check whether last and present can be combined
         if( last.mnemonic == Code::Instruction::MOV )
         {

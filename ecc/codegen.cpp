@@ -12,6 +12,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <deque>
+#include <bitset>
 #include "layout.hpp"
 #include "cdemitter2.hpp"
 #include "stdcharset.hpp"
@@ -1267,6 +1268,51 @@ class fdostream : public std::ostream {
     }
 };
 
+static std::bitset<3> inputs(Code::Instruction::Mnemonic m)
+{
+    switch(m)
+    {
+    case Code::Instruction::PUSH:
+        return 0b100;
+    case Code::Instruction::CALL:
+        return 0b100;
+    case Code::Instruction::ADD:
+    case Code::Instruction::AND:
+    case Code::Instruction::DIV:
+    case Code::Instruction::MOD:
+    case Code::Instruction::MUL:
+    case Code::Instruction::SUB:
+    case Code::Instruction::OR:
+    case Code::Instruction::XOR:
+        return 0b011;
+#if 0
+    case Code::Instruction::BREQ:
+    case Code::Instruction::BRGE:
+    case Code::Instruction::BRLT:
+    case Code::Instruction::BRNE:
+        return 0b011;
+    case Code::Instruction::CONV:
+        return 0b010;
+    case Code::Instruction::COPY:
+        return 0b111;
+    case Code::Instruction::FILL:
+        return 0b111;
+    case Code::Instruction::LSH:
+        return 0b011;
+    case Code::Instruction::MOV:
+        return 0b010;
+    case Code::Instruction::NEG:
+        return 0b010;
+    case Code::Instruction::NOT:
+        return 0b010;
+    case Code::Instruction::RSH:
+        return 0b011;
+#endif
+    default:
+        return 0;
+    }
+}
+
 class MyEmitter : public Code::Emitter2
 {
 public:
@@ -1283,24 +1329,40 @@ protected:
 
 #if 1
         // check whether last and present can be combined
-        if( last.mnemonic == Code::Instruction::MOV && cur.mnemonic == Code::Instruction::PUSH &&
-                last.operand1 == cur.operand1 )
+        if( last.mnemonic == Code::Instruction::MOV )
         {
-            //std::cout << "MOV-PUSH" << std::endl;
-            cur.operand1 = last.operand2;
-            current->section->instructions.back() = cur;
-        }else if( last.mnemonic == Code::Instruction::MOV && cur.mnemonic == Code::Instruction::CALL &&
-                  last.operand1 == cur.operand1 )
-        {
-            //std::cout << "MOV-CALL" << std::endl;
-            cur.operand1 = last.operand2;
-            current->section->instructions.back() = cur;
-        }else
-#endif
-        {
-            // no matching rule found
-            EmitImp(cur);
+            bool found = false;
+            std::bitset<3> ins = inputs(cur.mnemonic);
+            if( ins.any() )
+            {
+                if( ins.test(2) && cur.operand1 == last.operand1 )
+                {
+                    std::cout << "mov-" << cur.mnemonic << "-op1 " << std::endl;
+                    cur.operand1 = last.operand2;
+                    found = true;
+                }else if( ins.test(1) && cur.operand2 == last.operand1 )
+                {
+                    std::cout << "mov-" << cur.mnemonic << "-op2 " << std::endl;
+                    cur.operand2 = last.operand2;
+                    found = true;
+                }else if( ins.test(0) && cur.operand3 == last.operand1 )
+                {
+                    std::cout << "mov-" << cur.mnemonic << "-op3 " << std::endl;
+                    cur.operand3 = last.operand2;
+                    found = true;
+                }
+                // TODO: if more than one op would match, also the others have to be replaced
+            }
+            if(found)
+            {
+                current->section->instructions.back() = cur;
+                return;
+            }
         }
+#endif
+        // else
+        // no matching rule found
+        EmitImp(cur);
     }
 };
 

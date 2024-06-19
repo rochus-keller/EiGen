@@ -21,7 +21,7 @@
 #include "cdgenerator.hpp"
 using namespace ECS;
 
-#define _patch_315_
+#define _patch_315_ // https://software.openbrace.org/attachments/315
 
 using Smop = Code::Emitter2::SmartOperand;
 

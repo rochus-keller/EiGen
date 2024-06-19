@@ -192,7 +192,8 @@ void Emitter2::Convert (const Operand& target, const Operand& source)
 
 Emitter2::SmartOperand Emitter2::Convert (const Type& type, const Operand& value, const Hint hint)
 {
-    if (type == value.type) return {current->uses, value};
+    if (type == value.type)
+        return {current->uses, value}; // from https://software.openbrace.org/attachments/314
     if (IsImmediate (value))
         return Evaluate (value, type);
     auto result = ReuseRegister (value, type, hint);

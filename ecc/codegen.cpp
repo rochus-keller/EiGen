@@ -684,14 +684,12 @@ static Smop gen_expr(Node *node) {
         const int stack_slots = push_args(node);
         Smop f = gen_expr(node->lhs);
 
-        e->Call(f,stack_slots * target_stack_align); // call fun $0, %d
         Type* ret = getFuncReturn(node->lhs->ty);
         Smop res;
         if( ret )
-        {
-            const Code::Type type = getCodeType(ret);
-            res = e->Move(Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
-        }
+            res = e->Call(getCodeType(ret), f,stack_slots * target_stack_align); // call fun $0, %d
+        else
+            e->Call(f,stack_slots * target_stack_align); // call fun $0, %d
 
         depth -= stack_slots;
 
@@ -1272,7 +1270,7 @@ protected:
 
         Code::Instruction cur = instruction;
 
-#if 0
+#if 1
         // check whether last and present can be combined
         if( last.mnemonic == Code::Instruction::MOV )
         {

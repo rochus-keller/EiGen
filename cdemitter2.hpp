@@ -151,6 +151,7 @@ namespace ECS
             SmartOperand MakeMemory (const Type&, const Operand&, Displacement = 0, Operand::Strict = false);
 
             void Comment (const char*);
+            void Comment (const std::string&);
             template <typename... Values> void Comment (const Position&, const Values&...);
             template <typename... Values> void Comment (const Source&, const Position&, const Values&...);
 

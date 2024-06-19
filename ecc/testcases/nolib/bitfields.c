@@ -1,7 +1,7 @@
 struct {
+   char name[8];
    unsigned int male : 1;
    unsigned int age : 5;
-   char name[8];
 } person;
 
 // works also with signed int and age -13

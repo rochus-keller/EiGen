@@ -66,6 +66,11 @@ inline void Emitter2::Comment (const char*const text)
     current->comment = text;
 }
 
+void Emitter2::Comment(const std::string & text)
+{
+    current->comment = text;
+}
+
 inline void send(std::ostringstream& out) {}
 
 template <typename Value, typename ...Values>
@@ -678,7 +683,8 @@ void Emitter2::Unfix (const Operand& operand)
 {
     assert (IsRegister (operand));
     if (!IsUser (operand.register_))
-        return; assert (current->fixes[operand.register_]);
+        return;
+    assert (current->fixes[operand.register_]);
     if (!--current->fixes[operand.register_])
         Emit (UNFIX {operand});
 }

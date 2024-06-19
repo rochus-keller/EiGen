@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <deque>
 #include <bitset>
+#include <sstream>
 #include "layout.hpp"
 #include "cdemitter2.hpp"
 #include "stdcharset.hpp"
@@ -475,19 +476,13 @@ static void loc(Token * tok)
 #if 0
         println("  loc \"%s\", %d, 1", file_path(tok->file->file_no), tok->line_no);
 #else
-        // TODO println("  ; line %s:%d", file_name(file_path(tok->file->file_no)), tok->line_no);
+        std::ostringstream s;
+        s << "line " << file_name(file_path(tok->file->file_no)) << ":" << tok->line_no;
+        e->Comment(s.str());
 #endif
         file_no = tok->file->file_no;
         line_no = tok->line_no;
     }
-}
-
-static void setInt(uint32_t i, Smop& reg)
-{
-    Code::Type sn(Code::Type::Signed,target_pointer_width);
-    reg = e->Move(Code::Imm(sn,i)); // mov s%d %s, s%d %d"
-
-    // using s instead of u: 111 of 149 success with cdrun instead 65
 }
 
 static Type* getFuncReturn(Type* ty)
@@ -574,23 +569,20 @@ static Smop gen_expr(Node *node) {
             Member *mem = node->lhs->member;
             const Code::Type mty = getCodeType(mem->ty);
 
-            Smop rdi = e->Move(e->Convert(rty,rhs)); // mov %s %s, %s $0
+            Smop rdi = e->Convert(rty,rhs); // mov %s %s, %s $0
             rdi = e->And(rdi, Code::Imm(rty,(1L << mem->bit_width) - 1)); // and  %s %s, %s %s,  %s %ld
-            cast(node->rhs->ty,mem->ty, rdi);
+            rdi = e->Convert(mty,rdi);
             rdi = e->ShiftLeft(rdi, Code::Imm(mty,mem->bit_offset)); // lsh %s %s, %s %s, %s %d
 
-            rhs = e->Move(Code::Mem(types[ptr],Code::RSP)); // mov ptr $0, ptr [$sp]
-            // $0 is now adr(lhs)
-            load(mem->ty,rhs);
-            // $0 is now val(lhs)
+            rhs = e->Move(e->MakeMemory(mty,lhs)); // mov ptr $0, ptr [$sp]
 
             const unsigned long mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
             Smop r9;
             if( mem->ty->is_unsigned ) {
                 const unsigned long mask2 = ((1L << (mem->ty->size-1)*8) - 1) | (255 << (mem->ty->size-1)*8);
-                r9 = e->Move(Code::UImm(mty, ~mask & mask2)); // mov %s %s, %s %lu
+                r9 = Code::UImm(mty, ~mask & mask2); // mov %s %s, %s %lu
             } else
-                r9 = e->Move(Code::Imm(mty,~mask)); // mov %s %s, %s %ld
+                r9 = Code::Imm(mty,~mask); // mov %s %s, %s %ld
             rhs = e->And(e->Convert(mty,rhs), r9); // and %s $0, %s $0, %s %s
             rhs = e->Or(rhs, rdi); // or %s $0, %s $0, %s %s
 
@@ -629,11 +621,11 @@ static Smop gen_expr(Node *node) {
         Code::Emitter2::Label lelse = e->CreateLabel();
         Code::Emitter2::Label lend = e->CreateLabel();
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond)); // breq .L.else.%d, %s 0, %s $0
-        Smop res = gen_expr(node->then);
+        Smop res = e->MakeRegister(gen_expr(node->then));
         e->Fix(res);
         e->Branch(lend); // br .L.end.%d
         lelse();
-        res = gen_expr(node->els);
+        e->Move(res,gen_expr(node->els));
         e->Unfix(res);
         lend();
         return res;
@@ -644,7 +636,7 @@ static Smop gen_expr(Node *node) {
         const Code::Type type = getCodeType(node->lhs->ty);
 
         Code::Emitter2::Label label = e->CreateLabel();
-        e->BranchNotEqual(label,Code::Imm(type,0),e->Convert(type,tmp)); // breq +2, %s 0, %s $0
+        e->BranchEqual(label,Code::Imm(type,0),e->Convert(type,tmp)); // breq +2, %s 0, %s $0
         tmp = e->Set(label,Code::Imm(type,0), Code::Imm(type,1));
         return tmp;
     }
@@ -660,40 +652,22 @@ static Smop gen_expr(Node *node) {
         Smop lhs = gen_expr(node->lhs);
         Code::Type type = getCodeType(node->lhs->ty);
         Code::Emitter2::Label lfalse = e->CreateLabel();
-        Code::Emitter2::Label lend = e->CreateLabel();
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,lhs)); // breq .L.false.%d, %s 0, %s $0
         Smop rhs = gen_expr(node->rhs);
         type = getCodeType(node->rhs->ty);
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,rhs)); // breq .L.false.%d, %s 0, %s $0
-        Smop res;
-        setInt(1,res);
-        e->Fix(res);
-        e->Branch(lend); // br .L.end.%d
-        lfalse();
-        setInt(0,res);
-        e->Unfix(res);
-        lend();
-        return res;
+        return e->Set(lfalse,Code::Imm(types[s4],1),Code::Imm(types[s4],0));
     }
     case ND_LOGOR: {
 
         Smop lhs = gen_expr(node->lhs);
         Code::Type type = getCodeType(node->lhs->ty);
         Code::Emitter2::Label ltrue = e->CreateLabel();
-        Code::Emitter2::Label lend = e->CreateLabel();
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,lhs)); // brne .L.true.%d, %s 0, %s $0
         Smop rhs = gen_expr(node->rhs);
         type = getCodeType(node->rhs->ty);
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,rhs)); // brne .L.true.%d, %s 0, %s $0
-        Smop res;
-        setInt(0,res);
-        e->Fix(res);
-        e->Branch(lend); // br .L.end.%d
-        ltrue();
-        setInt(1,res);
-        e->Unfix(res);
-        lend();
-        return res;
+        return e->Set(ltrue,Code::Imm(types[s4],0),Code::Imm(types[s4],1));
     }
     case ND_FUNCALL: {
 #if 0
@@ -716,7 +690,7 @@ static Smop gen_expr(Node *node) {
         if( ret )
         {
             const Code::Type type = getCodeType(ret);
-            res = (Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
+            res = e->Move(Code::Reg(type,Code::RRes)); // mov %s $0, %s $res
         }
 
         depth -= stack_slots;
@@ -786,44 +760,35 @@ static Smop gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
-        lhs = e->Add(e->Convert(lhsT,lhs),rhs);
+        return e->Add(e->Convert(lhsT,lhs),rhs);
         // add %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_SUB:
-        lhs = e->Subtract(e->Convert(lhsT,lhs),rhs);
+        return e->Subtract(e->Convert(lhsT,lhs),rhs);
         // sub %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_MUL:
-        lhs = e->Multiply(e->Convert(lhsT,lhs),rhs);
+        return e->Multiply(e->Convert(lhsT,lhs),rhs);
         // mul %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_DIV:
-        lhs = e->Divide(e->Convert(lhsT,lhs),rhs);
+        return e->Divide(e->Convert(lhsT,lhs),rhs);
         // div %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_MOD:
-        lhs = e->Modulo(e->Convert(lhsT,lhs),rhs);
+        return e->Modulo(e->Convert(lhsT,lhs),rhs);
         // mod %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_BITAND:
-        lhs = e->And(e->Convert(lhsT,lhs),rhs);
+        return e->And(e->Convert(lhsT,lhs),rhs);
         // and %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_BITOR:
-        lhs = e->Or(e->Convert(lhsT,lhs),rhs);
+        return e->Or(e->Convert(lhsT,lhs),rhs);
         // or %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_BITXOR:
-        lhs = e->ExclusiveOr(e->Convert(lhsT,lhs),rhs);
+        return e->ExclusiveOr(e->Convert(lhsT,lhs),rhs);
         // xor %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_EQ:
     case ND_NE:
     case ND_LT:
     case ND_LE:
     {
         Code::Emitter2::Label ltrue = e->CreateLabel();
-        Code::Emitter2::Label lend = e->CreateLabel();
         if (node->kind == ND_EQ) {
             e->BranchEqual(ltrue,e->Convert(lhsT,lhs),rhs);
             // breq +2, %s $0, %s %s", lhsT, rhsT, tmpname
@@ -838,27 +803,19 @@ static Smop gen_expr(Node *node) {
             // brge +2, %s %s, %s $0", rhsT, tmpname, lhsT
         }
 
-        setInt(0,lhs);
-        e->Fix(lhs);
-        e->Branch(lend); //  br +1
-        ltrue();
-        setInt(1,lhs);
-        e->Unfix(lhs);
-        lend();
+        return e->Set(ltrue,Code::Imm(types[s4],0),Code::Imm(types[s4],1));
     } break;
     case ND_SHL:
-        lhs = e->ShiftLeft(e->Convert(lhsT,lhs),rhs);
+        return e->ShiftLeft(e->Convert(lhsT,lhs),rhs);
         // lsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     case ND_SHR:
-        lhs = e->ShiftRight(e->Convert(lhsT,lhs),rhs);
+        return e->ShiftRight(e->Convert(lhsT,lhs),rhs);
         // rsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
-        break;
     default:
         error_tok(node->tok, "invalid expression");
         break;
     }
-    return lhs;
+    return Smop();
 }
 
 static void gen_stmt(Node *node) {
@@ -1206,10 +1163,7 @@ static void emit_text(Obj *prog) {
         if( fn->ty->return_ty && fn->ty->return_ty->kind != TY_VOID )
         {
             if( returnType.model == Code::Type::Void )
-            {
-                Smop res = Code::Reg(returnType,Code::RRes);
-                setInt(0,res);
-            }
+                e->Move(Code::Reg(returnType,Code::RRes),Code::Imm(types[s4],0));
         }
         e->Leave();
         if( isMain )
@@ -1381,14 +1335,11 @@ void codegen(Obj *prog, FILE *out) {
     emit_text(prog);
     e = 0;
 
-#if 0
-    // TODO temprorarily deactivated
     println("; this is Eigen intermediate code, generated by ECC");
     println("; see https://github.com/rochus-keller/EiGen/tree/master/ecc for more information");
     println("; assuming pointer size %d, int size %d, long size %d, stack alignment %d bytes, %s link reg",
             target_pointer_width, basic_type(TY_INT)->size, basic_type(TY_LONG)->size, target_stack_align,
             target_has_linkregister ? "with" : "no" );
-#endif
 
     fdostream out_stream(out);
     Code::Generator cdgen(layout,platform);

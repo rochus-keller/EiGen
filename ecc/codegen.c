@@ -454,6 +454,31 @@ const char* file_name(const char* path)
         return pos+1;
 }
 
+void name_hash(const char* path, char* buf, int buflen )
+{
+    const char* code = "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+            //"$_#.";
+    const int codelen = strlen(code);
+
+    const int len = strlen(path);
+    int i;
+    buf[buflen] = 0;
+    for( i = 0; i < buflen; i++ )
+        buf[i] = '_';
+    for( i = 0; i < len; i++ )
+    {
+        const int j = i % buflen;
+        buf[j] ^= path[i];
+    }
+    for( i = 0; i < buflen; i++ )
+    {
+        const uint8_t ch = (uint8_t)buf[i];
+        char c = code[ch % codelen];
+        buf[i] = c;
+    }
+}
 static void loc(Token * tok)
 {
     static int file_no = 0, line_no = 0;

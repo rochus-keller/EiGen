@@ -32,6 +32,12 @@ There is now a version of ecc which is integrated with all the ECS generators an
 
 The generated code by chibicc is not (yet) particularly efficient; others (see e.g. https://github.com/vnmakarov/mir) have chibicc found to generate code which is about factor 0.3 as fast as gcc -O2, and 0.6 as fast as TCC. I intend to add a peephole optimizer to improve performance, but it's not a high priority. The focus is now on a runtime library based on Newlib.
 
+#### Status on June 20, 2024
+
+To add a peephole optimizer I used the api of cdemitter to generate IR (instead of directly writing the text based IR). For this purpose I added a new version called cdemitter2, which was an extended/modified copy of cdemitter. The author of ECS recommended to use SmartOperands instead of specific registers and profit of the optimization capabilities of cdemitter, assuming that an extra peephole optimizer would no longer be necessary. My initial attempts with SmartOps didn't render the assumed improvements, i.e. there was still work for the peephole optimizer. Finally I refactored the code generator towards a functional architecture - as recommended by the author of ECS - and after an extensive period of testing and debugging, finally the code generator worked like charm and generated much better IR than the original version. I conclude that cdemitter is an exceptional piece of engineering and removed the peephole optimizer (since no longer necessary and cdemitter is apparently able to generate the minimal number of instructions).
+
+After this improvement, the focus is again on a runtime library based on Newlib.
+
 #### Precompiled versions
 
 Not available at this time.

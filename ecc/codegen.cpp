@@ -15,7 +15,8 @@
 #include <bitset>
 #include <sstream>
 #include "layout.hpp"
-#include "cdemitter2.hpp"
+#include "cdemitter.hpp"
+#include "cdemittercontext.hpp"
 #include "stdcharset.hpp"
 #include "stringpool.hpp"
 #include "strdiagnostics.hpp"
@@ -24,16 +25,32 @@ using namespace ECS;
 
 // This version of codegen was derived from https://software.openbrace.org/attachments/315
 
-using Smop = Code::Emitter2::SmartOperand;
-
 extern "C" {
 #include "chibicc.h"
 }
 
-static Code::Emitter2* e = 0;
-static std::unordered_map<const char*, Code::Emitter2::Label*> labels;
-static std::deque<Code::Emitter2::Label> clabels;
-static Code::Emitter2::Label* return_label = 0;
+class MyEmitter : public Code::Emitter
+{
+public:
+    MyEmitter(Diagnostics& d, StringPool& sp, Charset& c, Code::Platform& p):
+        Code::Emitter(d,sp,c,p),ctx(*this,s) {}
+
+    using Smop = Emitter::Context::SmartOperand;
+    using Label = Emitter::Context::Label;
+    using Context = Code::Emitter::Context;
+
+    Code::Sections s;
+    Context ctx;
+};
+
+using Smop = MyEmitter::Smop;
+using Label = MyEmitter::Label;
+
+
+static MyEmitter::Context* e = 0;
+static std::unordered_map<const char*, Label*> labels;
+static std::deque<Label> clabels;
+static Label* return_label = 0;
 
 static FILE *output_file;
 static int depth;
@@ -198,6 +215,29 @@ static int count(void) {
     return i++;
 }
 
+static const char* file_path(int file_no)
+{
+
+    File **files = get_input_files();
+    for (int i = 0; files[i]; i++)
+        if( files[i]->file_no == file_no )
+            return files[i]->name;
+    return "";
+}
+
+static std::string getName(Obj * o)
+{
+    if( o->is_static && o->name[0] != '.' )
+    {
+        // TODO: hash of the whole file path
+        std::string name = file_name(base_file);
+        name += ':';
+        name += o->name;
+        return name;
+    }else
+        return o->name;
+}
+
 static void pushRes(const Code::Type& type, const Smop& reg) {
 
     e->Push(e->Convert(type,reg));
@@ -260,11 +300,11 @@ static Smop gen_addr(Node *node) {
 #endif
         // Function
         if (node->ty->kind == TY_FUNC) {
-            return (Code::Adr(types[fun],node->var->name)); // mov fun $0, fun @%s
+            return (Code::Adr(types[fun],getName(node->var))); // mov fun $0, fun @%s
         }
 
         // Global variable
-        return (Code::Adr(types[ptr],node->var->name)); // mov ptr $0, ptr @%s
+        return (Code::Adr(types[ptr],getName(node->var))); // mov ptr $0, ptr @%s
     case ND_DEREF:
         return gen_expr(node->lhs);
     case ND_COMMA:
@@ -312,7 +352,7 @@ static void load(Type *ty, Smop& tmp) {
     }
 
     const Code::Type type = getCodeType(ty);
-    tmp = (e->MakeMemory(type,tmp)); // mov %s $0, %s [$0]
+    tmp = e->MakeMemory(type,tmp); // mov %s $0, %s [$0]
 }
 
 static void store(Type *ty, const Smop& lhs, const Smop& rhs) {
@@ -338,7 +378,7 @@ static void cast(Type *from, Type *to, Smop& reg) {
 
     if (to->kind == TY_BOOL) {
         Code::Type type = getCodeType(from);
-        Code::Emitter2::Label label = e->CreateLabel();
+        Label label = e->CreateLabel();
         e->BranchNotEqual(label,Code::Imm(type,0),reg); // breq +2, %s 0, %s %s", type, type, reg
         reg = e->Set (label, Code::Imm(type,0), Code::Imm(type,1));
         return;
@@ -446,16 +486,6 @@ static void builtin_alloca(void) {
 #endif
 }
 
-static const char* file_path(int file_no)
-{
-
-    File **files = get_input_files();
-    for (int i = 0; files[i]; i++)
-        if( files[i]->file_no == file_no )
-            return files[i]->name;
-    return "";
-}
-
 const char* file_name(const char* path)
 {
     const char* pos = strrchr(path, '/');
@@ -473,13 +503,9 @@ static void loc(Token * tok)
 
     if( tok->file->file_no != file_no || tok->line_no != line_no )
     {
-#if 0
-        println("  loc \"%s\", %d, 1", file_path(tok->file->file_no), tok->line_no);
-#else
         std::ostringstream s;
         s << "line " << file_name(file_path(tok->file->file_no)) << ":" << tok->line_no;
-        e->Comment(s.str());
-#endif
+        e->Comment(s.str().c_str());
         file_no = tok->file->file_no;
         line_no = tok->line_no;
     }
@@ -576,13 +602,14 @@ static Smop gen_expr(Node *node) {
 
             rhs = e->Move(e->MakeMemory(mty,lhs)); // mov ptr $0, ptr [$sp]
 
-            const unsigned long mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
+            const uint64_t mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
             Smop r9;
             if( mem->ty->is_unsigned ) {
-                const unsigned long mask2 = ((1L << (mem->ty->size-1)*8) - 1) | (255 << (mem->ty->size-1)*8);
+                const uint64_t mask2 = (((uint64_t(1) << ((mem->ty->size-1)*8)) - 1) << 8) | 255;
                 r9 = Code::UImm(mty, ~mask & mask2); // mov %s %s, %s %lu
-            } else
-                r9 = Code::Imm(mty,~mask); // mov %s %s, %s %ld
+            } else {
+                r9 = Code::Imm(mty, ~mask); // mov %s %s, %s %ld
+            }
             rhs = e->And(e->Convert(mty,rhs), r9); // and %s $0, %s $0, %s %s
             rhs = e->Or(rhs, rdi); // or %s $0, %s $0, %s %s
 
@@ -618,8 +645,8 @@ static Smop gen_expr(Node *node) {
 
         Smop cond = gen_expr(node->cond);
         const Code::Type type = getCodeType(node->cond->ty);
-        Code::Emitter2::Label lelse = e->CreateLabel();
-        Code::Emitter2::Label lend = e->CreateLabel();
+        Label lelse = e->CreateLabel();
+        Label lend = e->CreateLabel();
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond)); // breq .L.else.%d, %s 0, %s $0
         Smop res = e->MakeRegister(gen_expr(node->then));
         e->Fix(res);
@@ -635,7 +662,7 @@ static Smop gen_expr(Node *node) {
         Smop tmp = gen_expr(node->lhs);
         const Code::Type type = getCodeType(node->lhs->ty);
 
-        Code::Emitter2::Label label = e->CreateLabel();
+        Label label = e->CreateLabel();
         e->BranchEqual(label,Code::Imm(type,0),e->Convert(type,tmp)); // breq +2, %s 0, %s $0
         tmp = e->Set(label,Code::Imm(type,0), Code::Imm(type,1));
         return tmp;
@@ -651,7 +678,7 @@ static Smop gen_expr(Node *node) {
 
         Smop lhs = gen_expr(node->lhs);
         Code::Type type = getCodeType(node->lhs->ty);
-        Code::Emitter2::Label lfalse = e->CreateLabel();
+        Label lfalse = e->CreateLabel();
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,lhs)); // breq .L.false.%d, %s 0, %s $0
         Smop rhs = gen_expr(node->rhs);
         type = getCodeType(node->rhs->ty);
@@ -662,7 +689,7 @@ static Smop gen_expr(Node *node) {
 
         Smop lhs = gen_expr(node->lhs);
         Code::Type type = getCodeType(node->lhs->ty);
-        Code::Emitter2::Label ltrue = e->CreateLabel();
+        Label ltrue = e->CreateLabel();
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,lhs)); // brne .L.true.%d, %s 0, %s $0
         Smop rhs = gen_expr(node->rhs);
         type = getCodeType(node->rhs->ty);
@@ -786,7 +813,7 @@ static Smop gen_expr(Node *node) {
     case ND_LT:
     case ND_LE:
     {
-        Code::Emitter2::Label ltrue = e->CreateLabel();
+        Label ltrue = e->CreateLabel();
         if (node->kind == ND_EQ) {
             e->BranchEqual(ltrue,e->Convert(lhsT,lhs),rhs);
             // breq +2, %s $0, %s %s", lhsT, rhsT, tmpname
@@ -826,8 +853,8 @@ static void gen_stmt(Node *node) {
 
         Smop cond = gen_expr(node->cond);
         const Code::Type type = getCodeType(node->cond->ty);
-        Code::Emitter2::Label lelse = e->CreateLabel();
-        Code::Emitter2::Label lend = e->CreateLabel();
+        Label lelse = e->CreateLabel();
+        Label lend = e->CreateLabel();
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond));
         // breq .L.else.%d, %s 0, %s $0", c, type, type
         gen_stmt(node->then);
@@ -842,10 +869,10 @@ static void gen_stmt(Node *node) {
 
         if (node->init)
             gen_stmt(node->init);
-        Code::Emitter2::Label lbegin = e->CreateLabel();
-        Code::Emitter2::Label lbreak = e->CreateLabel();
+        Label lbegin = e->CreateLabel();
+        Label lbreak = e->CreateLabel();
         labels[node->brk_label] = &lbreak;
-        Code::Emitter2::Label lcont = e->CreateLabel();
+        Label lcont = e->CreateLabel();
         labels[node->cont_label] = &lcont;
         lbegin();
         if (node->cond) {
@@ -866,10 +893,10 @@ static void gen_stmt(Node *node) {
     }
     case ND_DO: {
 
-        Code::Emitter2::Label lbegin = e->CreateLabel();
-        Code::Emitter2::Label lbreak = e->CreateLabel();
+        Label lbegin = e->CreateLabel();
+        Label lbreak = e->CreateLabel();
         labels[node->brk_label] = &lbreak;
-        Code::Emitter2::Label lcont = e->CreateLabel();
+        Label lcont = e->CreateLabel();
         labels[node->cont_label] = &lcont;
         lbegin();
         gen_stmt(node->then);
@@ -890,7 +917,7 @@ static void gen_stmt(Node *node) {
         const Code::Type cond_type = getCodeType(node->cond->ty);
 
         std::deque<const char*> kk;
-        std::deque<Code::Emitter2::Label> ll;
+        std::deque<Label> ll;
         for (Node *n = node->case_next; n; n = n->case_next) {
             kk.push_back(n->label); ll.push_back(e->CreateLabel());
             labels[n->label] = &ll.back();
@@ -917,7 +944,7 @@ static void gen_stmt(Node *node) {
             // br %s", node->default_case->label
         }
 
-        Code::Emitter2::Label lbrk = e->CreateLabel();
+        Label lbrk = e->CreateLabel();
         labels[node->brk_label] = &lbrk;
         e->Branch(lbrk); // br %s", node->brk_label
         gen_stmt(node->then);
@@ -977,9 +1004,9 @@ static void gen_stmt(Node *node) {
 
         if (node->lhs) {
             Smop lhs = gen_expr(node->lhs);
-            Type *ty = node->lhs->ty;
+            Code::Type lhsT = getCodeType(node->lhs->ty);
 
-            switch (ty->kind) {
+            switch (node->lhs->ty->kind) {
             case TY_STRUCT:
             case TY_UNION:
                 copy_struct_mem(lhs);
@@ -988,10 +1015,10 @@ static void gen_stmt(Node *node) {
             case TY_VLA:
                 break;
             default:
-                e->Move (Code::Reg {getCodeType(ty), Code::RRes}, lhs);
+                e->Move (Code::Reg {lhsT, Code::RRes}, e->Convert(lhsT,lhs));
                 break;
             }
-            returnType = getCodeType(ty);
+            returnType = lhsT;
         }
         assert( return_label != nullptr );
         e->Branch(*return_label); // br .L.return.%s
@@ -1055,7 +1082,7 @@ static void emit_data(Obj *prog) {
             continue;
 
         // if (var->is_static)
-        e->Begin(Code::Section::Data, var->name, var->align);
+        e->Begin(Code::Section::Data, getName(var), var->align);
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
@@ -1132,15 +1159,15 @@ static void emit_text(Obj *prog) {
         infunc = 1;
 
         // TODO if (fn->is_static)
-        e->Begin(Code::Section::Code, fn->name );
+        e->Begin(Code::Section::Code, getName(fn) );
         labels.clear();
         clabels.clear();
-        Code::Emitter2::Label lret = e->CreateLabel();
+        Label lret = e->CreateLabel();
         return_label = &lret;
 
         current_fn = fn;
 
-        const int isMain = strcmp(fn->name,"main") == 0;
+        const int isMain = !fn->is_static && strcmp(fn->name,"main") == 0;
 
         print_var_names(fn);
 
@@ -1161,12 +1188,15 @@ static void emit_text(Obj *prog) {
         if( fn->ty->return_ty && fn->ty->return_ty->kind != TY_VOID )
         {
             if( returnType.model == Code::Type::Void )
-                e->Move(Code::Reg(returnType,Code::RRes),Code::Imm(types[s4],0));
+                e->Move(Code::Reg(types[s4],Code::RRes),Code::Imm(types[s4],0));
         }
         e->Leave();
         if( isMain )
         {
-            e->Push(Code::Reg {returnType, Code::RRes});
+            if( returnType.model == Code::Type::Void )
+                e->Push(Code::Reg {types[s4], Code::RRes});
+            else
+                e->Push(Code::Reg {returnType, Code::RRes});
             e->Call(Code::Adr(types[fun],"_Exit"),0); // call fun @_Exit, 0
         }else
             e->Return();
@@ -1187,8 +1217,7 @@ class fdoutbuf : public std::streambuf {
     FILE* fd;    // file descriptor
   public:
     // constructor
-    fdoutbuf (FILE* _fd) : fd(_fd) {
-    }
+    fdoutbuf (FILE* _fd) : fd(_fd) {}
   protected:
     // write one character
     virtual int_type overflow (int_type c) {
@@ -1196,8 +1225,7 @@ class fdoutbuf : public std::streambuf {
     }
     // write multiple characters
     virtual
-    std::streamsize xsputn (const char* s,
-                            std::streamsize num) {
+    std::streamsize xsputn (const char* s, std::streamsize num) {
         return fwrite(s,1,num,fd);
     }
 };
@@ -1208,104 +1236,6 @@ class fdostream : public std::ostream {
   public:
     fdostream (FILE* fd) : std::ostream(0), buf(fd) {
         rdbuf(&buf);
-    }
-};
-
-static std::bitset<3> inputs(Code::Instruction::Mnemonic m)
-{
-    switch(m)
-    {
-    case Code::Instruction::PUSH:
-        return 0b100;
-    case Code::Instruction::CALL:
-        return 0b100;
-    case Code::Instruction::ADD:
-    case Code::Instruction::AND:
-    case Code::Instruction::DIV:
-    case Code::Instruction::MOD:
-    case Code::Instruction::MUL:
-    case Code::Instruction::SUB:
-    case Code::Instruction::OR:
-    case Code::Instruction::XOR:
-        return 0b011;
-#if 0
-    case Code::Instruction::BREQ:
-    case Code::Instruction::BRGE:
-    case Code::Instruction::BRLT:
-    case Code::Instruction::BRNE:
-        return 0b011;
-    case Code::Instruction::CONV:
-        return 0b010;
-    case Code::Instruction::COPY:
-        return 0b111;
-    case Code::Instruction::FILL:
-        return 0b111;
-    case Code::Instruction::LSH:
-        return 0b011;
-    case Code::Instruction::MOV:
-        return 0b010;
-    case Code::Instruction::NEG:
-        return 0b010;
-    case Code::Instruction::NOT:
-        return 0b010;
-    case Code::Instruction::RSH:
-        return 0b011;
-#endif
-    default:
-        return 0;
-    }
-}
-
-class MyEmitter : public Code::Emitter2
-{
-public:
-    MyEmitter(Diagnostics& d, StringPool& sp, Charset& c, Code::Platform& p, Code::Sections &s):
-        Emitter2(d,sp,c,p,s) {}
-protected:
-    virtual void Emit (const Code::Instruction& instruction)
-    {
-        Code::Instruction last;
-        if( !current->section->instructions.empty() )
-            last = current->section->instructions.back();
-
-        Code::Instruction cur = instruction;
-
-#if 1
-        // check whether last and present can be combined
-        if( last.mnemonic == Code::Instruction::MOV )
-        {
-            bool found = false;
-            std::bitset<3> ins = inputs(cur.mnemonic);
-            if( ins.any() )
-            {
-                if( ins.test(2) && cur.operand1 == last.operand1 )
-                {
-                    std::cout << "mov-" << cur.mnemonic << "-op1 " << std::endl;
-                    cur.operand1 = last.operand2;
-                    found = true;
-                }else if( ins.test(1) && cur.operand2 == last.operand1 )
-                {
-                    std::cout << "mov-" << cur.mnemonic << "-op2 " << std::endl;
-                    cur.operand2 = last.operand2;
-                    found = true;
-                }else if( ins.test(0) && cur.operand3 == last.operand1 )
-                {
-                    std::cout << "mov-" << cur.mnemonic << "-op3 " << std::endl;
-                    cur.operand3 = last.operand2;
-                    found = true;
-                }
-                // TODO: if more than one op would match, also the others have to be replaced
-            }
-            if(found)
-            {
-                current->section->instructions.back() = cur;
-                return;
-            }
-        }
-#endif
-        // else
-        // no matching rule found
-        EmitImp(cur);
     }
 };
 
@@ -1322,9 +1252,8 @@ void codegen(Obj *prog, FILE *out) {
         true
     );
     Code::Platform platform(layout,target_has_linkregister);
-    Code::Sections sections;
-    MyEmitter emitter(diagnostics,stringPool,charset,platform,sections);
-    e = &emitter;
+    MyEmitter emitter(diagnostics,stringPool,charset,platform);
+    e = &emitter.ctx;
 
     init_types();
 
@@ -1342,6 +1271,6 @@ void codegen(Obj *prog, FILE *out) {
     fdostream out_stream(out);
     Code::Generator cdgen(layout,platform);
 
-    cdgen.Generate(sections,targets[target].name,out_stream);
+    cdgen.Generate(emitter.s,targets[target].name,out_stream);
 }
 }

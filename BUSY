@@ -312,8 +312,8 @@ let compiler : Executable {
         ./ecc/backend.cpp
         ./ecc/main.c
         ./ecc/codegen.cpp
-        ./cdemitter2.cpp
-        ./cdemitter2.hpp
+        ./cdemitter.cpp
+        ./cdemitter.hpp
         ./cdgenerator.cpp
         ./cdgenerator.hpp
         ]

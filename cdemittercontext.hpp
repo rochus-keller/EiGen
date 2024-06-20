@@ -30,7 +30,7 @@ namespace ECS { namespace Code {
 
 class Emitter::Context
 {
-protected:
+public:
 	class Label;
 	class RestoreRegisterState;
 	class RestoreState;

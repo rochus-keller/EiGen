@@ -225,13 +225,50 @@ static const char* file_path(int file_no)
     return "";
 }
 
+void name_hash(const char* path, char* buf, int buflen )
+{
+    const char* code = "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+            //"$_#.";
+    const int codelen = strlen(code);
+
+    const int len = strlen(path);
+    int i;
+    buf[buflen] = 0;
+    for( i = 0; i < buflen; i++ )
+        buf[i] = '_';
+    for( i = 0; i < len; i++ )
+    {
+        const int j = i % buflen;
+        buf[j] ^= path[i];
+    }
+    for( i = 0; i < buflen; i++ )
+    {
+        const uint8_t ch = (uint8_t)buf[i];
+        char c = code[ch % codelen];
+        buf[i] = c;
+    }
+}
+
 static std::string getName(Obj * o)
 {
     if( o->is_static && o->name[0] != '.' )
     {
-        // TODO: hash of the whole file path
-        std::string name = file_name(base_file);
-        name += ':';
+        const int len = 9;
+        char buf[len];
+        name_hash(base_file,buf,len);
+        std::string name = buf;
+        name += '#';
+        std::string file = file_name(base_file);
+        for(int i = 0; i < file.size(); i++ )
+        {
+            const char ch = file[i];
+            if( !::isalnum(ch) && ch != '_' && ch != '.' )
+                file[i] = '_';
+        }
+        name += file;
+        name += '#';
         name += o->name;
         return name;
     }else
@@ -1158,7 +1195,7 @@ static void emit_text(Obj *prog) {
         pc = 0;
         infunc = 1;
 
-        // TODO if (fn->is_static)
+        // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
         e->Begin(Code::Section::Code, getName(fn) );
         labels.clear();
         clabels.clear();
@@ -1243,7 +1280,7 @@ extern "C" {
 void codegen(Obj *prog, FILE *out) {
     output_file = out;
 
-    Layout layout( // TODO: why do we need this at all?
+    Layout layout(
         { basic_type(TY_INT)->size, 1, 8},
         {4, 4, 8},
         target_pointer_width,

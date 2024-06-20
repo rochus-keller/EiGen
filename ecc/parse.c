@@ -330,7 +330,12 @@ static char *new_unique_name(const char* name) {
 }
 
 static Obj *new_anon_gvar(Type *ty) {
-  return new_gvar(new_unique_name(file_name(base_file)), ty);
+  char buf[32];
+  name_hash(base_file,buf,9);
+  buf[9] = '#';
+  strncpy(buf + 10, file_name(base_file),20);
+  buf[30] = 0;
+  return new_gvar(new_unique_name(buf), ty);
 }
 
 static Obj *new_string_literal(char *p, Type *ty) {

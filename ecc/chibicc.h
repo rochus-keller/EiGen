@@ -361,7 +361,7 @@ struct Type {
   Token *name_pos;
 
   // Array
-  int array_len;
+  int array_len; // is -1 in case of "[]"
 
   // Variable-length array
   Node *vla_len; // # of elements

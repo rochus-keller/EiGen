@@ -156,6 +156,37 @@ static uint8_t getTypeWidth(Type *ty) {
     return ecsTypes[ getTypeId(ty) ].width;
 }
 
+#define name_buffer_len 128
+static char name_buffer[name_buffer_len];
+
+static char* make_name(Obj * o)
+{
+    if( o->is_static && o->name[0] != '.' )
+    {
+        const char* fileName = file_name(base_file);
+        const int fnameLen = strlen(fileName);
+        const int nameLen = strlen(o->name);
+        const int hashLen = 9;
+        assert( fnameLen + hashLen + nameLen + 4 <= name_buffer_len );
+
+        name_buffer[0] = '.';
+        name_hash(base_file,name_buffer+1,hashLen);
+        name_buffer[hashLen-1] = '#';
+
+        strcpy(name_buffer+1+hashLen,fileName);
+        for(int i = hashLen; i < hashLen + fnameLen; i++ )
+        {
+            const char ch = name_buffer[i];
+            if( !isalnum(ch) && ch != '_' && ch != '.' )
+                name_buffer[i] = '_';
+        }
+        name_buffer[hashLen + fnameLen + 1] = '#';
+        strcpy(name_buffer + hashLen + fnameLen + 2, o->name);
+
+        return name_buffer;
+    }else
+        return o->name;
+}
 
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
@@ -230,12 +261,12 @@ static void gen_addr(Node *node) {
 #endif
         // Function
         if (node->ty->kind == TY_FUNC) {
-            println("  mov fun $0, fun @%s", node->var->name);
+            println("  mov fun $0, fun @%s", make_name(node->var));
             return;
         }
 
         // Global variable
-        println("  mov ptr $0, ptr @%s", node->var->name);
+        println("  mov ptr $0, ptr @%s", make_name(node->var));
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
@@ -1034,14 +1065,14 @@ static void emit_data(Obj *prog) {
             continue;
 
         // if (var->is_static)
-        println(".data %s", var->name);
+        println(".data %s", make_name(var));
 
         const int align = var->align;
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
             println("  .alignment %d", align );
-            println("  res %d", var->ty->size );
+            //println("  res %d", abs(var->ty->size) );
             continue;
         }
 
@@ -1117,11 +1148,11 @@ static void emit_text(Obj *prog) {
         infunc = 1;
 
         // TODO if (fn->is_static)
-        println(".code %s", fn->name );
+        println(".code %s", make_name(fn) );
 
         current_fn = fn;
 
-        const int isMain = strcmp(fn->name,"main") == 0;
+        const int isMain = !fn->is_static && strcmp(fn->name,"main") == 0;
 
         print_var_names(fn);
 

@@ -38,6 +38,7 @@ public:
     using Smop = Emitter::Context::SmartOperand;
     using Label = Emitter::Context::Label;
     using Context = Code::Emitter::Context;
+    using RestoreRegisterState = Code::Emitter::Context::RestoreRegisterState;
 
     Code::Sections s;
     Context ctx;
@@ -45,6 +46,7 @@ public:
 
 using Smop = MyEmitter::Smop;
 using Label = MyEmitter::Label;
+using RestoreRegisterState = MyEmitter::RestoreRegisterState;
 
 
 static MyEmitter::Context* e = 0;
@@ -619,7 +621,9 @@ static Smop gen_expr(Node *node) {
     case ND_ASSIGN: {
 
         Smop lhs = gen_addr(node->lhs);
+        e->SaveRegister(lhs);
         Smop rhs = gen_expr(node->rhs);
+        e->RestoreRegister(lhs);
 
         if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield) {
 
@@ -667,7 +671,6 @@ static Smop gen_expr(Node *node) {
         gen_expr(node->lhs); // ignore result
         return gen_expr(node->rhs);
     case ND_CAST: {
-
         Smop tmp = gen_expr(node->lhs);
         cast(node->lhs->ty, node->ty, tmp);
         return tmp;
@@ -744,6 +747,7 @@ static Smop gen_expr(Node *node) {
         }
 #endif
 
+        const RestoreRegisterState restore(*e);
 
         const int stack_slots = push_args(node);
         Smop f = gen_expr(node->lhs);
@@ -807,12 +811,12 @@ static Smop gen_expr(Node *node) {
     }
 
     Smop rhs = gen_expr(node->rhs);
-    Code::Type rhsT = getCodeType(node->rhs->ty);
-    pushRes(rhsT, rhs);
+    e->SaveRegister(rhs);
     Smop lhs = gen_expr(node->lhs);
-    rhs = pop(rhsT);
+    e->RestoreRegister(rhs);
 
     const Code::Type lhsT = getCodeType(node->lhs->ty);
+    Code::Type rhsT = getCodeType(node->rhs->ty);
 
     if( lhsT != rhsT )
     {

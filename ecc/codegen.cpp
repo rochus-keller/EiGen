@@ -1122,6 +1122,13 @@ static void emit_data(Obj *prog) {
         if (var->is_function || !var->is_definition)
             continue;
 
+        if( var->is_tentative )
+        {
+            // std::cout << "warning: " << base_file << " " << var->name << " is_tentative " << var->ty->size << std::endl;
+            // that's ok, each var which arrives here was already declared in another file
+            continue;
+        }
+
         // if (var->is_static)
         e->Begin(Code::Section::Data, getName(var), var->align);
 
@@ -1195,6 +1202,8 @@ static void emit_text(Obj *prog) {
         if (!fn->is_live)
             continue;
 
+        const std::string name = fn->name;
+
         returnType = Code::Type();
         pc = 0;
         infunc = 1;
@@ -1208,7 +1217,7 @@ static void emit_text(Obj *prog) {
 
         current_fn = fn;
 
-        const int isMain = !fn->is_static && strcmp(fn->name,"main") == 0;
+        const int isMain = !fn->is_static && name == "main";
 
         print_var_names(fn);
 

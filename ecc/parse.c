@@ -3222,7 +3222,20 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
       error_tok(tok, "redefinition of %s", name_str);
     if (!fn->is_static && attr->is_static)
       error_tok(tok, "static declaration follows a non-static declaration");
-    fn->is_definition = fn->is_definition || equal(tok, "{");
+    if( !fn->is_definition && equal(tok, "{") )
+    {
+        if (fn->is_static && !attr->is_static)
+          error_tok(tok, "non-static declaration follows a static declaration");
+
+        // if we come here because a forward declaration was first seen before the actual impl,
+        // the actual impl is in the wrong list, i.e. globals of another file, why we dont see it in prog
+        fn = new_gvar(name_str, ty);
+        fn->is_function = true;
+        fn->is_definition = true;
+        // reapply attrs, the previous ones can be different
+        fn->is_static = attr->is_static || (attr->is_inline && !attr->is_extern);
+        fn->is_inline = attr->is_inline;
+    }
   } else {
     fn = new_gvar(name_str, ty);
     fn->is_function = true;

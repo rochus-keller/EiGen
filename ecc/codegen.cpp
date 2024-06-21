@@ -1127,7 +1127,7 @@ static void emit_data(Obj *prog) {
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
-            e->Reserve(var->ty->size);
+            // TODO e->Reserve(var->ty->size);
             continue;
         }
 

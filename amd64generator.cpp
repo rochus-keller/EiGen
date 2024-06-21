@@ -1146,7 +1146,7 @@ void Generator::Context::Operation (const Instruction::Mnemonic mnemonic, const 
 	const auto register_ = GetTemporary (target, value1, value2, index); Load (register_, value1, index);
 	if (mnemonic == Instruction::ADD && IsImmediate (value2) && Extract (value2, index) == 1 && !IsComplex (value2)) Emit (Instruction::INC, register_, {});
 	else if (mnemonic == Instruction::SUB && IsImmediate (value2) && Extract (value2, index) == 1 && !IsComplex (value2)) Emit (Instruction::DEC, register_, {});
-	else Emit (mnemonic, register_, IsQWord (value2) ? Load (value2, index) : Access (value2, index));
+    else Emit (mnemonic, register_, IsImmediate (value2) && !IsQWord (value2) || IsRegister (value2) || IsMemory (value2) ? Access (value2, index) : Load (value2, index));
 	Prerelease (value2, index); Store (register_, target, index);
 }
 

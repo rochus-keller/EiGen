@@ -79,17 +79,17 @@ char *rebase_file(const char* newBase, const char* filename)
     char *slash = strrchr(newBase, '/');
     if( slash == 0 )
         slash = strrchr(newBase, '\\');
-    const int len2 = strlen(filename);
-    int len1;
+    const int filenameLen = strlen(filename);
+    int pathLen;
     if (slash)
-      len1 = slash - newBase;
+      pathLen = slash - newBase;
     else
-      len1 = strlen(newBase);
-    const int len3 = len1 + len2 + 2;
-    char* res = (char*)malloc(len3);
-    memcpy(res, filename, len1);
-    res[len1] = '/';
-    memcpy(res + len1 + 1, filename, len2 );
-    res[len3] = 0;
+      pathLen = strlen(newBase);
+    const int newPathLen = pathLen + filenameLen + 2;
+    char* res = (char*)malloc(newPathLen);
+    memcpy(res, newBase, pathLen);
+    res[pathLen] = '/';
+    memcpy(res + pathLen + 1, filename, filenameLen );
+    res[newPathLen-1] = 0;
     return res;
 }

@@ -26,7 +26,8 @@ union __dmath
 extern const union __dmath __infinity;
 #endif
 
-#define HUGE_VAL (__infinity.d)
+// TODO #define HUGE_VAL (__infinity.d)
+#define HUGE_VAL 999999999999
 
 #endif /* ! defined (HUGE_VAL) */
 

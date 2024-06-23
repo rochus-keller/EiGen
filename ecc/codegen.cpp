@@ -56,9 +56,8 @@ static Label* return_label = 0;
 
 static FILE *output_file;
 static int depth;
-static Obj *current_fn;
+static Obj *current_fn = 0;
 static Code::Type returnType;
-static int pc, infunc = 0;
 
 __attribute__((format(printf, 1, 2)))
 static void println(char *fmt, ...) {
@@ -67,12 +66,6 @@ static void println(char *fmt, ...) {
     va_start(ap, fmt);
     vfprintf(output_file, fmt, ap);
     va_end(ap);
-    if( infunc && fmt[0] == ' ' && fmt[1] == ' ' && fmt[2] != ';' )
-    {
-        pc++;
-        if( pc % 10 == 0 )
-            fprintf(output_file,"\t; pc %d", pc );
-    }
     fprintf(output_file, "\n");
 }
 
@@ -486,7 +479,7 @@ static int push_args(Node *node) {
 
 // copy struct pointed to by $0 to the local var at offset
 static void copy_struct_mem(const Smop& reg) {
-
+    assert( current_fn != 0 );
     Type *ty = current_fn->ty->return_ty;
     Obj *var = current_fn->params;
 
@@ -1068,7 +1061,10 @@ static void gen_stmt(Node *node) {
         gen_expr(node->lhs);
         return;
     case ND_ASM:
-        error_tok(node->tok,"inline assembler not yet supported"); // TODO
+        assert( current_fn );
+        try {
+            e->AssembleInlineCode(base_file,node->tok->line_no,node->asm_str);
+        }catch(...) {}
         return;
     }
 
@@ -1122,19 +1118,18 @@ static void emit_data(Obj *prog) {
         if (var->is_function || !var->is_definition)
             continue;
 
-        if( var->is_tentative )
-        {
-            // std::cout << "warning: " << base_file << " " << var->name << " is_tentative " << var->ty->size << std::endl;
-            // that's ok, each var which arrives here was already declared in another file
-            continue;
-        }
 
         // if (var->is_static)
-        e->Begin(Code::Section::Data, getName(var), var->align);
+        e->Begin(Code::Section::Data, getName(var), var->align,
+                 false, // required
+                 false, // duplicable
+                 var->is_tentative // replaceable
+                 );
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
-            // TODO e->Reserve(var->ty->size);
+            if( var->ty->size > 0 )
+                e->Reserve(var->ty->size);
             continue;
         }
 
@@ -1197,6 +1192,21 @@ static void emit_text(Obj *prog) {
         if (!fn->is_function || !fn->is_definition)
             continue;
 
+        if( fn->ty == basic_type(TY_VOID) )
+        {
+            // this must be an assembler function
+            assert( *fn->name == 0 );
+            const char* code = fn->body->asm_str;
+            while( *code && ::isspace(*code) )
+                code++;
+            if( *code != '.' )
+                error_tok(fn->body->tok,"invalid assembler section");
+            try {
+                e->AssembleCode(base_file,fn->body->tok->line_no,fn->body->asm_str);
+            }catch(...) {}
+            continue;
+        }
+
         // No code is emitted for "static inline" functions
         // if no one is referencing them.
         if (!fn->is_live)
@@ -1205,8 +1215,6 @@ static void emit_text(Obj *prog) {
         const std::string name = fn->name;
 
         returnType = Code::Type();
-        pc = 0;
-        infunc = 1;
 
         // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
         e->Begin(Code::Section::Code, getName(fn) );
@@ -1251,9 +1259,9 @@ static void emit_text(Obj *prog) {
         }else
             e->Return();
         depth = 0;
-        infunc = 0;
         return_label = 0;
         clabels.clear();
+        current_fn = 0;
     }
 }
 

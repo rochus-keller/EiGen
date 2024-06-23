@@ -49,14 +49,7 @@ extern	_CONST char	_ctype_[];
 #define isprint(c)	((_ctype_+1)[c]&(_P|_U|_L|_N|_B))
 #define	isgraph(c)	((_ctype_+1)[c]&(_P|_U|_L|_N))
 #define iscntrl(c)	((_ctype_+1)[c]&_C)
-/* Non-gcc versions will get the library versions, and will be
-   slightly slower */
-#ifdef __GNUC__
-# define toupper(c) \
-	({ int __x = (c); islower(__x) ? (__x - 'a' + 'A') : __x;})
-# define tolower(c) \
-	({ int __x = (c); isupper(__x) ? (__x - 'A' + 'a') : __x;})
-#endif
+
 
 #ifndef _STRICT_ANSI
 #define isascii(c)	((unsigned)(c)<=0177)

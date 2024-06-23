@@ -1107,6 +1107,8 @@ void init_macros(void) {
       break;
   }
 
+  define_macro("__BYTE_ORDER", "__LITTLE_ENDIAN");
+
   if( target >= AMD32Linux && target <= ARMT32FPELinux )
   {
       define_macro("__unix", "1");

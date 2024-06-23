@@ -90,7 +90,7 @@
 
 /* Maximum value an `unsigned long int' can hold.  (Minimum is 0).  */
 #   undef ULONG_MAX
-#   define ULONG_MAX (LONG_MAX * 2UL + 1)
+#   define ULONG_MAX (LONG_MAX * (unsigned long)2 + 1)
 
 #   ifndef __LONG_LONG_MAX__
 #    define __LONG_LONG_MAX__ 9223372036854775807LL
@@ -105,7 +105,7 @@
 
 /* Maximum value an `unsigned long long int' can hold.  (Minimum is 0).  */
 #    undef ULLONG_MAX
-#    define ULLONG_MAX (LLONG_MAX * 2ULL + 1)
+#    define ULLONG_MAX (LLONG_MAX * (unsigned long long)2U + 1)
 #   endif
 
 #  if defined (__GNU_LIBRARY__) ? defined (__USE_GNU) : !defined (__STRICT_ANSI__)
@@ -117,7 +117,7 @@
 
 /* Maximum value an `unsigned long long int' can hold.  (Minimum is 0).  */
 #    undef ULONG_LONG_MAX
-#    define ULONG_LONG_MAX (LONG_LONG_MAX * 2ULL + 1)
+#    define ULONG_LONG_MAX (LONG_LONG_MAX * (unsigned long long)2U + 1)
 #   endif
 
 #  endif /* _LIMITS_H  */

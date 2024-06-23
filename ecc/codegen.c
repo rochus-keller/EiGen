@@ -1010,7 +1010,9 @@ static void gen_stmt(Node *node) {
         gen_expr(node->lhs);
         return;
     case ND_ASM:
-        error_tok(node->tok,"inline assembler not yet supported"); // TODO
+        println("  ; begin inline asm, line %d", node->tok->line_no);
+        println(node->asm_str);
+        println("  ; end inline asm");
         return;
     }
 
@@ -1137,6 +1139,21 @@ static void emit_text(Obj *prog) {
     for (Obj *fn = prog; fn; fn = fn->next) {
         if (!fn->is_function || !fn->is_definition)
             continue;
+
+        if( fn->ty == basic_type(TY_VOID) )
+        {
+            // this must be an assembler function
+            assert( *fn->name == 0 );
+            const char* code = fn->body->asm_str;
+            while( *code && isspace(*code) )
+                code++;
+            if( *code != '.' )
+                error_tok(fn->body->tok,"invalid assembler section");
+            println("  ; begin inline asm, line %d", fn->body->tok->line_no);
+            println(fn->body->asm_str);
+            println("  ; end inline asm");
+            continue;
+        }
 
         // No code is emitted for "static inline" functions
         // if no one is referencing them.

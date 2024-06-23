@@ -10,13 +10,14 @@ extern "C" {
 #define _SETJMP_H_
 
 #include "_ansi.h"
-// TODO #include <machine/setjmp.h>
-#define _JBLEN 5
-typedef int jmp_buf[_JBLEN]; // TODO
+
+// ECS specific, implementation in setjmp.cod
+typedef struct jmp_buf {void *sp, *fp, (*pc) ();} jmp_buf[1];
 
 
-void	_EXFUN(longjmp,(jmp_buf __jmpb, int __retval));
-int	_EXFUN(setjmp,(jmp_buf __jmpb));
+
+void longjmp(jmp_buf __jmpb, int __retval);
+int	setjmp(jmp_buf __jmpb);
 
 #ifdef __cplusplus
 }

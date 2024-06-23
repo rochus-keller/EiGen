@@ -3358,13 +3358,37 @@ static void declare_builtin_functions(void) {
   builtin_alloca->is_definition = false;
 }
 
-// program = (typedef | function-definition | global-variable)*
+// asm-section = "asm" "(" string-literal ")"
+static Token *asm_section(Token *tok) {
+  Obj* fn = new_gvar("", basic_type(TY_VOID));
+
+  Node *node = new_node(ND_ASM, tok);
+  fn->body = node;
+  fn->is_function = true;
+  fn->is_definition = true;
+
+  tok = tok->next;
+
+  tok = skip(tok, "(");
+  if (tok->kind != TK_STR || tok->ty->base->kind != TY_CHAR)
+    error_tok(tok, "expected string literal");
+  node->asm_str = tok->str;
+  return skip(tok->next, ")");
+}
+
+// program = (typedef | function-definition | global-variable | asm-section)*
 Obj *parse(Token *tok) {
   declare_builtin_functions();
   globals = NULL;
 
   while (tok->kind != TK_EOF) {
     VarAttr attr = {};
+
+    if( tok->kind == TK_KEYWORD && tok->loc[0] == 'a' && tok->loc[1] == 's' && tok->loc[2] == 'm') {
+        tok = asm_section(tok);
+        continue;
+    }
+
     Type *basety = declspec(&tok, tok, &attr);
 
     // Typedef

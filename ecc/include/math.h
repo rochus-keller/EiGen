@@ -29,6 +29,22 @@ extern const union __dmath __infinity;
 // TODO #define HUGE_VAL (__infinity.d)
 #define HUGE_VAL 999999999999
 
+extern int __finite (double __x);
+extern int __finitef (float __x);
+
+#define __NO_LONG_DOUBLE_MATH
+
+/* Return nonzero value if X is not +-Inf or NaN.  */
+# ifdef __NO_LONG_DOUBLE_MATH
+#  define isfinite(x) \
+     (sizeof (x) == sizeof (float) ? __finitef (x) : __finite (x))
+# else
+#  define isfinite(x) \
+     (sizeof (x) == sizeof (float)					      \
+      ? __finitef (x)							      \
+      : sizeof (x) == sizeof (double)					      \
+      ? __finite (x) : __finitel (x))
+# endif
 #endif /* ! defined (HUGE_VAL) */
 
 /* Reentrant ANSI C functions.  */

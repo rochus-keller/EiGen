@@ -1523,13 +1523,15 @@ static bool is_typename(Token *tok) {
   return hashmap_get2(&map, tok->loc, tok->len) || find_typedef(tok);
 }
 
-// asm-stmt = "asm" ("volatile" | "inline")* "(" string-literal ")"
+// asm-stmt = "asm" "(" string-literal ")"
 static Node *asm_stmt(Token **rest, Token *tok) {
   Node *node = new_node(ND_ASM, tok);
   tok = tok->next;
 
+#if 0
   while (equal(tok, "volatile") || equal(tok, "inline"))
     tok = tok->next;
+#endif
 
   tok = skip(tok, "(");
   if (tok->kind != TK_STR || tok->ty->base->kind != TY_CHAR)
@@ -3358,7 +3360,7 @@ static void declare_builtin_functions(void) {
   builtin_alloca->is_definition = false;
 }
 
-// asm-section = "asm" "(" string-literal ")"
+// asm-section = "asm" ["target"] "(" string-literal ")"
 static Token *asm_section(Token *tok) {
   Obj* fn = new_gvar("", basic_type(TY_VOID));
 
@@ -3368,6 +3370,11 @@ static Token *asm_section(Token *tok) {
   fn->is_definition = true;
 
   tok = tok->next;
+
+  if (equal(tok, "target")) {
+    tok = tok->next;
+    fn->is_inline = true;
+  }
 
   tok = skip(tok, "(");
   if (tok->kind != TK_STR || tok->ty->base->kind != TY_CHAR)

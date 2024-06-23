@@ -1202,7 +1202,12 @@ static void emit_text(Obj *prog) {
             if( *code != '.' )
                 error_tok(fn->body->tok,"invalid assembler section");
             try {
-                e->AssembleCode(base_file,fn->body->tok->line_no,fn->body->asm_str);
+                if( fn->is_inline ){
+                    // pass-through to machine code generator
+                    e->BeginAssembly();
+                    e->Assemble(base_file,fn->body->tok->line_no,fn->body->asm_str);
+                }else
+                    e->AssembleCode(base_file,fn->body->tok->line_no,fn->body->asm_str);
             }catch(...) {}
             continue;
         }

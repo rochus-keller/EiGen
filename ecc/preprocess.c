@@ -1096,10 +1096,12 @@ void init_macros(void) {
   case Arma32:
       define_macro("__ARM_ARCH_7__", "1");
       define_macro("__arm__", "1");
+      define_macro("__arma32__", "1");
       break;
   case Armt32:
       define_macro("__ARM_ARCH_7__", "1");
       define_macro("__arm__", "1");
+      define_macro("__armt32__", "1");
       break;
   case Arma64:
       define_macro("_M_ARM64", "1");

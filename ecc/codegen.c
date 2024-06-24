@@ -431,7 +431,7 @@ static void copy_struct_mem(void) {
 
     println("  mov ptr %s, ptr $fp%+d", to, firstParamOffset());
                                         // the pointer to result is the first (invisible) param
-    println("  copy ptr %s, ptr $0, ptr %d", to, ty->size);
+    println("  copy ptr [%s], ptr $0, ptr %d", to, ty->size);
 
     sell(tmp);
 }

@@ -144,7 +144,11 @@ static uint8_t getTypeId(Type *ty) {
 }
 
 static const char* getTypeName(Type *ty) {
-    // ok
+    // only used in comments, strings have not responsibility
+    if( ty->kind == TY_STRUCT )
+        return "struct";
+    if( ty->kind == TY_UNION )
+        return "union";
     return ecsTypes[ getTypeId(ty) ].name;
 }
 
@@ -490,7 +494,7 @@ static void copy_struct_mem(const Smop& reg) {
     assert( current_fn != 0 );
     Type *ty = current_fn->ty->return_ty;
 
-    e->Copy(Code::Reg(types[ptr],Code::RFP, firstParamOffset() ),
+    e->Copy(Code::Mem(types[ptr],Code::RFP, firstParamOffset() ),
                                             // the pointer to result is the first (invisible) param
             reg,Code::Imm(types[ptr],ty->size)); // copy ptr $fp%+d, ptr $0, ptr %d
 }

@@ -6,19 +6,27 @@ typedef struct
 	int rem; /* remainder */
 } div_t;
 
-div_t div(int _numer, int _denom)
+typedef struct
+{
+	int number, denom;
+} fract_t;
+
+div_t div(fract_t fract)
 {
 	div_t res;
-	res.quot = _numer;
-	res.rem = _denom;
-	printf("quot=%d rem=%d\n",res.quot,res.rem);
+	printf("number=%d denom=%d\n",fract.number,fract.denom);
+	res.quot = fract.number;
+	res.rem = fract.denom;
 	return res;
 }
 
 int main()
 {
+	fract_t fract;
 	div_t res;
-	res = div (33, 44);
+	fract.number = 33;
+	fract.denom = 44;
+	res = div (fract);
 	printf("quot=%d rem=%d\n",res.quot,res.rem);
 	return res.rem != 44;
 }

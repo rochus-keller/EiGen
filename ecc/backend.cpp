@@ -173,9 +173,12 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
         std::string lib = targets[target].name;
         lib += "run.obf";
         libs.push_back(lib);
+#if 1
+        // apparently not required, but includes things like floor, sqrt, putchar etc.
         lib = targets[target].backend;
         lib += "run.obf";
         libs.push_back(lib);
+#endif
     }
 
     for (int i = 0; i < inputs->len; i++)

@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdarg.h>
+//#include <lib_adapter.h>
 
 extern int putchar(int);
 extern void* malloc(size_t _size);
@@ -331,4 +332,12 @@ asm(
 	"	jump	fun $0\n"
 	"#endif"
 	)
+
+#if 0
+// TODO: these crash, stdio and FILE not compatible with ECS runtime
+FUNCTION(libc,getc,1)
+FUNCTION(libc,putc,2)
+// this works:
+FUNCTION(libc,rand,0)
+#endif
 

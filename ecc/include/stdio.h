@@ -107,6 +107,11 @@ typedef struct __sFILE FILE;
 
 #define	TMP_MAX		26
 
+#ifdef __ecs_chibicc__
+extern FILE* stdin;
+extern FILE* stdout;
+extern FILE* stderr;
+#else
 #define	stdin	(_impure_ptr->_stdin)
 #define	stdout	(_impure_ptr->_stdout)
 #define	stderr	(_impure_ptr->_stderr)
@@ -114,16 +119,11 @@ typedef struct __sFILE FILE;
 #define _stdin_r(x)	((x)->_stdin)
 #define _stdout_r(x)	((x)->_stdout)
 #define _stderr_r(x)	((x)->_stderr)
+#endif
 
 /*
  * Functions defined in ANSI C standard.
  */
-
-#ifdef __GNUC__
-#define __VALIST __gnuc_va_list
-#else
-#define __VALIST char*
-#endif
 
 #ifndef _REENT_ONLY
 int	_EXFUN(remove, (const char *));
@@ -170,31 +170,10 @@ void    _EXFUN(perror, (const char *));
 FILE *	_EXFUN(fopen, (const char *_name, const char *_type));
 int	_EXFUN(sprintf, (char *, const char *, ...));
 #endif
-#ifndef _STRICT_ANSI
-int	_EXFUN(vfiprintf, (FILE *, const char *, __VALIST));
-int	_EXFUN(iprintf, (const char *, ...));
-int	_EXFUN(fiprintf, (FILE *, const char *, ...));
-#endif
+
 
 /*
- * Routines in POSIX 1003.1.
- */
-
-#ifndef _STRICT_ANSI
-#ifndef _REENT_ONLY
-FILE *	_EXFUN(fdopen, (int, const char *));
-#endif
-int	_EXFUN(fileno, (FILE *));
-int	_EXFUN(getw, (FILE *));
-int	_EXFUN(pclose, (FILE *));
-FILE *  _EXFUN(popen, (const char *, const char *));
-int	_EXFUN(putw, (int, FILE *));
-void    _EXFUN(setbuffer, (FILE *, char *, int));
-int	_EXFUN(setlinebuf, (FILE *));
-#endif
-
-/*
- * Recursive versions of the above.
+ * reentrant versions of the above.
  */
 
 FILE *	_EXFUN(_fdopen_r, (struct _reent *, int, const char *));
@@ -224,51 +203,9 @@ int	_EXFUN(_vsprintf_r, (struct _reent *, char *, const char *, __VALIST));
  * Routines internal to the implementation.
  */
 
-int	_EXFUN(__srget, (FILE *));
-int	_EXFUN(__swbuf, (int, FILE *));
-
 /*
  * Stdio function-access interface.
  */
-
-#ifndef _STRICT_ANSI
-FILE	*_EXFUN(funopen,(const _PTR _cookie,
-		int (*readfn)(_PTR _cookie, char *_buf, int _n),
-		int (*writefn)(_PTR _cookie, const char *_buf, int _n),
-		fpos_t (*seekfn)(_PTR _cookie, fpos_t _off, int _whence),
-		int (*closefn)(_PTR _cookie)));
-
-#define	fropen(cookie, fn) funopen(cookie, fn, (int (*)())0, (fpos_t (*)())0, (int (*)())0)
-#define	fwopen(cookie, fn) funopen(cookie, (int (*)())0, fn, (fpos_t (*)())0, (int (*)())0)
-#endif
-
-/*
- * The __sfoo macros are here so that we can 
- * define function versions in the C library.
- */
-#define	__sgetc(p) (--(p)->_r < 0 ? __srget(p) : (int)(*(p)->_p++))
-#ifdef _never /* __GNUC__ */
-/* If this inline is actually used, then systems using coff debugging
-   info get hopelessly confused.  21sept93 rich@cygnus.com.  */
-static __inline int __sputc(int _c, FILE *_p) {
-	if (--_p->_w >= 0 || (_p->_w >= _p->_lbfsize && (char)_c != '\n'))
-		return (*_p->_p++ = _c);
-	else
-		return (__swbuf(_c, _p));
-}
-#else
-/*
- * This has been tuned to generate reasonable code on the vax using pcc
- */
-#define	__sputc(c, p) \
-	(--(p)->_w < 0 ? \
-		(p)->_w >= (p)->_lbfsize ? \
-			(*(p)->_p = (c)), *(p)->_p != '\n' ? \
-				(int)*(p)->_p++ : \
-				__swbuf('\n', p) : \
-			__swbuf((int)(c), p) : \
-		(*(p)->_p = (c), (int)*(p)->_p++))
-#endif
 
 #define	__sfeof(p)	(((p)->_flags & __SEOF) != 0)
 #define	__sferror(p)	(((p)->_flags & __SERR) != 0)
@@ -279,25 +216,10 @@ static __inline int __sputc(int _c, FILE *_p) {
 #define	ferror(p)	__sferror(p)
 #define	clearerr(p)	__sclearerr(p)
 
-#if 0 /*ndef _STRICT_ANSI - FIXME: must initialize stdio first, use fn */
-#define	fileno(p)	__sfileno(p)
-#endif
-
-#ifndef lint
-#define	getc(fp)	__sgetc(fp)
-#define putc(x, fp)	__sputc(x, fp)
-#endif /* lint */
-
 #define	getchar()	getc(stdin)
 #define	putchar(x)	putc(x, stdout)
 
-#ifndef _STRICT_ANSI
-/* fast always-buffered version, true iff error */
-#define	fast_putc(x,p) (--(p)->_w < 0 ? \
-	__swbuf((int)(x), p) == EOF : (*(p)->_p = (x), (p)->_p++, 0))
 
-#define	L_cuserid	9		/* posix says it goes in stdio.h :( */
-#endif
 
 #ifdef __cplusplus
 }

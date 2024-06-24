@@ -74,19 +74,20 @@ enum EcsTypes { u1, u2, u4, u8, s1, s2, s4, s8, f4, f8, ptr, fun, MaxType };
 struct EcsType {
     uint8_t type;
     uint8_t width;
+    const char* name;
 } ecsTypes[] = {
-    { u1, 8 },
-    { u2, 16 },
-    { u4, 32 },
-    { u8, 64 },
-    { s1, 8 },
-    { s2, 16 },
-    { s4, 32 },
-    { s8, 64 },
-    { f4, 32 },
-    { f8, 64 },
-    { ptr, 0 },
-    { fun, 0 },
+    { u1, 8, "u1" },
+    { u2, 16, "u2" },
+    { u4, 32, "u4" },
+    { u8, 64, "u8" },
+    { s1, 8, "s1" },
+    { s2, 16, "s2" },
+    { s4, 32, "s4" },
+    { s8, 64, "s8" },
+    { f4, 32, "f4" },
+    { f8, 64, "f8" },
+    { ptr, 0, "ptr" },
+    { fun, 0, "fun" },
 };
 
 static Code::Type types[MaxType];
@@ -140,6 +141,11 @@ static uint8_t getTypeId(Type *ty) {
         return u4;
     else
         return u8;
+}
+
+static const char* getTypeName(Type *ty) {
+    // ok
+    return ecsTypes[ getTypeId(ty) ].name;
 }
 
 static Code::Type getCodeType(Type *ty) {
@@ -477,13 +483,15 @@ static int push_args(Node *node) {
     return stack;
 }
 
+static int firstParamOffset();
+
 // copy struct pointed to by $0 to the local var at offset
 static void copy_struct_mem(const Smop& reg) {
     assert( current_fn != 0 );
     Type *ty = current_fn->ty->return_ty;
-    Obj *var = current_fn->params;
 
-    e->Copy(Code::Reg(types[ptr],Code::RFP, var->offset),
+    e->Copy(Code::Reg(types[ptr],Code::RFP, firstParamOffset() ),
+                                            // the pointer to result is the first (invisible) param
             reg,Code::Imm(types[ptr],ty->size)); // copy ptr $fp%+d, ptr $0, ptr %d
 }
 
@@ -743,14 +751,20 @@ static Smop gen_expr(Node *node) {
         const RestoreRegisterState restore(*e);
 
         const int stack_slots = push_args(node);
-        Smop f = gen_expr(node->lhs);
+        Smop fun = gen_expr(node->lhs);
 
         Type* ret = getFuncReturn(node->lhs->ty);
         Smop res;
-        if( ret )
-            res = e->Call(getCodeType(ret), f,stack_slots * target_stack_align); // call fun $0, %d
-        else
-            e->Call(f,stack_slots * target_stack_align); // call fun $0, %d
+        if( node->ret_buffer )
+        {
+            e->Call(fun,stack_slots * target_stack_align); // call fun $0, %d
+            res = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
+        }else if( ret )
+        {
+            res = e->Call(getCodeType(ret), fun,stack_slots * target_stack_align); // call fun $0, %d
+
+        }else
+            e->Call(fun,stack_slots * target_stack_align); // call fun $0, %d
 
         depth -= stack_slots;
 
@@ -1071,6 +1085,11 @@ static void gen_stmt(Node *node) {
     error_tok(node->tok, "invalid statement");
 }
 
+static int firstParamOffset()
+{
+    return 2 * target_stack_align; // previous frame and return address;
+}
+
 // Assign offsets to local variables.
 static void assign_lvar_offsets(Obj *prog) {
 
@@ -1078,7 +1097,10 @@ static void assign_lvar_offsets(Obj *prog) {
         if (!fn->is_function)
             continue;
 
-        int top = 2 * target_stack_align; // previous frame and return address
+        int top = firstParamOffset();
+
+        if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
+            top += target_stack_align; // if fn has struct return, the first param is a pointer to result
 
         // Assign offsets to parameters.
         for (Obj *var = fn->params; var; var = var->next) {
@@ -1171,19 +1193,20 @@ static void emit_data(Obj *prog) {
 
 static void print_var_names(Obj* fn)
 {
-#if 0
-    // TODO
+    std::ostringstream s;
+    if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
+        s << "| return buffer ptr offset=" << firstParamOffset() << " ";
     for (Obj *var = fn->params; var; var = var->next) {
-        println("  ; param '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
-                var->offset, var->ty->size, var->align );
+        s << "| param '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+             " size=" << var->ty->size << " align=" << var->align << " ";
     }
     for (Obj *var = fn->locals; var; var = var->next) {
         if( var->offset > 0 )
             break; // hit a param; apparently chibicc links params just behind locals
-        println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
-                var->offset, var->ty->size, var->align );
+        s << "| local '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+             " size=" << var->ty->size << " align=" << var->align << " ";
     }
-#endif
+    e->Comment(s.str().c_str());
 }
 
 static void emit_text(Obj *prog) {

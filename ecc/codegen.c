@@ -419,17 +419,18 @@ static int push_args(Node *node) {
     return stack;
 }
 
+static int firstParamOffset();
+
 // copy struct pointed to by $0 to the local var at offset
 static void copy_struct_mem(void) {
     // ok
     Type *ty = current_fn->ty->return_ty;
-    Obj *var = current_fn->params;
 
     const uint8_t tmp = buy();
     const char* to = ecsRegs[tmp].name;
 
-    println("  mov ptr %s, ptr $fp%+d", to, var->offset);
-
+    println("  mov ptr %s, ptr $fp%+d", to, firstParamOffset());
+                                        // the pointer to result is the first (invisible) param
     println("  copy ptr %s, ptr $0, ptr %d", to, ty->size);
 
     sell(tmp);
@@ -752,7 +753,11 @@ static void gen_expr(Node *node) {
 
         println("  call fun $0, %d", stack_slots * target_stack_align);
         Type* ret = getFuncReturn(node->lhs->ty);
-        if( ret )
+        if( node->ret_buffer )
+        {
+            println("  mov ptr $0, ptr $fp%+d", node->ret_buffer->offset);
+
+        }else if( ret )
         {
             const char* type = getTypeName(ret);
             println("  mov %s $0, %s $res", type, type);
@@ -1019,6 +1024,11 @@ static void gen_stmt(Node *node) {
     error_tok(node->tok, "invalid statement");
 }
 
+static int firstParamOffset()
+{
+    return 2 * target_stack_align; // previous frame and return address;
+}
+
 // Assign offsets to local variables.
 static void assign_lvar_offsets(Obj *prog) {
     // ok
@@ -1026,7 +1036,10 @@ static void assign_lvar_offsets(Obj *prog) {
         if (!fn->is_function)
             continue;
 
-        int top = 2 * target_stack_align; // previous frame and return address
+        int top = firstParamOffset();
+
+        if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
+            top += target_stack_align; // if fn has struct return, the first param is a pointer to result
 
         // Assign offsets to parameters.
         for (Obj *var = fn->params; var; var = var->next) {
@@ -1149,9 +1162,15 @@ static void emit_text(Obj *prog) {
                 code++;
             if( *code != '.' )
                 error_tok(fn->body->tok,"invalid assembler section");
-            println("  ; begin inline asm, line %d", fn->body->tok->line_no);
-            println(fn->body->asm_str);
-            println("  ; end inline asm");
+            if( fn->is_inline )
+            {
+                println("  asm %s, %d, \"%s\"", base_file, fn->body->tok->line_no, fn->body->asm_str);
+            }else
+            {
+                println("  ; begin inline asm, line %d", fn->body->tok->line_no);
+                println(fn->body->asm_str);
+                println("  ; end inline asm");
+            }
             continue;
         }
 

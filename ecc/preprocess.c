@@ -1060,7 +1060,6 @@ void init_macros(void) {
   define_macro("__ELF__", "1");
   define_macro("__SIZEOF_SIZE_T__", "8");
   define_macro("__SIZE_TYPE__", "unsigned long");
-  define_macro("__STDC_HOSTED__", "1");
   define_macro("__STDC_NO_COMPLEX__", "1");
   define_macro("__STDC_UTF_16__", "1");
   define_macro("__STDC_UTF_32__", "1");
@@ -1109,6 +1108,8 @@ void init_macros(void) {
       break;
   }
 
+  define_macro("__BIG_ENDIAN", "4321");
+  define_macro("__LITTLE_ENDIAN", "1234");
   define_macro("__BYTE_ORDER", "__LITTLE_ENDIAN");
 
   if( target >= AMD32Linux && target <= ARMT32FPELinux )
@@ -1152,10 +1153,28 @@ void init_macros(void) {
   define_int_macro("__SIZEOF_PTRDIFF_T__", target_pointer_width);
   define_int_macro("__STACK_ALIGNMENT__", target_stack_align);
 
+  define_int_macro("__CHAR_BIT__", 8);
+  define_int_macro("__SCHAR_MAX__", 1 << ( 8 - 1 ));
+  define_int_macro("__SHRT_MAX__", 1 << ( 16 - 1 ));
+  define_int_macro("__INT_MAX__", 1 << ( basic_type(TY_INT)->size * 8 - 1 ));
+  define_int_macro("__LONG_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_int_macro("__LONG_LONG_MAX__", 1 << ( 64 - 1 ));
+  define_macro("__PTRDIFF_TYPE__", "long");
+  define_int_macro("__PTRDIFF_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_macro("__SIZE_TYPE__", "unsigned long");
+  define_int_macro("__SIZE_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_macro("__INTPTR_TYPE__", "long");
+  define_int_macro("__INTPTR_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_macro("__UINTPTR_TYPE__", "unsigned long");
+  define_int_macro("__UINTPTR_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 ));
+  define_macro("__INTMAX_TYPE__", "long");
+  define_int_macro("__INTMAX_MAX__", 1 << ( basic_type(TY_LONGLONG)->size * 8 - 1 ));
+
   define_macro("__chibicc__", "1");
   define_macro("__ecs_chibicc__", "1");
   define_macro("__STDC_VERSION__", "199901L"); // orig: 201112L");
   define_macro("__STDC__", "1");
+  define_macro("__STDC_HOSTED__", "1");
 
 
   add_builtin("__FILE__", file_macro);

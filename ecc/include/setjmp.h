@@ -9,7 +9,6 @@ extern "C" {
 #endif
 #define _SETJMP_H_
 
-#include "_ansi.h"
 
 // ECS specific, implementation in setjmp.cod
 typedef struct jmp_buf {void *sp, *fp, (*pc) ();} jmp_buf[1];

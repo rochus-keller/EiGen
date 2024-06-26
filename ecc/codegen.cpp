@@ -256,28 +256,26 @@ void name_hash(const char* path, char* buf, int buflen )
     }
 }
 
-static std::string getName(Obj * o)
+static std::string rename(int is_static, const char* in)
 {
-    if( o->is_static && o->name[0] != '.' )
+    if( !is_static || in[0] == '.' )
+        return in;
+    const int len = 9;
+    char buf[len];
+    name_hash(base_file,buf,len);
+    std::string name = buf;
+    name += '#';
+    std::string file = file_name(base_file);
+    for(int i = 0; i < file.size(); i++ )
     {
-        const int len = 9;
-        char buf[len];
-        name_hash(base_file,buf,len);
-        std::string name = buf;
-        name += '#';
-        std::string file = file_name(base_file);
-        for(int i = 0; i < file.size(); i++ )
-        {
-            const char ch = file[i];
-            if( !::isalnum(ch) && ch != '_' && ch != '.' )
-                file[i] = '_';
-        }
-        name += file;
-        name += '#';
-        name += o->name;
-        return name;
-    }else
-        return o->name;
+        const char ch = file[i];
+        if( !::isalnum(ch) && ch != '_' && ch != '.' )
+            file[i] = '_';
+    }
+    name += file;
+    name += '#';
+    name += in;
+    return name;
 }
 
 static void pushRes(const Code::Type& type, const Smop& reg) {
@@ -308,6 +306,7 @@ static Smop gen_addr(Node *node) {
     case ND_VAR:
         // Variable-length array, which is always local.
         if (node->var->ty->kind == TY_VLA) {
+            error_tok(node->tok,"VLA not yet supported");
             return (Code::Reg(types[ptr],Code::RFP, node->var->offset)); // mov ptr $0, ptr $fp%+d"
         }
 
@@ -341,12 +340,12 @@ static Smop gen_addr(Node *node) {
         }
 #endif
         // Function
-        if (node->ty->kind == TY_FUNC) {
-            return (Code::Adr(types[fun],getName(node->var))); // mov fun $0, fun @%s
+        if (node->ty && node->ty->kind == TY_FUNC) {
+            return (Code::Adr(types[fun],rename(node->var->is_static,node->var->name))); // mov fun $0, fun @%s
         }
 
         // Global variable
-        return (Code::Adr(types[ptr],getName(node->var))); // mov ptr $0, ptr @%s
+        return (Code::Adr(types[ptr],rename(node->var->is_static,node->var->name))); // mov ptr $0, ptr @%s
     case ND_DEREF:
         return gen_expr(node->lhs);
     case ND_COMMA:
@@ -368,6 +367,7 @@ static Smop gen_addr(Node *node) {
         }
         break;
     case ND_VLA_PTR:
+        error_tok(node->tok,"VLA not yet supported");
         return (Code::Reg(types[ptr], Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
     }
 
@@ -596,6 +596,8 @@ static Smop gen_expr(Node *node) {
     case ND_VAR: {
 
         Smop tmp = gen_addr(node);
+        if( node->ty == 0 )
+            error_tok(node->tok,"cannot dereference variable with missing type");
         load(node->ty, tmp);
         return tmp;
     }
@@ -693,12 +695,25 @@ static Smop gen_expr(Node *node) {
         Label lelse = e->CreateLabel();
         Label lend = e->CreateLabel();
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond)); // breq .L.else.%d, %s 0, %s $0
-        Smop res = e->MakeRegister(gen_expr(node->then));
-        e->Fix(res);
+        Smop res;
+        Smop lhs = gen_expr(node->then);
+        // apparently C allows x ? (void)a : (void)b or mixed
+        if( lhs.model != Code::Operand::Void ) {
+            res = e->MakeRegister(lhs);
+            e->Fix(res);
+        }
         e->Branch(lend); // br .L.end.%d
         lelse();
-        e->Move(res,gen_expr(node->els));
-        e->Unfix(res);
+        Smop rhs = gen_expr(node->els);
+        if( rhs.model == Code::Operand::Void || lhs.model == Code::Operand::Void ) {
+            if( res.model == Code::Operand::Register )
+                e->Unfix(res);
+            res = rhs;
+        } else {
+            e->Move(res,rhs);
+            if( res.model == Code::Operand::Register )
+                e->Unfix(res);
+        }
         lend();
         return res;
     }
@@ -1138,15 +1153,24 @@ static Type* getTypeOf(Obj *prog, const char* name )
     return 0;
 }
 
+static int is_static(Obj *prog, const char* name)
+{
+    for (Obj *obj = prog; obj; obj = obj->next)
+        if( obj->name == name )
+            // the name is locally declared
+            return obj->is_static;
+    // name not found locally, so it cannot be static
+    return 0;
+}
+
 static void emit_data(Obj *prog) {
 
     for (Obj *var = prog; var; var = var->next) {
         if (var->is_function || !var->is_definition)
             continue;
 
-
         // if (var->is_static)
-        e->Begin(Code::Section::Data, getName(var), var->align,
+        e->Begin(Code::Section::Data, rename(var->is_static,var->name), var->align,
                  false, // required
                  false, // duplicable
                  var->is_tentative // replaceable
@@ -1174,10 +1198,12 @@ static void emit_data(Obj *prog) {
             while (pos < var->ty->size) {
                 if (rel && rel->offset == pos) {
                     Type* ty = getTypeOf(prog,*rel->label);
+
                     Code::Type type(Code::Type::Pointer,target_pointer_width);
                     if( ty && ty->kind == TY_FUNC )
                         type.model = Code::Type::Function;
-                    e->Define(Code::Adr(type,*rel->label));
+
+                    e->Define(Code::Adr(type,rename(is_static(prog,*rel->label),*rel->label)));
                     rel = rel->next;
                     pos += target_pointer_width;
                 } else {
@@ -1249,7 +1275,7 @@ static void emit_text(Obj *prog) {
         returnType = Code::Type();
 
         // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
-        e->Begin(Code::Section::Code, getName(fn) );
+        e->Begin(Code::Section::Code, rename(fn->is_static,fn->name) );
         labels.clear();
         clabels.clear();
         Label lret = e->CreateLabel();

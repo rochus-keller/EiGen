@@ -578,6 +578,8 @@ static void cc1(void) {
     tok = append_tokens(tok, tok2);
   }
 
+  printf("compiling '%s'\n", base_file);
+  fflush(stdout);
   // Tokenize and parse.
   Token *tok2 = must_tokenize_file(base_file);
   tok = append_tokens(tok, tok2);

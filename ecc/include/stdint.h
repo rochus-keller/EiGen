@@ -1,493 +1,236 @@
-/*
- * Copyright (c) 2004, 2005 by
- * Ralf Corsepius, Ulm/Germany. All rights reserved.
- *
- * Permission to use, copy, modify, and distribute this software
- * is freely granted, provided that this notice is preserved.
- */
+/* Integer types <stdint.h>
 
-#ifndef _STDINT_H
-#define _STDINT_H
+   This file is part of the Public Domain C Library (PDCLib).
+   Permission is granted to use, modify, and / or redistribute at will.
+*/
+
+#ifndef _PDCLIB_STDINT_H
+#define _PDCLIB_STDINT_H _PDCLIB_STDINT_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if defined(__GNUC__) && \
-  ( (__GNUC__ >= 4) || \
-    ( (__GNUC__ >= 3) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ > 2) ) )
-/* gcc > 3.2 implicitly defines the values we are interested */
-#define __STDINT_EXP(x) __##x##__
-#else
-#define __STDINT_EXP(x) x
-#include <limits.h>
+#include "pdclib/_PDCLIB_lib_ext1.h"
+#include "pdclib/_PDCLIB_internal.h"
+
+/* 7.18.1.1 Exact-width integer types. */
+
+#ifdef _PDCLIB_int8_t
+typedef _PDCLIB_int8_t int8_t;
+typedef _PDCLIB_uint8_t uint8_t;
 #endif
 
-/* Check if "long long" is 64bit wide */
-/* Modern GCCs provide __LONG_LONG_MAX__, SUSv3 wants LLONG_MAX */
-#if ( defined(__LONG_LONG_MAX__) && (__LONG_LONG_MAX__ > 0x7fffffff) ) \
-  || ( defined(LLONG_MAX) && (LLONG_MAX > 0x7fffffff) )
-#define __have_longlong64 1
+#ifdef _PDCLIB_int16_t
+typedef _PDCLIB_int16_t int16_t;
+typedef _PDCLIB_uint16_t uint16_t;
 #endif
 
-/* Check if "long" is 64bit or 32bit wide */
-#if __STDINT_EXP(LONG_MAX) > 0x7fffffff
-#define __have_long64 1
-#elif __STDINT_EXP(LONG_MAX) == 0x7fffffff && !defined(__SPU__)
-#define __have_long32 1
+#ifdef _PDCLIB_int32_t
+typedef _PDCLIB_int32_t int32_t;
+typedef _PDCLIB_uint32_t uint32_t;
 #endif
 
-#if __STDINT_EXP(SCHAR_MAX) == 0x7f
-typedef signed char int8_t ;
-typedef unsigned char uint8_t ;
-#define __int8_t_defined 1
+#ifdef _PDCLIB_int64_t
+typedef _PDCLIB_int64_t int64_t;
+typedef _PDCLIB_uint64_t uint64_t;
 #endif
 
-#if __int8_t_defined
-typedef signed char int_least8_t;
-typedef unsigned char uint_least8_t;
-#define __int_least8_t_defined 1
-#endif
+/* 7.18.1.2 Minimum-width integer types */
 
-#if __STDINT_EXP(SHRT_MAX) == 0x7fff
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#define __int16_t_defined 1
-#elif __STDINT_EXP(INT_MAX) == 0x7fff
-typedef signed int int16_t;
-typedef unsigned int uint16_t;
-#define __int16_t_defined 1
-#elif __STDINT_EXP(SCHAR_MAX) == 0x7fff
-typedef signed char int16_t;
-typedef unsigned char uint16_t;
-#define __int16_t_defined 1
-#endif
+/* You are allowed to add more types here, e.g. int_least24_t. */
 
-#if __int16_t_defined
-typedef int16_t   	int_least16_t;
-typedef uint16_t 	uint_least16_t;
-#define __int_least16_t_defined 1
+typedef _PDCLIB_int_least8_t  int_least8_t;
+typedef _PDCLIB_int_least16_t int_least16_t;
+typedef _PDCLIB_int_least32_t int_least32_t;
+typedef _PDCLIB_int_least64_t int_least64_t;
 
-#if !__int_least8_t_defined
-typedef int16_t	   	int_least8_t;
-typedef uint16_t  	uint_least8_t;
-#define __int_least8_t_defined 1
-#endif
-#endif
+typedef _PDCLIB_uint_least8_t  uint_least8_t;
+typedef _PDCLIB_uint_least16_t uint_least16_t;
+typedef _PDCLIB_uint_least32_t uint_least32_t;
+typedef _PDCLIB_uint_least64_t uint_least64_t;
 
-#if __have_long32
-typedef signed long int32_t;
-typedef unsigned long uint32_t;
-#define __int32_t_defined 1
-#elif __STDINT_EXP(INT_MAX) == 0x7fffffffL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-#define __int32_t_defined 1
-#elif __STDINT_EXP(SHRT_MAX) == 0x7fffffffL
-typedef signed short int32_t;
-typedef unsigned short uint32_t;
-#define __int32_t_defined 1
-#elif __STDINT_EXP(SCHAR_MAX) == 0x7fffffffL
-typedef signed char int32_t;
-typedef unsigned char uint32_t;
-#define __int32_t_defined 1
-#endif
+/* 7.18.1.3 Fastest minimum-width integer types */
 
-#if __int32_t_defined
-typedef int32_t   	int_least32_t;
-typedef uint32_t 	uint_least32_t;
-#define __int_least32_t_defined 1
+/* You are allowed to add more types here, e.g. int_fast24_t. */
 
-#if !__int_least8_t_defined
-typedef int32_t	   	int_least8_t;
-typedef uint32_t  	uint_least8_t;
-#define __int_least8_t_defined 1
-#endif
+typedef _PDCLIB_int_fast8_t  int_fast8_t;
+typedef _PDCLIB_int_fast16_t int_fast16_t;
+typedef _PDCLIB_int_fast32_t int_fast32_t;
+typedef _PDCLIB_int_fast64_t int_fast64_t;
 
-#if !__int_least16_t_defined
-typedef int32_t	   	int_least16_t;
-typedef uint32_t  	uint_least16_t;
-#define __int_least16_t_defined 1
+typedef _PDCLIB_uint_fast8_t  uint_fast8_t;
+typedef _PDCLIB_uint_fast16_t uint_fast16_t;
+typedef _PDCLIB_uint_fast32_t uint_fast32_t;
+typedef _PDCLIB_uint_fast64_t uint_fast64_t;
+
+/* 7.18.1.4 Integer types capable of holding object pointers */
+
+typedef _PDCLIB_intptr_t  intptr_t;
+typedef _PDCLIB_uintptr_t uintptr_t;
+
+/* 7.18.1.5 Greatest-width integer types */
+
+typedef _PDCLIB_intmax_t  intmax_t;
+typedef _PDCLIB_uintmax_t uintmax_t;
+
+/* 7.18.2 Limits of specified-width integer types */
+
+#if defined( __cplusplus ) && __cplusplus < 201103L
+#ifndef __STDC_LIMIT_MACROS
+#define _PDCLIB_NO_LIMIT_MACROS
 #endif
 #endif
 
-#if __have_long64
-typedef signed long int64_t;
-typedef unsigned long uint64_t;
-#define __int64_t_defined 1
-#elif __have_longlong64
-typedef signed long long int64_t;
-typedef unsigned long long uint64_t;
-#define __int64_t_defined 1
-#elif  __STDINT_EXP(INT_MAX) > 0x7fffffff
-typedef signed int int64_t;
-typedef unsigned int uint64_t;
-#define __int64_t_defined 1
+#ifndef _PDCLIB_NO_LIMIT_MACROS
+
+/* 7.18.2.1 Limits of exact-width integer types */
+
+#if _PDCLIB_TWOS_COMPLEMENT == 1
+
+#if _PDCLIB_INT_LEAST8_MAX == 0x7f
+#define INT8_MAX _PDCLIB_INT_LEAST8_MAX
+#define INT8_MIN _PDCLIB_INT_LEAST8_MIN
+#define UINT8_MAX _PDCLIB_UINT_LEAST8_MAX
 #endif
 
-#if __int64_t_defined
-typedef int64_t   	int_least64_t;
-typedef uint64_t 	uint_least64_t;
-#define __int_least64_t_defined 1
-
-#if !__int_least8_t_defined
-typedef int64_t	   	int_least8_t;
-typedef uint64_t  	uint_least8_t;
-#define __int_least8_t_defined 1
+#if _PDCLIB_INT_LEAST16_MAX == 0x7fff
+#define INT16_MAX _PDCLIB_INT_LEAST16_MAX
+#define INT16_MIN _PDCLIB_INT_LEAST16_MIN
+#define UINT16_MAX _PDCLIB_UINT_LEAST16_MAX
 #endif
 
-#if !__int_least16_t_defined
-typedef int64_t	   	int_least16_t;
-typedef uint64_t  	uint_least16_t;
-#define __int_least16_t_defined 1
+#if _PDCLIB_INT_LEAST32_MAX == 0x7fffffffl
+#define INT32_MAX _PDCLIB_INT_LEAST32_MAX
+#define INT32_MIN _PDCLIB_INT_LEAST32_MIN
+#define UINT32_MAX _PDCLIB_UINT_LEAST32_MAX
 #endif
 
-#if !__int_least32_t_defined
-typedef int64_t	   	int_least32_t;
-typedef uint64_t  	uint_least32_t;
-#define __int_least32_t_defined 1
-#endif
-#endif
-
-/*
- * Fastest minimum-width integer types
- *
- * Assume int to be the fastest type for all types with a width 
- * less than __INT_MAX__ rsp. INT_MAX
- */
-#if __STDINT_EXP(INT_MAX) >= 0x7f
-  typedef signed int int_fast8_t;
-  typedef unsigned int uint_fast8_t;
-#define __int_fast8_t_defined 1
+#if _PDCLIB_INT_LEAST64_MAX == 0x7fffffffffffffffll
+#define INT64_MAX _PDCLIB_INT_LEAST64_MAX
+#define INT64_MIN _PDCLIB_INT_LEAST64_MIN
+#define UINT64_MAX _PDCLIB_UINT_LEAST64_MAX
 #endif
 
-#if __STDINT_EXP(INT_MAX) >= 0x7fff
-  typedef signed int int_fast16_t;
-  typedef unsigned int uint_fast16_t;
-#define __int_fast16_t_defined 1
 #endif
 
-#if __STDINT_EXP(INT_MAX) >= 0x7fffffff
-  typedef signed int int_fast32_t;
-  typedef unsigned int uint_fast32_t;
-#define __int_fast32_t_defined 1
+/* 7.18.2.2 Limits of minimum-width integer types */
+
+#define INT_LEAST8_MIN  _PDCLIB_INT_LEAST8_MIN
+#define INT_LEAST8_MAX  _PDCLIB_INT_LEAST8_MAX
+#define UINT_LEAST8_MAX _PDCLIB_UINT_LEAST8_MAX
+
+#define INT_LEAST16_MIN  _PDCLIB_INT_LEAST16_MIN
+#define INT_LEAST16_MAX  _PDCLIB_INT_LEAST16_MAX
+#define UINT_LEAST16_MAX _PDCLIB_UINT_LEAST16_MAX
+
+#define INT_LEAST32_MIN  _PDCLIB_INT_LEAST32_MIN
+#define INT_LEAST32_MAX  _PDCLIB_INT_LEAST32_MAX
+#define UINT_LEAST32_MAX _PDCLIB_UINT_LEAST32_MAX
+
+#define INT_LEAST64_MIN  _PDCLIB_INT_LEAST64_MIN
+#define INT_LEAST64_MAX  _PDCLIB_INT_LEAST64_MAX
+#define UINT_LEAST64_MAX _PDCLIB_UINT_LEAST64_MAX
+
+/* 7.18.2.3 Limits of fastest minimum-width integer types */
+
+#define INT_FAST8_MIN  _PDCLIB_INT_FAST8_MIN
+#define INT_FAST8_MAX  _PDCLIB_INT_FAST8_MAX
+#define UINT_FAST8_MAX _PDCLIB_UINT_FAST8_MAX
+
+#define INT_FAST16_MIN  _PDCLIB_INT_FAST16_MIN
+#define INT_FAST16_MAX  _PDCLIB_INT_FAST16_MAX
+#define UINT_FAST16_MAX _PDCLIB_UINT_FAST16_MAX
+
+#define INT_FAST32_MIN  _PDCLIB_INT_FAST32_MIN
+#define INT_FAST32_MAX  _PDCLIB_INT_FAST32_MAX
+#define UINT_FAST32_MAX _PDCLIB_UINT_FAST32_MAX
+
+#define INT_FAST64_MIN  _PDCLIB_INT_FAST64_MIN
+#define INT_FAST64_MAX  _PDCLIB_INT_FAST64_MAX
+#define UINT_FAST64_MAX _PDCLIB_UINT_FAST64_MAX
+
+/* 7.18.2.4 Limits of integer types capable of holding object pointers */
+
+#define INTPTR_MIN  _PDCLIB_INTPTR_MIN
+#define INTPTR_MAX  _PDCLIB_INTPTR_MAX
+#define UINTPTR_MAX _PDCLIB_UINTPTR_MAX
+
+/* 7.18.2.5 Limits of greatest-width integer types */
+
+#define INTMAX_MIN  _PDCLIB_INTMAX_MIN
+#define INTMAX_MAX  _PDCLIB_INTMAX_MAX
+#define UINTMAX_MAX _PDCLIB_UINTMAX_MAX
+
+/* 7.18.3 Limits of other integer types */
+
+#define PTRDIFF_MIN _PDCLIB_PTRDIFF_MIN
+#define PTRDIFF_MAX _PDCLIB_PTRDIFF_MAX
+
+#define SIG_ATOMIC_MIN _PDCLIB_SIG_ATOMIC_MIN
+#define SIG_ATOMIC_MAX _PDCLIB_SIG_ATOMIC_MAX
+
+#define SIZE_MAX _PDCLIB_SIZE_MAX
+
+#define WCHAR_MIN _PDCLIB_WCHAR_MIN
+#define WCHAR_MAX _PDCLIB_WCHAR_MAX
+
+#define WINT_MIN _PDCLIB_WINT_MIN
+#define WINT_MAX _PDCLIB_WINT_MAX
+
 #endif
 
-#if __STDINT_EXP(INT_MAX) > 0x7fffffff
-  typedef signed int int_fast64_t;
-  typedef unsigned int uint_fast64_t;
-#define __int_fast64_t_defined 1
-#endif
+/* 7.18.4 Macros for integer constants */
 
-/*
- * Fall back to [u]int_least<N>_t for [u]int_fast<N>_t types
- * not having been defined, yet.
- * Leave undefined, if [u]int_least<N>_t should not be available.
- */
-#if !__int_fast8_t_defined
-#if __int_least8_t_defined
-  typedef int_least8_t int_fast8_t;
-  typedef uint_least8_t uint_fast8_t;
-#define __int_fast8_t_defined 1
-#endif
-#endif
-
-#if !__int_fast16_t_defined
-#if __int_least16_t_defined
-  typedef int_least16_t int_fast16_t;
-  typedef uint_least16_t uint_fast16_t;
-#define __int_fast16_t_defined 1
-#endif
-#endif
-
-#if !__int_fast32_t_defined
-#if __int_least32_t_defined
-  typedef int_least32_t int_fast32_t;
-  typedef uint_least32_t uint_fast32_t;
-#define __int_fast32_t_defined 1
-#endif
-#endif
-
-#if !__int_fast64_t_defined
-#if __int_least64_t_defined
-  typedef int_least64_t int_fast64_t;
-  typedef uint_least64_t uint_fast64_t;
-#define __int_fast64_t_defined 1
-#endif
-#endif
-
-/* Greatest-width integer types */
-/* Modern GCCs provide __INTMAX_TYPE__ */
-#if defined(__INTMAX_TYPE__)
-  typedef __INTMAX_TYPE__ intmax_t;
-#elif __have_longlong64
-  typedef signed long long intmax_t;
-#else
-  typedef signed long intmax_t;
-#endif
-
-/* Modern GCCs provide __UINTMAX_TYPE__ */
-#if defined(__UINTMAX_TYPE__)
-  typedef __UINTMAX_TYPE__ uintmax_t;
-#elif __have_longlong64
-  typedef unsigned long long uintmax_t;
-#else
-  typedef unsigned long uintmax_t;
-#endif
-
-/*
- * GCC doesn't provide an appropriate macro for [u]intptr_t
- * For now, use __PTRDIFF_TYPE__
- */
-#if defined(__PTRDIFF_TYPE__)
-typedef signed __PTRDIFF_TYPE__ intptr_t;
-typedef unsigned __PTRDIFF_TYPE__ uintptr_t;
-#define INTPTR_MAX PTRDIFF_MAX
-#define INTPTR_MIN PTRDIFF_MIN
-#ifdef __UINTPTR_MAX__
-#define UINTPTR_MAX __UINTPTR_MAX__
-#else
-#define UINTPTR_MAX (2UL * PTRDIFF_MAX + 1)
-#endif
-#else
-/*
- * Fallback to hardcoded values, 
- * should be valid on cpu's with 32bit int/32bit void*
- */
-typedef signed long intptr_t;
-typedef unsigned long uintptr_t;
-#define INTPTR_MAX __STDINT_EXP(LONG_MAX)
-#define INTPTR_MIN (-__STDINT_EXP(LONG_MAX) - 1)
-#define UINTPTR_MAX (__STDINT_EXP(LONG_MAX) * 2UL + 1)
-#endif
-
-/* Limits of Specified-Width Integer Types */
-
-#if __int8_t_defined
-#define INT8_MIN 	-128
-#define INT8_MAX 	 127
-#define UINT8_MAX 	 255
-#endif
-
-#if __int_least8_t_defined
-#define INT_LEAST8_MIN 	-128
-#define INT_LEAST8_MAX 	 127
-#define UINT_LEAST8_MAX	 255
-#else
-#error required type int_least8_t missing
-#endif
-
-#if __int16_t_defined
-#define INT16_MIN 	-32768
-#define INT16_MAX 	 32767
-#define UINT16_MAX 	 65535
-#endif
-
-#if __int_least16_t_defined
-#define INT_LEAST16_MIN	-32768
-#define INT_LEAST16_MAX	 32767
-#define UINT_LEAST16_MAX 65535
-#else
-#error required type int_least16_t missing
-#endif
-
-#if __int32_t_defined
-#if __have_long32
-#define INT32_MIN 	 (-2147483647L-1)
-#define INT32_MAX 	 2147483647L
-#define UINT32_MAX       4294967295UL
-#else
-#define INT32_MIN 	 (-2147483647-1)
-#define INT32_MAX 	 2147483647
-#define UINT32_MAX       4294967295U
+#if defined( __cplusplus ) && __cplusplus < 201103L
+#ifndef __STDC_CONSTANT_MACROS
+#define _PDCLIB_NO_CONSTANT_MACROS
 #endif
 #endif
 
-#if __int_least32_t_defined
-#if __have_long32
-#define INT_LEAST32_MIN  (-2147483647L-1)
-#define INT_LEAST32_MAX  2147483647L
-#define UINT_LEAST32_MAX 4294967295UL
-#else
-#define INT_LEAST32_MIN  (-2147483647-1)
-#define INT_LEAST32_MAX  2147483647
-#define UINT_LEAST32_MAX 4294967295U
-#endif
-#else
-#error required type int_least32_t missing
+#ifndef _PDCLIB_NO_CONSTANT_MACROS
+
+/* 7.18.4.1 Macros for minimum-width integer constants */
+
+/* Expand to an integer constant of specified value and type int_leastN_t */
+
+#define INT8_C  _PDCLIB_INT_LEAST8_C
+#define INT16_C _PDCLIB_INT_LEAST16_C
+#define INT32_C _PDCLIB_INT_LEAST32_C
+#define INT64_C _PDCLIB_INT_LEAST64_C
+
+/* Expand to an integer constant of specified value and type uint_leastN_t */
+
+#define UINT8_C  _PDCLIB_UINT_LEAST8_C
+#define UINT16_C _PDCLIB_UINT_LEAST16_C
+#define UINT32_C _PDCLIB_UINT_LEAST32_C
+#define UINT64_C _PDCLIB_UINT_LEAST64_C
+
+/* 7.18.4.2 Macros for greatest-width integer constants */
+
+/* Expand to an integer constant of specified value and type intmax_t */
+#define INTMAX_C( value ) _PDCLIB_INTMAX_C( value )
+
+/* Expand to an integer constant of specified value and type uintmax_t */
+#define UINTMAX_C( value ) _PDCLIB_UINTMAX_C( value )
+
 #endif
 
-#if __int64_t_defined
-#if __have_long64
-#define INT64_MIN 	(-9223372036854775807L-1L)
-#define INT64_MAX 	 9223372036854775807L
-#define UINT64_MAX 	18446744073709551615U
-#elif __have_longlong64
-#define INT64_MIN 	(-9223372036854775807LL-1LL)
-#define INT64_MAX 	 9223372036854775807LL
-#define UINT64_MAX 	18446744073709551615ULL
-#endif
-#endif
+/* Annex K -- Bounds-checking interfaces */
 
-#if __int_least64_t_defined
-#if __have_long64
-#define INT_LEAST64_MIN  (-9223372036854775807L-1L)
-#define INT_LEAST64_MAX  9223372036854775807L
-#define UINT_LEAST64_MAX 18446744073709551615U
-#elif __have_longlong64
-#define INT_LEAST64_MIN  (-9223372036854775807LL-1LL)
-#define INT_LEAST64_MAX  9223372036854775807LL
-#define UINT_LEAST64_MAX 18446744073709551615ULL
-#endif
-#endif
+// TODO RK #if ( __STDC_WANT_LIB_EXT1__ + 0 ) != 0
+#define RSIZE_MAX ( _PDCLIB_SIZE_MAX >> 1 )
+//#endif
 
-#if __int_fast8_t_defined
-#if __STDINT_EXP(INT_MAX) >= 0x7f
-#define INT_FAST8_MIN	(-__STDINT_EXP(INT_MAX)-1)
-#define INT_FAST8_MAX	__STDINT_EXP(INT_MAX)
-#define UINT_FAST8_MAX	(__STDINT_EXP(INT_MAX)*2U+1U)
-#else
-#define INT_FAST8_MIN	INT_LEAST8_MIN
-#define INT_FAST8_MAX	INT_LEAST8_MAX
-#define UINT_FAST8_MAX	UINT_LEAST8_MAX
+/* Extension hook for downstream projects that want to have non-standard
+   extensions to standard headers.
+*/
+#ifdef _PDCLIB_EXTEND_STDINT_H
+#include _PDCLIB_EXTEND_STDINT_H
 #endif
-#endif
-
-#if __int_fast16_t_defined
-#if __STDINT_EXP(INT_MAX) >= 0x7fff
-#define INT_FAST16_MIN	(-__STDINT_EXP(INT_MAX)-1)
-#define INT_FAST16_MAX	__STDINT_EXP(INT_MAX)
-#define UINT_FAST16_MAX	(__STDINT_EXP(INT_MAX)*2U+1U)
-#else
-#define INT_FAST16_MIN	INT_LEAST16_MIN
-#define INT_FAST16_MAX	INT_LEAST16_MAX
-#define UINT_FAST16_MAX	UINT_LEAST16_MAX
-#endif
-#endif
-
-#if __int_fast32_t_defined
-#if __STDINT_EXP(INT_MAX) >= 0x7fffffff
-#define INT_FAST32_MIN	(-__STDINT_EXP(INT_MAX)-1)
-#define INT_FAST32_MAX	__STDINT_EXP(INT_MAX)
-#define UINT_FAST32_MAX	(__STDINT_EXP(INT_MAX)*2U+1U)
-#else
-#define INT_FAST32_MIN	INT_LEAST32_MIN
-#define INT_FAST32_MAX	INT_LEAST32_MAX
-#define UINT_FAST32_MAX	UINT_LEAST32_MAX
-#endif
-#endif
-
-#if __int_fast64_t_defined
-#if __STDINT_EXP(INT_MAX) > 0x7fffffff
-#define INT_FAST64_MIN	(-__STDINT_EXP(INT_MAX)-1)
-#define INT_FAST64_MAX	__STDINT_EXP(INT_MAX)
-#define UINT_FAST64_MAX	(__STDINT_EXP(INT_MAX)*2U+1U)
-#else
-#define INT_FAST64_MIN	INT_LEAST64_MIN
-#define INT_FAST64_MAX	INT_LEAST64_MAX
-#define UINT_FAST64_MAX	UINT_LEAST64_MAX
-#endif
-#endif
-
-#ifdef __INTMAX_MAX__
-#define INTMAX_MAX __INTMAX_MAX__
-#define INTMAX_MIN (-INTMAX_MAX - 1)
-#elif defined(__INTMAX_TYPE__)
-/* All relevant GCC versions prefer long to long long for intmax_t.  */
-#define INTMAX_MAX INT64_MAX
-#define INTMAX_MIN INT64_MIN
-#endif
-
-#ifdef __UINTMAX_MAX__
-#define UINTMAX_MAX __UINTMAX_MAX__
-#elif defined(__UINTMAX_TYPE__)
-/* All relevant GCC versions prefer long to long long for intmax_t.  */
-#define UINTMAX_MAX UINT64_MAX
-#endif
-
-/* This must match size_t in stddef.h, currently long unsigned int */
-#ifdef __SIZE_MAX__
-#define SIZE_MAX __SIZE_MAX__
-#else
-#define SIZE_MAX (__STDINT_EXP(LONG_MAX) * 2UL + 1)
-#endif
-
-/* This must match sig_atomic_t in <signal.h> (currently int) */
-#define SIG_ATOMIC_MIN (-__STDINT_EXP(INT_MAX) - 1)
-#define SIG_ATOMIC_MAX __STDINT_EXP(INT_MAX)
-
-/* This must match ptrdiff_t  in <stddef.h> (currently long int) */
-#ifdef __PTRDIFF_MAX__
-#define PTRDIFF_MAX __PTRDIFF_MAX__
-#else
-#define PTRDIFF_MAX __STDINT_EXP(LONG_MAX)
-#endif
-#define PTRDIFF_MIN (-PTRDIFF_MAX - 1)
-
-#ifdef __WCHAR_MAX__
-#define WCHAR_MAX __WCHAR_MAX__
-#endif
-#ifdef __WCHAR_MIN__
-#define WCHAR_MIN __WCHAR_MIN__
-#endif
-
-/* wint_t is unsigned int on almost all GCC targets.  */
-#ifdef __WINT_MAX__
-#define WINT_MAX __WINT_MAX__
-#else
-#define WINT_MAX (__STDINT_EXP(INT_MAX) * 2U + 1U)
-#endif
-#ifdef __WINT_MIN__
-#define WINT_MIN __WINT_MIN__
-#else
-#define WINT_MIN 0U
-#endif
-
-/** Macros for minimum-width integer constant expressions */
-#define INT8_C(x)	x
-#if __STDINT_EXP(INT_MAX) > 0x7f
-#define UINT8_C(x)	x
-#else
-#define UINT8_C(x)	x##U
-#endif
-
-#define INT16_C(x)	x
-#if __STDINT_EXP(INT_MAX) > 0x7fff
-#define UINT16_C(x)	x
-#else
-#define UINT16_C(x)	x##U
-#endif
-
-#if __have_long32
-#define INT32_C(x)	x##L
-#define UINT32_C(x)	x##UL
-#else
-#define INT32_C(x)	x
-#define UINT32_C(x)	x##U
-#endif
-
-#if __int64_t_defined
-#if __have_long64
-#define INT64_C(x)	x##L
-#define UINT64_C(x)	x##UL
-#else
-#define INT64_C(x)	x##LL
-#define UINT64_C(x)	x##ULL
-#endif
-#endif
-
-/** Macros for greatest-width integer constant expression */
-#if __have_long64
-#define INTMAX_C(x)	x##L
-#define UINTMAX_C(x)	x##UL
-#else
-#define INTMAX_C(x)	x##LL
-#define UINTMAX_C(x)	x##ULL
-#endif
-
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _STDINT_H */
+#endif

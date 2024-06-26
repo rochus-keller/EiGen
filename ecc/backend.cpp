@@ -129,6 +129,7 @@ void run_codegen(const char *input, const char *output)
     }catch(...)
     {
         // already reported
+        error("error generating code for %s",base_file);
     }
 }
 
@@ -173,7 +174,7 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
         std::string lib = targets[target].name;
         lib += "run.obf";
         libs.push_back(lib);
-#if 1
+#if 0
         // apparently not required, but includes things like floor, sqrt, putchar etc.
         lib = targets[target].backend;
         lib += "run.obf";

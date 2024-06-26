@@ -1,281 +1,121 @@
-/* math.h -- Definitions for the math floating point package.  */
+#ifndef _MATH_H
+#define _MATH_H
 
-#ifndef  _MATH_H_
-#ifdef __cplusplus
-extern "C" {
-#endif
-#define  _MATH_H_
+#include <sys/cdefs.h>
 
-#include <sys/reent.h>
-//#include <machine/ieeefp.h>
-#include "_ansi.h"
+__BEGIN_DECLS
 
-#ifndef HUGE_VAL
+#define M_E		2.7182818284590452354	/* e */
+#define M_LOG2E		1.4426950408889634074	/* log_2 e */
+#define M_LOG10E	0.43429448190325182765	/* log_10 e */
+#define M_LN2		0.69314718055994530942	/* log_e 2 */
+#define M_LN10		2.30258509299404568402	/* log_e 10 */
+#define M_PI		3.14159265358979323846	/* pi */
+#define M_PI_2		1.57079632679489661923	/* pi/2 */
+#define M_PI_4		0.78539816339744830962	/* pi/4 */
+#define M_1_PI		0.31830988618379067154	/* 1/pi */
+#define M_2_PI		0.63661977236758134308	/* 2/pi */
+#define M_2_SQRTPI	1.12837916709551257390	/* 2/sqrt(pi) */
+#define M_SQRT2		1.41421356237309504880	/* sqrt(2) */
+#define M_SQRT1_2	0.70710678118654752440	/* 1/sqrt(2) */
 
-/* Define HUGE_VAL as infinity, unless HUGE_VAL is already defined
-   (which might have been done by something like math-68881.h).  */
+#define M_El		2.7182818284590452353602874713526625L  /* e */
+#define M_LOG2El	1.4426950408889634073599246810018922L  /* log_2 e */
+#define M_LOG10El	0.4342944819032518276511289189166051L  /* log_10 e */
+#define M_LN2l		0.6931471805599453094172321214581766L  /* log_e 2 */
+#define M_LN10l		2.3025850929940456840179914546843642L  /* log_e 10 */
+#define M_PIl		3.1415926535897932384626433832795029L  /* pi */
+#define M_PI_2l		1.5707963267948966192313216916397514L  /* pi/2 */
+#define M_PI_4l		0.7853981633974483096156608458198757L  /* pi/4 */
+#define M_1_PIl		0.3183098861837906715377675267450287L  /* 1/pi */
+#define M_2_PIl		0.6366197723675813430755350534900574L  /* 2/pi */
+#define M_2_SQRTPIl	1.1283791670955125738961589031215452L  /* 2/sqrt(pi) */
+#define M_SQRT2l	1.4142135623730950488016887242096981L  /* sqrt(2) */
+#define M_SQRT1_2l	0.7071067811865475244008443621048490L  /* 1/sqrt(2) */
 
-#if 0
-// TODO RK
-union __dmath
-{
-  __uint32_t i[2];
-  double d;
-};
+double sin(double d) __THROW __attribute__((__const__));
+double cos(double d) __THROW __attribute__((__const__));
+double tan(double d) __THROW __attribute__((__const__));
 
-extern const union __dmath __infinity;
-#endif
+float sinf(float d) __THROW __attribute__((__const__));
+float cosf(float d) __THROW __attribute__((__const__));
 
-// TODO #define HUGE_VAL (__infinity.d)
-#define HUGE_VAL 999999999999
+double sinh(double d) __THROW __attribute__((__const__));
+double cosh(double d) __THROW __attribute__((__const__));
+double tanh(double d) __THROW __attribute__((__const__));
 
-extern int __finite (double __x);
-extern int __finitef (float __x);
+double asin(double d) __THROW __attribute__((__const__));
+double acos(double d) __THROW __attribute__((__const__));
+double atan(double d) __THROW __attribute__((__const__));
 
-#define __NO_LONG_DOUBLE_MATH
+double asinh(double d) __THROW __attribute__((__const__));
+double acosh(double d) __THROW __attribute__((__const__));
+double atanh(double d) __THROW __attribute__((__const__));
 
-/* Return nonzero value if X is not +-Inf or NaN.  */
-# ifdef __NO_LONG_DOUBLE_MATH
-#  define isfinite(x) \
-     (sizeof (x) == sizeof (float) ? __finitef (x) : __finite (x))
-# else
-#  define isfinite(x) \
-     (sizeof (x) == sizeof (float)					      \
-      ? __finitef (x)							      \
-      : sizeof (x) == sizeof (double)					      \
-      ? __finite (x) : __finitel (x))
+double exp(double d) __THROW __attribute__((__const__));
+double exp10(double d) __THROW __attribute__((__const__));
+double log(double d) __THROW __attribute__((__const__));
+double log10(double d) __THROW __attribute__((__const__));
+
+double exp2(double d) __THROW __attribute__((__const__));
+double log2(double d) __THROW __attribute__((__const__));
+
+double pow(double x, double y) __THROW __attribute__((__const__));
+
+double sqrt(double x) __THROW __attribute__((__const__));
+double fabs(double x) __THROW __attribute__((__const__));
+double fmod(double x, double y) __THROW __attribute__((__const__));
+
+double floor(double x) __attribute__((__const__));
+double ceil(double x) __attribute__((__const__));
+
+double expm1(double x) __THROW __attribute__((__const__));
+double hypot(double x, double y) __THROW __attribute__((__const__));
+double atan2(double x, double y) __THROW __attribute__((__const__));
+
+double copysign(double value, double sign) __attribute__((__const__));
+
+#define HUGE_VAL _PDCLIB_DBL_MAX 
+#define HUGE_VALF _PDCLIB_DBL_MAX 
+
+int isnan(double d) __attribute__((__const__));
+int isinf(double d) __attribute__((__const__));
+#define finite __finite
+#define isfinite __finite
+int __finite(double d) __attribute__((__const__));
+
+double j0(double x);
+double j1(double x);
+double jn(int n, double x);
+double y0(double x);
+double y1(double x);
+double yn(int n, double x);
+double erf(double x);
+double erfc(double x);
+double lgamma(double x);
+
+double rint(double x);
+
+double modf(double x, double * iptr);
+
+double frexp(double x, int *exp);
+double ldexp(double x, int exp);
+
+# if __BYTE_ORDER == __BIG_ENDIAN
+#  define __nan_bytes		{ 0x7f, 0xc0, 0, 0 }
 # endif
-#endif /* ! defined (HUGE_VAL) */
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define __nan_bytes		{ 0, 0, 0xc0, 0x7f }
+# endif
 
-/* Reentrant ANSI C functions.  */
+static union { unsigned char __c[4]; float __d; } __nan_union = { __nan_bytes };
+# define NAN	(__nan_union.__d)
 
-#ifndef __math_68881
-extern double atan _PARAMS((double));
-extern double cos _PARAMS((double));
-extern double sin _PARAMS((double));
-extern double tan _PARAMS((double));
-extern double tanh _PARAMS((double));
-extern double frexp _PARAMS((double, int *));
-extern double modf _PARAMS((double, double *));
-extern double ceil _PARAMS((double));
-extern double fabs _PARAMS((double));
-extern double floor _PARAMS((double));
-#endif /* ! defined (__math_68881) */
+# define INFINITY	HUGE_VALF
+  
+#define signbit __signbit
+extern int __signbit (double x);
 
-/* Non reentrant ANSI C functions.  */
+__END_DECLS
 
-#ifndef _REENT_ONLY
-#ifndef __math_6881
-extern double acos _PARAMS((double));
-extern double asin _PARAMS((double));
-extern double atan2 _PARAMS((double, double));
-extern double cosh _PARAMS((double));
-extern double sinh _PARAMS((double));
-extern double exp _PARAMS((double));
-extern double ldexp _PARAMS((double, int));
-extern double log _PARAMS((double));
-extern double log10 _PARAMS((double));
-extern double pow _PARAMS((double, double));
-extern double sqrt _PARAMS((double));
-extern double fmod _PARAMS((double, double));
-#endif /* ! defined (__math_68881) */
-#endif /* ! defined (_REENT_ONLY) */
-
-#ifndef _STRICT_ANSI
-
-/* Non ANSI double precision functions.  */
-
-extern double infinity _PARAMS((void));
-extern double nan _PARAMS((void));
-extern int isnan _PARAMS((double));
-extern int isinf _PARAMS((double));
-extern int finite _PARAMS((double));
-extern double copysign _PARAMS((double, double));
-extern int ilogb _PARAMS((double));
-
-extern double asinh _PARAMS((double));
-extern double cbrt _PARAMS((double));
-extern double nextafter _PARAMS((double, double));
-extern double rint _PARAMS((double));
-extern double scalbn _PARAMS((double, int));
-
-#ifndef __math_68881
-extern double log1p _PARAMS((double));
-extern double expm1 _PARAMS((double));
-#endif /* ! defined (__math_68881) */
-
-#ifndef _REENT_ONLY
-extern double acosh _PARAMS((double));
-extern double atanh _PARAMS((double));
-extern double remainder _PARAMS((double, double));
-extern double gamma _PARAMS((double));
-extern double gamma_r _PARAMS((double, int *));
-extern double lgamma _PARAMS((double));
-extern double lgamma_r _PARAMS((double, int *));
-extern double erf _PARAMS((double));
-extern double erfc _PARAMS((double));
-extern double y0 _PARAMS((double));
-extern double y1 _PARAMS((double));
-extern double yn _PARAMS((int, double));
-extern double j0 _PARAMS((double));
-extern double j1 _PARAMS((double));
-extern double jn _PARAMS((int, double));
-#define log2(x) (log (x) / M_LOG2_E)
-
-#ifndef __math_68881
-extern double hypot _PARAMS((double, double));
 #endif
-
-extern double cabs();
-extern double drem _PARAMS((double, double));
-
-#endif /* ! defined (_REENT_ONLY) */
-
-/* Single precision versions of ANSI functions.  */
-
-extern float atanf _PARAMS((float));
-extern float cosf _PARAMS((float));
-extern float sinf _PARAMS((float));
-extern float tanf _PARAMS((float));
-extern float tanhf _PARAMS((float));
-extern float frexpf _PARAMS((float, int *));
-extern float modff _PARAMS((float, float *));
-extern float ceilf _PARAMS((float));
-extern float fabsf _PARAMS((float));
-extern float floorf _PARAMS((float));
-
-#ifndef _REENT_ONLY
-extern float acosf _PARAMS((float));
-extern float asinf _PARAMS((float));
-extern float atan2f _PARAMS((float, float));
-extern float coshf _PARAMS((float));
-extern float sinhf _PARAMS((float));
-extern float expf _PARAMS((float));
-extern float ldexpf _PARAMS((float, int));
-extern float logf _PARAMS((float));
-extern float log10f _PARAMS((float));
-extern float powf _PARAMS((float, float));
-extern float sqrtf _PARAMS((float));
-extern float fmodf _PARAMS((float, float));
-#endif /* ! defined (_REENT_ONLY) */
-
-/* Other single precision functions.  */
-
-extern float infinityf _PARAMS((void));
-extern float nanf _PARAMS((void));
-extern int isnanf _PARAMS((float));
-extern int isinff _PARAMS((float));
-extern int finitef _PARAMS((float));
-extern float copysignf _PARAMS((float, float));
-extern int ilogbf _PARAMS((float));
-
-extern float asinhf _PARAMS((float));
-extern float cbrtf _PARAMS((float));
-extern float nextafterf _PARAMS((float, float));
-extern float rintf _PARAMS((float));
-extern float scalbnf _PARAMS((float, int));
-extern float log1pf _PARAMS((float));
-extern float expm1f _PARAMS((float));
-
-#ifndef _REENT_ONLY
-extern float acoshf _PARAMS((float));
-extern float atanhf _PARAMS((float));
-extern float remainderf _PARAMS((float, float));
-extern float gammaf _PARAMS((float));
-extern float gammaf_r _PARAMS((float, int *));
-extern float lgammaf _PARAMS((float));
-extern float lgammaf_r _PARAMS((float, int *));
-extern float erff _PARAMS((float));
-extern float erfcf _PARAMS((float));
-extern float y0f _PARAMS((float));
-extern float y1f _PARAMS((float));
-extern float ynf _PARAMS((int, float));
-extern float j0f _PARAMS((float));
-extern float j1f _PARAMS((float));
-extern float jnf _PARAMS((int, float));
-#define log2f(x) (logf (x) / (float) M_LOG2_E)
-extern float hypotf _PARAMS((float, float));
-
-extern float cabsf();
-extern float dremf _PARAMS((float, float));
-
-#endif /* ! defined (_REENT_ONLY) */
-
-/* The gamma functions use a global variable, signgam.  */
-
-extern int signgam;
-
-/* The exception structure passed to the matherr routine.  */
-
-struct exception 
-{
-  int type;
-  char *name;
-  double arg1;
-  double arg2;
-  double retval;
-  int err;
-};
-
-extern int matherr _PARAMS((struct exception *e));
-
-/* Values for the type field of struct exception.  */
-
-#define DOMAIN 1
-#define SING 2
-#define OVERFLOW 3
-#define UNDERFLOW 4
-#define TLOSS 5
-#define PLOSS 6
-
-/* Useful constants.  */
-
-#define M_E		2.7182818284590452354
-#define M_LOG2E		1.4426950408889634074
-#define M_LOG10E	0.43429448190325182765
-#define M_LN2		0.69314718055994530942
-#define M_LN10		2.30258509299404568402
-#define M_PI		3.14159265358979323846
-#define M_TWOPI         (M_PI * 2.0)
-#define M_PI_2		1.57079632679489661923
-#define M_PI_4		0.78539816339744830962
-#define M_3PI_4		2.3561944901923448370E0
-#define M_SQRTPI        1.77245385090551602792981
-#define M_1_PI		0.31830988618379067154
-#define M_2_PI		0.63661977236758134308
-#define M_2_SQRTPI	1.12837916709551257390
-#define M_SQRT2		1.41421356237309504880
-#define M_SQRT1_2	0.70710678118654752440
-#define M_LN2LO         1.9082149292705877000E-10
-#define M_LN2HI         6.9314718036912381649E-1
-#define M_SQRT3   	1.73205080756887719000
-#define M_IVLN10        0.43429448190325182765 /* 1 / log(10) */
-#define M_LOG2_E        0.693147180559945309417
-#define M_INVLN2        1.4426950408889633870E0  /* 1 / log(2) */
-
-/* Global control over fdlibm error handling.  */
-
-enum __fdlibm_version
-{
-  __fdlibm_ieee = -1,
-  __fdlibm_svid,
-  __fdlibm_xopen,
-  __fdlibm_posix
-};
-
-#define _LIB_VERSION_TYPE enum __fdlibm_version
-#define _LIB_VERSION __fdlib_version
-
-extern _LIB_VERSION_TYPE _LIB_VERSION;
-
-#define _IEEE_  __fdlibm_ieee
-#define _SVID_  __fdlibm_svid
-#define _XOPEN_ __fdlibm_xopen
-#define _POSIX_ __fdlibm_posix
-
-#endif /* ! defined (_STRICT_ANSI) */
-
-#ifdef __cplusplus
-}
-#endif
-#endif /* _MATH_H_ */

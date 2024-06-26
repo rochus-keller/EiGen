@@ -159,13 +159,13 @@ static uint8_t getTypeWidth(Type *ty) {
 #define name_buffer_len 128
 static char name_buffer[name_buffer_len];
 
-static char* make_name(Obj * o)
+static char* make_name(int is_static, const char* in)
 {
-    if( o->is_static && o->name[0] != '.' )
+    if( is_static && in[0] != '.' )
     {
         const char* fileName = file_name(base_file);
         const int fnameLen = strlen(fileName);
-        const int nameLen = strlen(o->name);
+        const int nameLen = strlen(in);
         const int hashLen = 9;
         assert( fnameLen + hashLen + nameLen + 4 <= name_buffer_len );
 
@@ -181,11 +181,11 @@ static char* make_name(Obj * o)
                 name_buffer[i] = '_';
         }
         name_buffer[hashLen + fnameLen + 1] = '#';
-        strcpy(name_buffer + hashLen + fnameLen + 2, o->name);
+        strcpy(name_buffer + hashLen + fnameLen + 2, in);
 
         return name_buffer;
     }else
-        return o->name;
+        return in;
 }
 
 static void gen_expr(Node *node);
@@ -225,6 +225,7 @@ static void gen_addr(Node *node) {
     case ND_VAR:
         // Variable-length array, which is always local.
         if (node->var->ty->kind == TY_VLA) {
+            error_tok(node->tok,"VLA not yet supported");
             println("  mov ptr $0, ptr $fp%+d", node->var->offset);
             return;
         }
@@ -260,13 +261,13 @@ static void gen_addr(Node *node) {
         }
 #endif
         // Function
-        if (node->ty->kind == TY_FUNC) {
-            println("  mov fun $0, fun @%s", make_name(node->var));
+        if (node->ty && node->ty->kind == TY_FUNC) {
+            println("  mov fun $0, fun @%s", make_name(node->var->is_static, node->var->name));
             return;
         }
 
         // Global variable
-        println("  mov ptr $0, ptr @%s", make_name(node->var));
+        println("  mov ptr $0, ptr @%s", make_name(node->var->is_static, node->var->name));
         return;
     case ND_DEREF:
         gen_expr(node->lhs);
@@ -293,6 +294,7 @@ static void gen_addr(Node *node) {
         }
         break;
     case ND_VLA_PTR:
+        error_tok(node->tok,"VLA not yet supported");
         println("  mov ptr $0, ptr $fp%+d", node->var->offset);
         return;
     }
@@ -1073,6 +1075,16 @@ static Type* getTypeOf(Obj *prog, const char* name )
     return 0;
 }
 
+static int is_static(Obj *prog, const char* name)
+{
+    for (Obj *obj = prog; obj; obj = obj->next)
+        if( obj->name == name )
+            // the name is locally declared
+            return obj->is_static;
+    // name not found locally, so it cannot be static
+    return 0;
+}
+
 static void emit_data(Obj *prog) {
     // ok
     for (Obj *var = prog; var; var = var->next) {
@@ -1080,7 +1092,7 @@ static void emit_data(Obj *prog) {
             continue;
 
         // if (var->is_static)
-        println(".data %s", make_name(var));
+        println(".data %s", make_name(var->is_static, var->name));
 
         const int align = var->align;
 
@@ -1112,7 +1124,7 @@ static void emit_data(Obj *prog) {
                     const char* type = "ptr";
                     if( ty && ty->kind == TY_FUNC )
                         type = "fun";
-                    println("  def %s @%s", type, *rel->label);
+                    println("  def %s @%s", type, make_name(is_static(prog,*rel->label),*rel->label));
                     rel = rel->next;
                     pos += target_pointer_width;
                 } else {
@@ -1184,7 +1196,7 @@ static void emit_text(Obj *prog) {
         infunc = 1;
 
         // TODO if (fn->is_static)
-        println(".code %s", make_name(fn) );
+        println(".code %s", make_name(fn->is_static, fn->name) );
 
         current_fn = fn;
 

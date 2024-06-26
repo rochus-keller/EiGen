@@ -38,6 +38,14 @@ To add a peephole optimizer I used the api of cdemitter to generate IR (instead 
 
 After this improvement, the focus is again on a runtime library based on Newlib.
 
+#### Status on June 26, 2024
+
+After several unsuccessful attempts to migrate either Newlib 1.20, 1.7.1 or Newlib-nano 1.0 to ecc, I eventually had to switch to another approach. Newlib is big and full of legacy preprocessor magic which overwhelms the chibicc preprocessor. There was also a lot of old K&R syntax which I had to migrate to make it compile at all on ecc/chibicc. And it was indeed very difficult to understand the plethora of define combinations required to get rid of all platform dependencies. Newlib is simply far too big - even in the nano variant - and no longer comprehensible for a single developer.
+
+So I switched to uClibc for the maths part of the library, which turned out to be platform independent and sufficiently refactored to ANSI C with easily removable preprocessor machinery; the math.h header I hat to combine from other sources to avoid complexity. The libc part of uClibc is a bit less complex than Newlib, but still much too complex to achieve my goal within a reasonable period of time (at least that was my conclusion after many hours of research). After an intensive search, I finally found PDCLib, which seems to have everything I need and is reasonably portable; only the config header seems to be an endless exercise in bureaucracy, but I've managed to configure everything so that ecc can compile nearly all ~200 files.
+
+Next I do more compiler debugging to make all libc files compile with ecc, and then I extend default implementations for the parts still required to build the Lua 5.1 VM together with the mentioned versions of libm and libc.
+
 #### Precompiled versions
 
 Not available at this time.

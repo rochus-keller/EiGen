@@ -46,7 +46,9 @@ namespace ECS
     inline void StreamDiagnostics::Emit (const Type type, const Source& source, const Position& position, const Message& message)
     {
         position.Indicate (EmitMessage (stream, type, source, position) << message << '\n').flush ();
-        if (type >= Error && type <= FatalError && ++errors >= 10) throw ErrorLimit {errors};
+        static const int err_limit = 100; // was 10
+        if (type >= Error && type <= FatalError && ++errors >= err_limit)
+            throw ErrorLimit {errors};
     }
 
     inline std::ostream& EmitMessage (std::ostream& stream, const Diagnostics::Type type, const Source& source, const Position& position)

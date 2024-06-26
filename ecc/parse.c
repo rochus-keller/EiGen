@@ -1424,11 +1424,11 @@ static void write_buf(char *buf, uint64_t val, int sz) {
 }
 
 static Relocation *
-write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset) {
+write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset, int is_static) {
   if (ty->kind == TY_ARRAY) {
     int sz = ty->base->size;
     for (int i = 0; i < ty->array_len; i++)
-      cur = write_gvar_data(cur, init->children[i], ty->base, buf, offset + sz * i);
+      cur = write_gvar_data(cur, init->children[i], ty->base, buf, offset + sz * i, 0);
     return cur;
   }
 
@@ -1447,7 +1447,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         write_buf(loc, combined, mem->ty->size);
       } else {
         cur = write_gvar_data(cur, init->children[mem->idx], mem->ty, buf,
-                              offset + mem->offset);
+                              offset + mem->offset, 0);
       }
     }
     return cur;
@@ -1457,7 +1457,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
     if (!init->mem)
       return cur;
     return write_gvar_data(cur, init->children[init->mem->idx],
-                           init->mem->ty, buf, offset);
+                           init->mem->ty, buf, offset, 0);
   }
 
   if (!init->expr)
@@ -1498,7 +1498,7 @@ static void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 
   Relocation head = {};
   char *buf = calloc(1, var->ty->size);
-  write_gvar_data(&head, init, var->ty, buf, 0);
+  write_gvar_data(&head, init, var->ty, buf, 0, var->is_static);
   var->init_data = buf;
   var->rel = head.next;
 }

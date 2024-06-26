@@ -1,62 +1,110 @@
-#ifndef _CTYPE_H_
+/* Character handling <ctype.h>
+
+   This file is part of the Public Domain C Library (PDCLib).
+   Permission is granted to use, modify, and / or redistribute at will.
+*/
+
+#ifndef _PDCLIB_CTYPE_H
+#define _PDCLIB_CTYPE_H _PDCLIB_CTYPE_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define _CTYPE_H_
 
-#include "_ansi.h"
+#include "pdclib/_PDCLIB_internal.h"
 
-int _EXFUN(isalnum, (int c));
-int _EXFUN(isalpha, (int c));
-int _EXFUN(iscntrl, (int c));
-int _EXFUN(isdigit, (int c));
-int _EXFUN(isgraph, (int c));
-int _EXFUN(islower, (int c));
-int _EXFUN(isprint, (int c));
-int _EXFUN(ispunct, (int c));
-int _EXFUN(isspace, (int c));
-int _EXFUN(isupper, (int c));
-int _EXFUN(isxdigit,(int c));
-int _EXFUN(tolower, (int c));
-int _EXFUN(toupper, (int c));
+/* Character classification functions */
 
-#ifndef _STRICT_ANSI
-int _EXFUN(isascii, (int c));
-int _EXFUN(toascii, (int c));
-int _EXFUN(_tolower, (int c));
-int _EXFUN(_toupper, (int c));
-#endif
+/* Note that there is a difference between "whitespace" (any printing, non-
+   graph character, like horizontal and vertical tab), and "blank" (the literal
+   ' ' space character).
 
-#define	_U	01
-#define	_L	02
-#define	_N	04
-#define	_S	010
-#define _P	020
-#define _C	040
-#define _X	0100
-#define	_B	0200
+   There will be masking macros for each of these later on, but right now I
+   focus on the functions only.
+*/
 
-extern	_CONST char	_ctype_[];
+/* Returns isalpha( c ) || isdigit( c ) */
+_PDCLIB_PUBLIC int isalnum( int c );
 
-#define	isalpha(c)	((_ctype_+1)[c]&(_U|_L))
-#define	isupper(c)	((_ctype_+1)[c]&_U)
-#define	islower(c)	((_ctype_+1)[c]&_L)
-#define	isdigit(c)	((_ctype_+1)[c]&_N)
-#define	isxdigit(c)	((_ctype_+1)[c]&(_X|_N))
-#define	isspace(c)	((_ctype_+1)[c]&_S)
-#define ispunct(c)	((_ctype_+1)[c]&_P)
-#define isalnum(c)	((_ctype_+1)[c]&(_U|_L|_N))
-#define isprint(c)	((_ctype_+1)[c]&(_P|_U|_L|_N|_B))
-#define	isgraph(c)	((_ctype_+1)[c]&(_P|_U|_L|_N))
-#define iscntrl(c)	((_ctype_+1)[c]&_C)
+/* Returns isupper( c ) || islower( c ) in the "C" locale.
+   In any other locale, also returns true for a locale-specific set of
+   alphabetic characters which are neither control characters, digits,
+   punctation, or whitespace.
+*/
+_PDCLIB_PUBLIC int isalpha( int c );
 
+/* Returns true if the character isspace() and used for separating words within
+   a line of text. In the "C" locale, only ' ' and '\t' are considered blanks.
+*/
+_PDCLIB_PUBLIC int isblank( int c );
 
-#ifndef _STRICT_ANSI
-#define isascii(c)	((unsigned)(c)<=0177)
-#define toascii(c)	((c)&0177)
+/* Returns true if the character is a control character. */
+_PDCLIB_PUBLIC int iscntrl( int c );
+
+/* Returns true if the character is a decimal digit. Locale-independent. */
+_PDCLIB_PUBLIC int isdigit( int c );
+
+/* Returns true for every printing character except space (' ').
+   NOTE: This definition differs from that of iswgraph() in <wctype.h>,
+         which considers any iswspace() character, not only ' '.
+*/
+_PDCLIB_PUBLIC int isgraph( int c );
+
+/* Returns true for lowercase letters in the "C" locale.
+   In any other locale, also returns true for a locale-specific set of
+   characters which are neither control characters, digits, punctation, or
+   space (' '). In a locale other than the "C" locale, a character might test
+   true for both islower() and isupper().
+*/
+_PDCLIB_PUBLIC int islower( int c );
+
+/* Returns true for every printing character including space (' '). */
+_PDCLIB_PUBLIC int isprint( int c );
+
+/* Returns true for a locale-specific set of punctuation charcters; these
+   may not be whitespace or alphanumeric. In the "C" locale, returns true
+   for every printing character that is not whitespace or alphanumeric.
+*/
+_PDCLIB_PUBLIC int ispunct( int c );
+
+/* Returns true for every standard whitespace character (' ', '\f', '\n', '\r',
+   '\t', '\v') in the "C" locale. In any other locale, also returns true for a
+   locale-specific set of characters for which isalnum() is false.
+*/
+_PDCLIB_PUBLIC int isspace( int c );
+
+/* Returns true for uppercase letters in the "C" locale.
+   In any other locale, also returns true for a locale-specific set of
+   characters which are neither control characters, digits, punctation, or
+   space (' '). In a locale other than the "C" locale, a character might test
+   true for both islower() and isupper().
+*/
+_PDCLIB_PUBLIC int isupper( int c );
+
+/* Returns true for any hexadecimal-digit character. Locale-independent. */
+_PDCLIB_PUBLIC int isxdigit( int c );
+
+/* Character case mapping functions */
+
+/* Converts an uppercase letter to a corresponding lowercase letter. Input that
+   is not an uppercase letter remains unchanged.
+*/
+_PDCLIB_PUBLIC int tolower( int c );
+
+/* Converts a lowercase letter to a corresponding uppercase letter. Input that
+   is not a lowercase letter remains unchanged.
+*/
+_PDCLIB_PUBLIC int toupper( int c );
+
+/* Extension hook for downstream projects that want to have non-standard
+   extensions to standard headers.
+*/
+#ifdef _PDCLIB_EXTEND_CTYPE_H
+#include _PDCLIB_EXTEND_CTYPE_H
 #endif
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* _CTYPE_H_ */
+
+#endif

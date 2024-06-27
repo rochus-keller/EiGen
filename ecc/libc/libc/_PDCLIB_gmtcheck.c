@@ -15,9 +15,9 @@ extern mtx_t _PDCLIB_time_mtx;
 
 static void gmtload( struct state * sp )
 {
-    if ( _PDCLIB_tzload( gmt, sp, true ) != 0 )
+    if ( _PDCLIB_tzload( _tzcode_gmt, sp, true ) != 0 )
     {
-        _PDCLIB_tzparse( gmt, sp, true );
+        _PDCLIB_tzparse( _tzcode_gmt, sp, true );
     }
 }
 

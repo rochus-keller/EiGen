@@ -314,7 +314,7 @@ static int_fast32_t transtime( const int year, struct rule const * rulep, const 
 
             for ( i = 1; i < rulep->week; ++i )
             {
-                if ( d + DAYSPERWEEK >= mon_lengths[ leapyear ][ rulep->mon - 1 ] )
+                if ( d + DAYSPERWEEK >= _tzcode_mon_lengths[ leapyear ][ rulep->mon - 1 ] )
                 {
                     break;
                 }
@@ -327,7 +327,7 @@ static int_fast32_t transtime( const int year, struct rule const * rulep, const 
 
             for ( i = 0; i < rulep->mon - 1; ++i )
             {
-                value += mon_lengths[ leapyear ][ i ] * SECSPERDAY;
+                value += _tzcode_mon_lengths[ leapyear ][ i ] * SECSPERDAY;
             }
 
             break;
@@ -413,7 +413,7 @@ bool _PDCLIB_tzparse( const char * name, struct state * sp, bool lastditch )
 
     if ( lastditch )
     {
-        stdlen = sizeof gmt - 1;
+        stdlen = sizeof _tzcode_gmt - 1;
         name += stdlen;
         stdoffset = 0;
     }
@@ -563,7 +563,7 @@ bool _PDCLIB_tzparse( const char * name, struct state * sp, bool lastditch )
 
             do
             {
-              int_fast32_t yearsecs = year_lengths[ _PDCLIB_is_leap( yearbeg - 1 ) ] * SECSPERDAY;
+              int_fast32_t yearsecs = _tzcode_year_lengths[ _PDCLIB_is_leap( yearbeg - 1 ) ] * SECSPERDAY;
               yearbeg--;
 
               if ( increment_overflow_time( &janfirst, -yearsecs ) )
@@ -578,7 +578,7 @@ bool _PDCLIB_tzparse( const char * name, struct state * sp, bool lastditch )
             for ( year = yearbeg; year < yearlim; year++ )
             {
                 int_fast32_t starttime = transtime( year, &start, stdoffset ), endtime = transtime( year, &end, dstoffset );
-                int_fast32_t yearsecs = ( year_lengths[ _PDCLIB_is_leap( year ) ] * SECSPERDAY );
+                int_fast32_t yearsecs = ( _tzcode_year_lengths[ _PDCLIB_is_leap( year ) ] * SECSPERDAY );
                 bool reversed = endtime < starttime;
 
                 if ( reversed )

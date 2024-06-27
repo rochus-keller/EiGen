@@ -95,6 +95,7 @@ static Code::Type types[MaxType];
 static uint8_t getTypeId(Type *ty) {
 
     switch (ty->kind) {
+    case TY_BOOL:
     case TY_CHAR:
         return ty->is_unsigned ? u1 : s1;
     case TY_SHORT:
@@ -418,18 +419,18 @@ static void cast(Type *from, Type *to, Smop& reg) {
     if (to->kind == TY_VOID)
         return;
 
+    Code::Type fromType = getCodeType(from);
+    Code::Type toType = getCodeType(to);
+
     if (to->kind == TY_BOOL) {
-        Code::Type type = getCodeType(from);
         Label label = e->CreateLabel();
-        e->BranchNotEqual(label,Code::Imm(type,0),reg); // breq +2, %s 0, %s %s", type, type, reg
-        reg = e->Set (label, Code::Imm(type,0), Code::Imm(type,1));
+        e->BranchNotEqual(label,Code::Imm(fromType,0),reg); // breq +2, %s 0, %s %s", type, type, reg
+        reg = e->Set (label, Code::Imm(toType,0), Code::Imm(toType,1));
         return;
     }
 
-    const Code::Type t1 = getCodeType(from);
-    const Code::Type t2 = getCodeType(to);
-    if( t1 != t2 )
-        reg = e->Convert(t2,reg); // conv %s %s, %s %s", ecsTypes[t2].name, reg, ecsTypes[t1].name, reg
+    if( fromType != toType )
+        reg = e->Convert(toType,reg); // conv %s %s, %s %s", ecsTypes[t2].name, reg, ecsTypes[t1].name, reg
 }
 
 static int push_struct(Type *ty, const Smop& reg) {
@@ -861,7 +862,14 @@ static Smop gen_expr(Node *node) {
         return e->Multiply(e->Convert(lhsT,lhs),rhs);
         // mul %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_DIV:
-        return e->Divide(e->Convert(lhsT,lhs),rhs);
+        if( rhs.model == Code::Operand::Immediate && rhs.type.model == Code::Type::Float && rhs.fimm == 0.0 ) {
+            if( lhs.model == Code::Operand::Immediate && lhs.type.model == Code::Type::Float && lhs.fimm == 0.0)
+                return Code::FImm(lhsT,NAN);
+            else
+                return Code::FImm(lhsT,HUGE_VALF);
+        }
+        else
+            return e->Divide(e->Convert(lhsT,lhs),rhs);
         // div %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_MOD:
         return e->Modulo(e->Convert(lhsT,lhs),rhs);
@@ -923,6 +931,7 @@ static void gen_stmt(Node *node) {
         Label lelse = e->CreateLabel();
         Label lend = e->CreateLabel();
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond));
+        cond = Smop(); // release register
         // breq .L.else.%d, %s 0, %s $0", c, type, type
         gen_stmt(node->then);
         e->Branch(lend); // br .L.end.%d
@@ -1002,6 +1011,7 @@ static void gen_stmt(Node *node) {
             e->BranchGreaterEqual(ll.back(),cond, Code::Imm(cond_type,n->end - n->begin));
                 //  brge %s, %s %s, %s %ld", n->label, cond_type, di, cond_type, n->end - n->begin
         }
+        cond = Smop(); // release register
 
         if (node->default_case)
         {

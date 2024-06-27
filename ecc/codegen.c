@@ -350,10 +350,13 @@ static void cast(Type *from, Type *to, const char* reg) {
     if (to->kind == TY_VOID)
         return;
 
+    const uint8_t fromType = getTypeId(from);
+    const uint8_t toType = getTypeId(to);
+
     if (to->kind == TY_BOOL) {
-        const char* type = getTypeName(from);
+        const char* type = ecsTypes[fromType].name;
         println("  breq +2, %s 0, %s %s", type, type, reg );
-        type = getTypeName(to);
+        type = ecsTypes[toType].name;
         println("  mov %s %s, %s 0", type, reg, type);
         // TODO: do we need setBool here?
         println("  br +1");
@@ -361,10 +364,8 @@ static void cast(Type *from, Type *to, const char* reg) {
         return;
     }
 
-    const uint8_t t1 = getTypeId(from);
-    const uint8_t t2 = getTypeId(to);
-    if( t1 != t2 )
-        println("  conv %s %s, %s %s", ecsTypes[t2].name, reg, ecsTypes[t1].name, reg);
+    if( fromType != toType )
+        println("  conv %s %s, %s %s", ecsTypes[toType].name, reg, ecsTypes[fromType].name, reg);
 }
 
 static int push_struct(Type *ty) {

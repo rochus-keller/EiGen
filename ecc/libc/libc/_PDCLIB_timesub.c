@@ -54,7 +54,7 @@ struct tm * _PDCLIB_timesub( const time_t * timep, int_fast32_t offset, const st
     tdays = *timep / SECSPERDAY;
     rem = *timep % SECSPERDAY;
 
-    while ( tdays < 0 || tdays >= year_lengths[ _PDCLIB_is_leap( y ) ] )
+    while ( tdays < 0 || tdays >= _tzcode_year_lengths[ _PDCLIB_is_leap( y ) ] )
     {
         int    newy;
         time_t tdelta;
@@ -111,12 +111,12 @@ struct tm * _PDCLIB_timesub( const time_t * timep, int_fast32_t offset, const st
             goto out_of_range;
         }
 
-        idays += year_lengths[ _PDCLIB_is_leap( y ) ];
+        idays += _tzcode_year_lengths[ _PDCLIB_is_leap( y ) ];
     }
 
-    while ( idays >= year_lengths[ _PDCLIB_is_leap( y ) ] )
+    while ( idays >= _tzcode_year_lengths[ _PDCLIB_is_leap( y ) ] )
     {
-        idays -= year_lengths[ _PDCLIB_is_leap( y ) ];
+        idays -= _tzcode_year_lengths[ _PDCLIB_is_leap( y ) ];
 
         if ( _PDCLIB_increment_overflow( &y, 1 ) )
         {
@@ -154,7 +154,7 @@ struct tm * _PDCLIB_timesub( const time_t * timep, int_fast32_t offset, const st
        representation. This uses "... ??:59:60" et seq.
     */
     tmp->tm_sec = (int) ( rem % SECSPERMIN ) + hit;
-    ip = mon_lengths[ _PDCLIB_is_leap( y ) ];
+    ip = _tzcode_mon_lengths[ _PDCLIB_is_leap( y ) ];
 
     for ( tmp->tm_mon = 0; idays >= ip[ tmp->tm_mon ]; ++( tmp->tm_mon ) )
     {

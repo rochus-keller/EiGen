@@ -50,18 +50,11 @@ extern "C" {
 extern struct tm _PDCLIB_tm;
 extern int lcl_is_set;
 
-static const char gmt[] = "GMT";
+const char _tzcode_gmt[4];
 
-static const int mon_lengths[ 2 ][ MONSPERYEAR ] =
-{
-    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-};
+const int _tzcode_mon_lengths[ 2 ][ MONSPERYEAR ];
 
-static const int year_lengths[2] =
-{
-    DAYSPERNYEAR, DAYSPERLYEAR
-};
+const int _tzcode_year_lengths[2];
 
 /* time type information */
 struct ttinfo
@@ -120,7 +113,8 @@ struct state
     time_t         ats[ TZ_MAX_TIMES ];
     unsigned char  types[ TZ_MAX_TIMES ];
     struct ttinfo  ttis[ TZ_MAX_TYPES ];
-    char           chars[ BIGGEST( BIGGEST( TZ_MAX_CHARS + 1, sizeof gmt ), ( 2 * ( MY_TZNAME_MAX + 1 ) ) ) ];
+    char           chars[ BIGGEST( BIGGEST( TZ_MAX_CHARS + 1, sizeof _tzcode_gmt ),
+                                   ( 2 * ( MY_TZNAME_MAX + 1 ) ) ) ];
     struct lsinfo  lsis[ TZ_MAX_LEAPS ];
 
     /* The time type to use for early times or if no transitions.

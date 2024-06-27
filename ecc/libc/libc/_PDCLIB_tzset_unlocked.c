@@ -73,7 +73,7 @@ static int zoneinit( struct state * sp, char const * name )
         sp->charcnt = 0;
         sp->goback = sp->goahead = false;
         _PDCLIB_init_ttinfo( &sp->ttis[ 0 ], 0, false, 0 );
-        strcpy( sp->chars, gmt );
+        strcpy( sp->chars, _tzcode_gmt );
         sp->defaulttype = 0;
         return 0;
     }

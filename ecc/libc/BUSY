@@ -1,97 +1,17 @@
 let config : Config {
     if target_toolchain == `gcc {
-        .lib_names += [ "m" "stdc++" ]
-        .ldflags += "-shared-libgcc"
         .cflags += ["-std=c99" "-nostdlib" "-ffreestanding" ]
     }else if target_toolchain == `msvc {
         # nothing to do
     }else {
         error("target toolchain not supported")
     }
+    .include_dirs += ../include
 }
 
-let test ! : Executable {
+let libc : SourceSet {
     .configs += config;
-    .include_dirs += ../include
     .defines += [ "__STDC_WANT_LIB_EXT1__" ]
-    .sources += ./test.c
-    .sources += [
-        ./libm/kernel_cos.c
-        ./libm/kernel_sin.c
-        ./libm/kernel_tan.c
-        ./libm/kernel_rem_pio2.c
-        ./libm/acos.c
-        ./libm/acosh.c
-        ./libm/asin.c
-        ./libm/asinh.c
-        ./libm/atan2.c
-        ./libm/atan.c
-        ./libm/atanh.c
-        ./libm/cbrt.c
-        ./libm/ceil.c
-        ./libm/copysign.c
-        ./libm/cos.c
-        ./libm/cosh.c
-        ./libm/erf.c
-        ./libm/exp10.c
-        ./libm/exp.c
-        ./libm/expm1.c
-        ./libm/fabs.c
-        ./libm/fdim.c
-        ./libm/finite.c
-        ./libm/finitef.c
-        ./libm/floor.c
-        ./libm/fma.c
-        ./libm/fmax.c
-        ./libm/fmin.c
-        ./libm/fmod.c
-        ./libm/fpclassify.c
-        ./libm/fpclassifyf.c
-        ./libm/frexp.c
-        ./libm/gamma.c
-        ./libm/hypot.c
-        ./libm/ilogb.c
-        ./libm/isinf.c
-        ./libm/isinff.c
-        ./libm/isnan.c
-        ./libm/isnanf.c
-        ./libm/j0.c
-        ./libm/j1.c
-        ./libm/jn.c
-        ./libm/ldexp.c
-        ./libm/llrint.c
-        ./libm/llround.c
-        ./libm/log10.c
-        ./libm/log1p.c
-        ./libm/log2.c
-        ./libm/logb.c
-        ./libm/log.c
-        ./libm/lrint.c
-        ./libm/lround.c
-        ./libm/modf.c
-        ./libm/nan.c
-        ./libm/nextafter.c
-        ./libm/nextafterf.c
-        ./libm/pow.c
-        ./libm/remainder.c
-        ./libm/rem_pio2.c
-        ./libm/remquo.c
-        ./libm/rint.c
-        ./libm/round.c
-        ./libm/scalb.c
-        ./libm/scalbn.c
-        ./libm/signbit.c
-        ./libm/signbitf.c
-        ./libm/signgam.c
-        ./libm/sin.c
-        ./libm/sincos.c
-        ./libm/sinh.c
-        ./libm/sqrt.c
-        ./libm/tan.c
-        ./libm/tanh.c
-        ./libm/trunc.c
-        ./libm/math_private.h
-    ]
     .sources += [
         ./libc/vsscanf.c
         ./libc/vsprintf.c
@@ -279,23 +199,24 @@ let test ! : Executable {
         ./libc/abs.c
         ./libc/abort_handler_s.c
         ./libc/abort.c
-        ./libc/pending/_PDCLIB_gmtcheck.c
+        ./libc/_PDCLIB_gmtcheck.c
         ./libc/_PDCLIB_gmtsub.c
         ./libc/_PDCLIB_increment_overflow.c
-        ./libc/pending/_PDCLIB_init_ttinfo.c
+        ./libc/_PDCLIB_init_ttinfo.c
         ./libc/_PDCLIB_localsub.c
         ./libc/_PDCLIB_localtime_tzset.c
-        ./libc/pending/_PDCLIB_mktime_tzname.c
-        ./libc/pending/_PDCLIB_timesub.c
-        ./libc/pending/_PDCLIB_tzload.c
-        ./libc/pending/_PDCLIB_tzparse.c
-        ./libc/pending/_PDCLIB_tzset_unlocked.c
+        ./libc/_PDCLIB_mktime_tzname.c
+        ./libc/_PDCLIB_timesub.c
+        ./libc/_PDCLIB_tzload.c
+        ./libc/_PDCLIB_tzparse.c
+        ./libc/_PDCLIB_tzset_unlocked.c
         ./libc/_PDCLIB_update_tzname_etc.c
-        ./libc/pending/_PDCLIB_load_lc_ctype.c
-        ./libc/pending/_PDCLIB_scan.c
-        ./libc/pending/_PDCLIB_strtod_main.c
-        ./libc/pending/_PDCLIB_strtok.c
+        ./libc/_PDCLIB_load_lc_ctype.c
+        ./libc/_PDCLIB_scan.c
+        ./libc/_PDCLIB_strtod_main.c
+        ./libc/_PDCLIB_strtok.c
     ]
+    # headers:
     .sources += [
         ../include/wctype.h
         ../include/time.h
@@ -321,4 +242,128 @@ let test ! : Executable {
         ../include/ctype.h
         ../include/assert.h
     ]
+}
+
+let libm : SourceSet {
+    .configs += config;
+    .sources += [
+        ./libm/kernel_cos.c
+        ./libm/kernel_sin.c
+        ./libm/kernel_tan.c
+        ./libm/kernel_rem_pio2.c
+        ./libm/acos.c
+        ./libm/acosh.c
+        ./libm/asin.c
+        ./libm/asinh.c
+        ./libm/atan2.c
+        ./libm/atan.c
+        ./libm/atanh.c
+        ./libm/cbrt.c
+        ./libm/ceil.c
+        ./libm/copysign.c
+        ./libm/cos.c
+        ./libm/cosh.c
+        ./libm/erf.c
+        ./libm/exp10.c
+        ./libm/exp.c
+        ./libm/expm1.c
+        ./libm/fabs.c
+        ./libm/fdim.c
+        ./libm/finite.c
+        ./libm/finitef.c
+        ./libm/floor.c
+        ./libm/fma.c
+        ./libm/fmax.c
+        ./libm/fmin.c
+        ./libm/fmod.c
+        ./libm/fpclassify.c
+        ./libm/fpclassifyf.c
+        ./libm/frexp.c
+        ./libm/gamma.c
+        ./libm/hypot.c
+        ./libm/ilogb.c
+        ./libm/isinf.c
+        ./libm/isinff.c
+        ./libm/isnan.c
+        ./libm/isnanf.c
+        ./libm/j0.c
+        ./libm/j1.c
+        ./libm/jn.c
+        ./libm/ldexp.c
+        ./libm/llrint.c
+        ./libm/llround.c
+        ./libm/log10.c
+        ./libm/log1p.c
+        ./libm/log2.c
+        ./libm/logb.c
+        ./libm/log.c
+        ./libm/lrint.c
+        ./libm/lround.c
+        ./libm/modf.c
+        ./libm/nan.c
+        ./libm/nextafter.c
+        ./libm/nextafterf.c
+        ./libm/pow.c
+        ./libm/remainder.c
+        ./libm/rem_pio2.c
+        ./libm/remquo.c
+        ./libm/rint.c
+        ./libm/round.c
+        ./libm/scalb.c
+        ./libm/scalbn.c
+        ./libm/signbit.c
+        ./libm/signbitf.c
+        ./libm/signgam.c
+        ./libm/sin.c
+        ./libm/sincos.c
+        ./libm/sinh.c
+        ./libm/sqrt.c
+        ./libm/tan.c
+        ./libm/tanh.c
+        ./libm/trunc.c
+        ./libm/math_private.h
+    ]
+}
+
+let test ! : Executable {
+    .deps += [ libm libc ]
+    .configs += config;
+    .sources += ./test.c
+}
+
+let lua ! : Executable {
+    .deps += [ libm libc ]
+    .configs += config;
+    .sources += [
+    ../../../Lua/lua.c
+    ../../../Lua/lapi.c
+	../../../Lua/lauxlib.c
+	../../../Lua/lbaselib.c
+	../../../Lua/lcode.c
+	../../../Lua/ldblib.c
+	../../../Lua/ldebug.c
+	../../../Lua/ldo.c \
+	../../../Lua/ldump.c \
+	../../../Lua/lfunc.c \
+	../../../Lua/lgc.c \
+	../../../Lua/linit.c \
+	../../../Lua/liolib.c \
+	../../../Lua/llex.c \
+	../../../Lua/lmathlib.c \
+	../../../Lua/lmem.c \
+	../../../Lua/loadlib.c \
+	../../../Lua/lobject.c \
+	../../../Lua/lopcodes.c \
+	../../../Lua/loslib.c \
+	../../../Lua/lparser.c \
+	../../../Lua/lstate.c \
+	../../../Lua/lstring.c \
+	../../../Lua/lstrlib.c \
+	../../../Lua/ltable.c \
+	../../../Lua/ltablib.c \
+	../../../Lua/ltm.c \
+	../../../Lua/lundump.c \
+	../../../Lua/lvm.c \
+	../../../Lua/lzio.c
+	]
 }

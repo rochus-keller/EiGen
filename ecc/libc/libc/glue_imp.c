@@ -4,10 +4,11 @@
 
 // defined in ECS runtime
 extern void _rt_exit(int);
+extern clock_t _rt_clock();
 
 _PDCLIB_LOCAL _PDCLIB_Noreturn void _PDCLIB_Exit( int status ) _PDCLIB_NORETURN
 {
-    // TODO _rt_exit(status);
+    _rt_exit(status);
 }
 
 _PDCLIB_LOCAL _PDCLIB_fd_t _PDCLIB_open( const char * const filename, unsigned int mode )
@@ -55,9 +56,44 @@ _PDCLIB_LOCAL int _PDCLIB_rename( const char * oldpath, const char * newpath )
 	return -1; // TODO
 }
 
+FILE * tmpfile( void )
+{
+	return NULL;
+}
+
+void ( *signal( int sig, void ( *func )( int ) ) )( int )
+{
+	return NULL;
+}
+
 void __set_errno(int e)
 {
 
+}
+
+int system( const char * string )
+{
+	return -1;
+}
+
+double strtod( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
+{
+	return 0.0;
+}
+
+char * getenv( const char * name )
+{
+	return NULL;
+}
+
+clock_t clock( void )
+{
+    return _rt_clock();
+}
+
+time_t time( time_t * timer )
+{
+    return -1;
 }
 
 static char _PDCLIB_sin_buffer[BUFSIZ];

@@ -299,7 +299,7 @@ __ieee754_lgamma_r(double x, int *signgamp)
 float
 __ieee754_lgammaf_r (float x, int *signgamp)
 {
-	return (float) lgamma_r ((double)x,signgamp);
+    return (float) __ieee754_lgamma_r ((double)x,signgamp);
 }
 
 /* double tgamma(double x)
@@ -330,7 +330,7 @@ double __ieee754_tgamma(double x)
 		return x - x;
 	}
 
-	x = exp(lgamma_r(x, &sign_of_gamma));
+    x = exp(__ieee754_lgamma_r(x, &sign_of_gamma));
 	return sign_of_gamma >= 0 ? x : -x;
 }
 

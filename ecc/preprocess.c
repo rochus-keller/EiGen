@@ -1044,13 +1044,18 @@ static char *format_time(struct tm *tm) {
   return format("\"%02d:%02d:%02d\"", tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
 
-static void define_int_macro(char* name, int val)
+static void define_int_macro(char* name, uint64_t val)
 {
     char buf[16];
-    sprintf(buf,"%d",val);
+    sprintf(buf,"%lld",val);
     char* str = malloc(strlen(buf)+1); // NOTE like read_file this mem is allocated and never freed!
     strcpy(str,buf);
     define_macro(name,str);
+}
+
+static uint64_t maxValueOf(int type)
+{
+    return (1ll << ( basic_type(type)->size * 8 - 1 )) - 1;
 }
 
 void init_macros(void) {
@@ -1154,21 +1159,23 @@ void init_macros(void) {
   define_int_macro("__STACK_ALIGNMENT__", target_stack_align);
 
   define_int_macro("__CHAR_BIT__", 8);
-  define_int_macro("__SCHAR_MAX__", 1 << ( 8 - 1 ));
-  define_int_macro("__SHRT_MAX__", 1 << ( 16 - 1 ));
-  define_int_macro("__INT_MAX__", 1 << ( basic_type(TY_INT)->size * 8 - 1 ));
-  define_int_macro("__LONG_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
-  define_int_macro("__LONG_LONG_MAX__", 1 << ( 64 - 1 ));
+  define_macro("__SCHAR_MAX__", "127");
+  define_macro("__SHRT_MAX__", "32767");
+  define_int_macro("__INT_MAX__", maxValueOf(TY_INT));
+  define_int_macro("__LONG_MAX__", maxValueOf(TY_LONG));
+  define_macro("__LONG_LONG_MAX__", "9223372036854775807LL");
   define_macro("__PTRDIFF_TYPE__", "long");
-  define_int_macro("__PTRDIFF_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_int_macro("__PTRDIFF_MAX__", maxValueOf(TY_LONG));
   define_macro("__SIZE_TYPE__", "unsigned long");
-  define_int_macro("__SIZE_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_int_macro("__SIZE_MAX__", maxValueOf(TY_LONG));
   define_macro("__INTPTR_TYPE__", "long");
-  define_int_macro("__INTPTR_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 - 1 ));
+  define_int_macro("__INTPTR_MAX__", maxValueOf(TY_LONG));
   define_macro("__UINTPTR_TYPE__", "unsigned long");
-  define_int_macro("__UINTPTR_MAX__", 1 << ( basic_type(TY_LONG)->size * 8 ));
-  define_macro("__INTMAX_TYPE__", "long");
-  define_int_macro("__INTMAX_MAX__", 1 << ( basic_type(TY_LONGLONG)->size * 8 - 1 ));
+  define_int_macro("__UINTPTR_MAX__", 1ll << ( basic_type(TY_LONG)->size * 8 ));
+  define_macro("__INTMAX_TYPE__", "long long");
+  define_macro("__INTMAX_MAX__", "9223372036854775807LL");
+  define_macro("__SIG_ATOMIC_TYPE__", "int");
+  define_int_macro("__SIG_ATOMIC_MAX__", maxValueOf(TY_INT));
 
   define_macro("__chibicc__", "1");
   define_macro("__ecs_chibicc__", "1");

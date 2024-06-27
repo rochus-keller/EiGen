@@ -134,12 +134,12 @@ static time_t time2sub( struct tm * tmp, struct tm *(*funcp)( struct state const
         }
 
         li = y + ( 1 < yourtm.tm_mon );
-        yourtm.tm_mday += year_lengths[ _PDCLIB_is_leap( li ) ];
+        yourtm.tm_mday += _tzcode_year_lengths[ _PDCLIB_is_leap( li ) ];
     }
     while ( yourtm.tm_mday > DAYSPERLYEAR )
     {
         li = y + ( 1 < yourtm.tm_mon );
-        yourtm.tm_mday -= year_lengths[ _PDCLIB_is_leap( li ) ];
+        yourtm.tm_mday -= _tzcode_year_lengths[ _PDCLIB_is_leap( li ) ];
 
         if ( increment_overflow32( &y, 1 ) )
         {
@@ -149,7 +149,7 @@ static time_t time2sub( struct tm * tmp, struct tm *(*funcp)( struct state const
 
     for ( ; ; )
     {
-        i = mon_lengths[ _PDCLIB_is_leap( y ) ][ yourtm.tm_mon ];
+        i = _tzcode_mon_lengths[ _PDCLIB_is_leap( y ) ][ yourtm.tm_mon ];
 
         if ( yourtm.tm_mday <= i )
         {
@@ -510,6 +510,19 @@ time_t _PDCLIB_mktime_tzname( struct state * sp, struct tm * tmp, bool setname )
         return time1( tmp, _PDCLIB_gmtsub, &_PDCLIB_gmtmem, 0 );
     }
 }
+
+const char _tzcode_gmt[4] = "GMT";
+
+const int _tzcode_mon_lengths[ 2 ][ MONSPERYEAR ] =
+{
+    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+};
+
+const int _tzcode_year_lengths[2] =
+{
+    DAYSPERNYEAR, DAYSPERLYEAR
+};
 
 #endif
 

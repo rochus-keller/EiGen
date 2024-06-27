@@ -674,7 +674,7 @@ std::istream& Code::operator >> (std::istream& stream, Operand& operand)
 		const auto strict = stream.good () && stream >> std::ws && stream.good () && stream.peek () == '!' && stream.ignore ();
 		if (stream) operand = address.empty () && register_ == RVoid ? Mem {type, ptrimm, strict} : Mem {type, address, register_, displacement, strict};
 	}
-	else if (stream.peek () != '+' && stream.peek () != '-' && !std::isdigit (stream.peek ())) operand = type;
+    else if (stream.peek () != '+' && stream.peek () != '-' && !std::isalnum (stream.peek ())) operand = type; // with inf.patch
 	else if (type.model == Type::Signed && stream >> simm) operand = SImm (type, simm);
 	else if (type.model == Type::Unsigned && stream >> std::ws && stream.peek () != '-' && stream >> uimm) operand = UImm (type, uimm);
 	else if (type.model == Type::Float && ReadFloat (stream, fimm, std::strtod)) operand = FImm (type, fimm);

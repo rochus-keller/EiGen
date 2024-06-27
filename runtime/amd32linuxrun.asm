@@ -344,6 +344,8 @@ base:	.equals	0x08048000
 	.code #1
 
 		.duplicable
+		.replaceable
+		
 		mov	eax, [@_#1]
 		jmp	dword @_function_call_wrapper
 
@@ -360,7 +362,7 @@ base:	.equals	0x08048000
 #undef function
 
 ; standard abort function
-.code abort
+.code _rt_abort
 
 	.replaceable
 	mov	eax, 252
@@ -408,7 +410,7 @@ base:	.equals	0x08048000
 	mov	[@_env], eax
 
 ; standard clock function
-.code clock
+.code _rt_clock
 
 	sub	esp, 16
 	mov	eax, 43
@@ -440,157 +442,10 @@ base:	.equals	0x08048000
 	mov	[@_initial_clock], eax
 
 ; standard _Exit function
-.code _Exit
+.code _rt_exit
 
 	.replaceable
 	mov	eax, 1
 	mov	ebx, [esp + 4]
 	int	80h	; sys_exit
 
-; standard fclose function
-.code fclose
-
-	mov	eax, 6
-	mov	ebx, [esp + 4]
-	int	80h	; sys_close
-	ret
-
-; standard fgetc function
-.code fgetc
-
-	push	0
-	mov	eax, 3
-	mov	ebx, [esp + 8]
-	mov	ecx, esp
-	mov	edx, 1
-	int	80h	; sys_read
-	pop	ebx
-	cmp	eax, 1
-	jne	fail
-	mov	eax, ebx
-	ret
-fail:	mov	eax, -1
-	ret
-
-; standard fopen function
-.code fopen
-
-	mov	eax, 5
-	mov	ebx, [esp + 4]
-	mov	ecx, [esp + 8]
-	cmp	byte [ecx], 'w'
-	mov	ecx, 0
-	jne	skip
-	mov	ecx, 01 + 0100
-skip:	mov	edx, 04 + 040 + 0200 + 0400
-	int	80h	; sys_open
-	cmp	eax, -1
-	je	fail
-	ret
-fail:	mov	eax, 0
-	ret
-
-; standard fputc function
-.code fputc
-
-	mov	eax, 4
-	mov	ebx, [esp + 8]
-	lea	ecx, [esp + 4]
-	mov	edx, 1
-	int	80h	; sys_write
-	cmp	eax, 1
-	jne	fail
-	mov	eax, [esp + 4]
-	ret
-fail:	mov	eax, 0
-	ret
-
-; standard fread function
-.code fread
-
-	mov	eax, 3
-	mov	ebx, [esp + 16]
-	mov	ecx, [esp + 4]
-	mov	edx, [esp + 12]
-	int	80h	; sys_read
-	ret
-
-; standard fwrite function
-.code fwrite
-
-	mov	eax, 4
-	mov	ebx, [esp + 16]
-	mov	ecx, [esp + 4]
-	mov	edx, [esp + 12]
-	int	80h	; sys_write
-	ret
-
-; standard getenv function
-.code getenv
-
-	mov	edi, [@_env]
-loop:	mov	eax, [edi]
-	cmp	eax, 0
-	je	end
-	mov	esi, [esp + 4]
-comp:	mov	bl, [eax]
-	cmp	bl, 0
-	je	skip
-	mov	dl, [esi]
-	cmp	bl, dl
-	je	next
-	cmp	dl, 0
-	jne	skip
-	cmp	bl, '='
-	jne	skip
-	inc	eax
-	jmp	end
-next:	inc	eax
-	inc	esi
-	jmp	comp
-skip:	add	edi, 4
-	jmp	loop
-end:	ret
-
-; standard remove function
-.code remove
-
-	mov	eax, 10
-	mov	ebx, [esp + 4]
-	int	80h	; sys_unlink
-	ret
-
-; standard rename function
-.code rename
-
-	mov	eax, 38
-	mov	ebx, [esp + 4]
-	mov	ecx, [esp + 8]
-	int	80h	; sys_rename
-	ret
-
-; standard stderr variable
-.const stderr
-
-	.alignment	4
-	.qbyte	2
-
-; standard stdin variable
-.const stdin
-
-	.alignment	4
-	.qbyte	0
-
-; standard stdout variable
-.const stdout
-
-	.alignment	4
-	.qbyte	1
-
-; standard time function
-.code time
-
-	mov	eax, 13
-	mov	ebx, [esp + 4]
-	int	80h	; sys_time
-	ret

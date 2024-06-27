@@ -1,0 +1,255 @@
+header 52 required "_header" fixed 134512640
+	0 7f454c46010101
+	16 0200030001
+	40 34002000000028
+	"_program_headers" 24 ext 0 0 +4 28 abs -134512640 0 +4 44 cnt 0 0 +2
+	"_section_headers\?_section_headers:_header" 32 abs -134512640 0 +4
+	"_section_headers\?_section_headers" 48 cnt 0 0 +2
+	"_strtab_header\?_strtab_header" 50 idx 0 0 +2
+trailer 0 "_trailer" aligned 1
+const 0 "_extension" aligned 1
+const 17 "_environment" aligned 1
+	0 783836204c696e75782033322d626974
+header 32 required "_program_header" "_program_headers" aligned 4
+	0 01
+	9 80040800800408
+	24 07
+	29 10
+	"_trailer" 16 abs -134512640 0 +4 20 abs -134512640 0 +4
+header 32 "_interpreter_header" "_program_headers" aligned 4
+	0 03
+	24 0400000001
+	"_interpreter_name" 4 abs -134512640 0 +4 8 abs 0 0 +4 12 abs 0 0 +4 16 siz 0 0 +4 20 siz 0 0 +4
+header 32 "_dynamic_header" "_program_headers" aligned 4
+	0 02
+	24 0600000004
+	"_interpreter_header"
+	"_dynamic_section" 4 abs -134512640 0 +4 8 abs 0 0 +4 12 abs 0 0 +4 16 siz 8 0 +4 20 siz 8 0 +4
+const 40 "_null_header" "_section_headers" aligned 4
+const 40 "_debug_abbrev_header" "_section_headers" aligned 4
+	4 01
+	32 01
+	"_text_header"
+	"_.debug_abbrev_string" 0 pos 1 0 +4
+	"_debug_abbrev_section" 16 abs -134512640 0 +4 20 siz 1 0 +4
+const 14 duplicable "_.debug_abbrev_string" "_string_table" aligned 1
+	0 2e64656275675f616262726576
+const 40 "_debug_info_header" "_section_headers" aligned 4
+	4 01
+	32 01
+	"_text_header"
+	"_.debug_info_string" 0 pos 1 0 +4
+	"_debug_info_section" 16 abs -134512640 0 +4 20 siz 0 0 +4
+const 12 duplicable "_.debug_info_string" "_string_table" aligned 1
+	0 2e64656275675f696e666f
+const 40 "_debug_line_header" "_section_headers" aligned 4
+	4 01
+	32 01
+	"_text_header"
+	"_.debug_line_string" 0 pos 1 0 +4
+	"_debug_line_section" 16 abs -134512640 0 +4 20 siz 0 0 +4
+const 12 duplicable "_.debug_line_string" "_string_table" aligned 1
+	0 2e64656275675f6c696e65
+const 40 "_strtab_header" "_section_headers" aligned 4
+	4 03
+	32 01
+	"_null_header"
+	"_.strtab_string" 0 pos 1 0 +4
+	"_string_table_begin" 16 abs -134512640 0 +4
+	"_string_table" 20 siz 1 0 +4
+const 8 duplicable "_.strtab_string" "_string_table" aligned 1
+	0 2e737472746162
+const 40 "_text_header" "_section_headers" aligned 4
+	4 0100000007
+	13 800408
+	32 01
+	"_strtab_header"
+	"_.text_string" 0 pos 1 0 +4
+	"_trailer" 20 abs -134512640 0 +4
+const 6 duplicable "_.text_string" "_string_table" aligned 1
+	0 2e74657874
+code 3 "_system_call_wrapper0" aligned 1
+	0 cd80c3
+code 7 "_system_call_wrapper1" aligned 1
+	0 8b5c2404cd80c3
+code 11 "_system_call_wrapper2" aligned 1
+	0 8b5c24048b4c2408cd80c3
+code 15 "_system_call_wrapper3" aligned 1
+	0 8b5c24048b4c24088b54240ccd80c3
+code 19 "_system_call_wrapper4" aligned 1
+	0 8b5c24048b4c24088b54240c8b742410cd80c3
+code 23 "_system_call_wrapper5" aligned 1
+	0 8b5c24048b4c24088b54240c8b7424108b7c2414cd80c3
+code 29 "_system_call_wrapper6" aligned 1
+	0 8b5c24048b4c24088b54240c8b7424108b7c2414558b6c241ccd805dc3
+code 10 "sys_brk" aligned 1
+	0 b82d000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_clock_getres" aligned 1
+	0 b80a010000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_clock_gettime" aligned 1
+	0 b809010000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_clone" aligned 1
+	0 b878000000e9
+	"_system_call_wrapper5" 6 rel -4 0 +4
+code 10 "sys_close" aligned 1
+	0 b806000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_exit" aligned 1
+	0 b801000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_exit_group" aligned 1
+	0 b8fc000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_futex" aligned 1
+	0 b8f0000000e9
+	"_system_call_wrapper6" 6 rel -4 0 +4
+code 10 "sys_getpid" aligned 1
+	0 b814000000e9
+	"_system_call_wrapper0" 6 rel -4 0 +4
+code 10 "sys_gettid" aligned 1
+	0 b8e0000000e9
+	"_system_call_wrapper0" 6 rel -4 0 +4
+code 10 "sys_lseek" aligned 1
+	0 b813000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_nanosleep" aligned 1
+	0 b8a2000000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_open" aligned 1
+	0 b805000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_read" aligned 1
+	0 b803000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_rename" aligned 1
+	0 b826000000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_sched_getaffinity" aligned 1
+	0 b8f2000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_sched_setaffinity" aligned 1
+	0 b8f1000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_time" aligned 1
+	0 b80d000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_times" aligned 1
+	0 b82b000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_unlink" aligned 1
+	0 b80a000000e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_waitid" aligned 1
+	0 b81c010000e9
+	"_system_call_wrapper5" 6 rel -4 0 +4
+code 10 "sys_write" aligned 1
+	0 b804000000e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+const 19 "_interpreter_name" aligned 1
+	0 2f6c69622f6c642d6c696e75782e736f2e32
+const 1 "_string_table_begin" "_string_tab" aligned 4
+const 56 "_dynamic_section_begin" "_dynamic_section" aligned 4
+	0 05
+	8 06
+	16 07
+	24 08
+	32 090000000c0000000a
+	48 0b00000010
+	"_dynamic_header"
+	"_string_table_begin" 4 abs 0 0 +4
+	"_symbol_table_begin" 12 abs 0 0 +4
+	"_relocation_table" 20 abs 0 0 +4 28 siz 0 0 +4
+	"_string_table" 44 siz 1 0 +4
+const 8 "_dynamic_section_sentinel" "_dynamic_section_end" aligned 4
+	"_dynamic_section_begin"
+const 16 "_symbol_table_begin" "_symbol_tab" aligned 4
+code 5 "_function_call_wrapper" aligned 1
+	0 5bffd0ffe3
+const 8 duplicable "_dynamic_section_libc" "_dynamic_section" aligned 4
+	0 01
+	"_dynamic_section_sentinel"
+	"_libc_string" 4 pos 1 0 +4
+const 10 duplicable "_libc_string" "_string_table" aligned 1
+	0 6c6962632e736f2e36
+const 16 duplicable "_free_symbol" "_symbol_table" aligned 4
+	12 12
+	"_dynamic_section_libc"
+	"_free_string" 0 pos 1 0 +4
+const 5 duplicable "_free_string" "_string_table" aligned 1
+	0 66726565
+const 12 duplicable "_free_relocation" "_relocation_table" aligned 4
+	4 01
+	"_free" 0 abs 0 0 +4
+	"_free_symbol" 5 idx 1 0 +3
+const 4 duplicable "_free" aligned 4
+	"_free_relocation"
+code 10 duplicable replaceable "free" aligned 1
+	0 a1
+	5 e9
+	"_free" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+const 16 duplicable "_malloc_symbol" "_symbol_table" aligned 4
+	12 12
+	"_dynamic_section_libc"
+	"_malloc_string" 0 pos 1 0 +4
+const 7 duplicable "_malloc_string" "_string_table" aligned 1
+	0 6d616c6c6f63
+const 12 duplicable "_malloc_relocation" "_relocation_table" aligned 4
+	4 01
+	"_malloc" 0 abs 0 0 +4
+	"_malloc_symbol" 5 idx 1 0 +3
+const 4 duplicable "_malloc" aligned 4
+	"_malloc_relocation"
+code 10 duplicable replaceable "malloc" aligned 1
+	0 a1
+	5 e9
+	"_malloc" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+const 16 duplicable "_realloc_symbol" "_symbol_table" aligned 4
+	12 12
+	"_dynamic_section_libc"
+	"_realloc_string" 0 pos 1 0 +4
+const 8 duplicable "_realloc_string" "_string_table" aligned 1
+	0 7265616c6c6f63
+const 12 duplicable "_realloc_relocation" "_relocation_table" aligned 4
+	4 01
+	"_realloc" 0 abs 0 0 +4
+	"_realloc_symbol" 5 idx 1 0 +3
+const 4 duplicable "_realloc" aligned 4
+	"_realloc_relocation"
+code 10 duplicable replaceable "realloc" aligned 1
+	0 a1
+	5 e9
+	"_realloc" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+code 12 replaceable "_rt_abort" aligned 1
+	0 b8fc000000bb01000000cd80
+data 4 "_argc" aligned 4
+	"_init_argc"
+initdata 8 "_init_argc" aligned 1
+	0 8b0424a3
+	"_argc" 4 abs 0 0 +4
+data 4 "_argv" aligned 4
+	"_init_argv"
+initdata 9 "_init_argv" aligned 1
+	0 8d442404a3
+	"_argv" 5 abs 0 0 +4
+data 4 "_env" aligned 4
+	"_init_env"
+initdata 12 "_init_env" aligned 1
+	0 8b04248d448408a3
+	"_env" 8 abs 0 0 +4
+code 29 "_rt_clock" aligned 1
+	0 83ec10b82b00000089e3cd8083c410bb0a000000f7e32b05
+	28 c3
+	"_initial_clock" 24 abs 0 0 +4
+data 4 "_initial_clock" aligned 4
+	"_init_initial_clock"
+initdata 27 "_init_initial_clock" aligned 1
+	0 83ec10b82b00000089e3cd8083c410bb0a000000f7e3a3
+	"_initial_clock" 23 abs 0 0 +4
+code 11 replaceable "_rt_exit" aligned 1
+	0 b8010000008b5c2404cd80

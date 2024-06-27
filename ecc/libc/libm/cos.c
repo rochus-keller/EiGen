@@ -71,3 +71,8 @@ double cos(double x)
 	}
 }
 
+float cosf(float x)
+{
+    return (float)cos((double)x);
+}
+

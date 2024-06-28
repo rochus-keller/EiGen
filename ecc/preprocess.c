@@ -1082,6 +1082,7 @@ void init_macros(void) {
   {
   case Amd16:
       define_macro("__AS386_16__", "1");
+      define_macro("__amd16__", "1");
       // ?
       break;
   case Amd32:
@@ -1089,6 +1090,7 @@ void init_macros(void) {
       define_macro("__i386__", "1");
       define_macro("__i386", "1");
       define_macro("_M_IX86", "1");
+      define_macro("__amd32__", "1");
       break;
   case Amd64:
       define_macro("__amd64", "1");

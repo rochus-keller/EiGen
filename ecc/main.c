@@ -1,4 +1,5 @@
 #include "chibicc.h"
+#include <time.h>
 
 typedef enum {
   FILE_NONE, FILE_C, FILE_ASM, FILE_OBJ, FILE_AR, FILE_DSO,
@@ -652,6 +653,9 @@ static FileType get_file_type(char *filename) {
 }
 
 int main(int argc, char **argv) {
+  clock_t start, end;
+  start = clock();
+
   atexit(cleanup);
   parse_args(argc, argv);
 
@@ -739,6 +743,9 @@ int main(int argc, char **argv) {
 
   if (ld_args.len > 0)
     link(&ld_args, opt_o ? opt_o : opt_lib ? "a.lib" : "a.out");
+
+  end = clock();
+  printf("run for %.1f seconds\n", ((float) (end - start)) / CLOCKS_PER_SEC);
   return 0;
 }
 

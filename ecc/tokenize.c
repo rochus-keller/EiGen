@@ -242,6 +242,24 @@ static char *string_literal_end(char *p) {
   return p;
 }
 
+static char *raw_string_literal_end(char *p, const char* match, int matchLen) {
+  char *start = p;
+  while(1)
+  {
+      while( *p != ')' && *p != 0 )
+          p++;
+      if( *p != ')' )
+          error_at(start, "unclosed raw string literal");
+      p++;
+      if( matchLen == 0 && *p == '"')
+          break;
+      if( strncmp(p,match,matchLen) == 0 && *(p += matchLen) == '"' )
+          break;
+  }
+  assert( *p == '"' );
+  return p;
+}
+
 static Token *read_string_literal(char *start, char *quote) {
   char *end = string_literal_end(quote + 1);
   char *buf = calloc(1, end - quote);
@@ -258,6 +276,30 @@ static Token *read_string_literal(char *start, char *quote) {
   tok->ty = array_of(basic_type(TY_CHAR), len + 1);
   tok->str = buf;
   return tok;
+}
+
+static Token *read_raw_string_literal(char *start, int* plus) {
+    assert(start[0] == 'R' && start[1] == '"' );
+    start += 2;
+    const char* match = start;
+    while( *start != '(' && *start != 0 )
+        start++;
+    if( *start != '(' )
+        error_at(match,"invalid raw string literal");
+    const int matchLen = start-match;
+
+    char *end = raw_string_literal_end(++start, match, matchLen);
+    char *buf = calloc(1, end - start);
+
+    const int len = end - start - matchLen - 1; // -1 for ')'
+    strncpy(buf, start, len);
+    buf[len] = 0;
+
+    Token *tok = new_token(TK_STR, start, start + len);
+    tok->ty = array_of(basic_type(TY_CHAR), len);
+    tok->str = buf;
+    *plus = 2 + 2 * matchLen + 2 + 1; // R"=2 ()=2 "=1
+    return tok;
 }
 
 // Read a UTF-8-encoded string literal and transcode it in UTF-16.
@@ -585,6 +627,14 @@ Token *tokenize(File *file) {
       p += cur->len;
       continue;
     }
+
+    if (startswith(p, "R\"")) {
+      int plus;
+      cur = cur->next = read_raw_string_literal(p, &plus);
+      p += cur->len + plus;
+      continue;
+    }
+
 
     // Character literal
     if (*p == '\'') {

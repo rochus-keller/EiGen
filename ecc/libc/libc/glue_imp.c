@@ -5,7 +5,7 @@
 // defined in ECS runtime
 extern void _rt_exit(int);
 extern clock_t _rt_clock();
-
+	
 _PDCLIB_LOCAL _PDCLIB_Noreturn void _PDCLIB_Exit( int status ) _PDCLIB_NORETURN
 {
     _rt_exit(status);

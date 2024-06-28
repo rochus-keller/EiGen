@@ -20,7 +20,7 @@ double fdim(double x, double y)
 
   double z = x - y;
   if (isinf(z) && cx != FP_INFINITE && cy != FP_INFINITE)
-	  __set_errno(ERANGE);
+      *_PDCLIB_errno_func() = ERANGE;
 
   return z;
 }

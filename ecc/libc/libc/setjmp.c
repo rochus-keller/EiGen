@@ -1,4 +1,5 @@
 #include <setjmp.h>
+#include <stdlib.h>
 
 #ifdef ___ecs_chibicc__
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
@@ -33,6 +34,18 @@ asm(R"(
 		jump	fun $0
 	#endif
 	)")
+#else
+
+void longjmp(jmp_buf __jmpb, int __retval)
+{
+    exit(__retval);
+}
+
+int	setjmp(jmp_buf __jmpb)
+{
+    return 0;
+}
+
 
 #endif
 

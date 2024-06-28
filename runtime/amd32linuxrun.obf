@@ -148,6 +148,15 @@ code 10 "sys_waitid" aligned 1
 code 10 "sys_write" aligned 1
 	0 b804000000e9
 	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_gettimeofday" aligned 1
+	0 b860000000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_renameat" aligned 1
+	0 b808010000e9
+	"_system_call_wrapper4" 6 rel -4 0 +4
+code 10 "sys_getcwd" aligned 1
+	0 b84f000000e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
 const 19 "_interpreter_name" aligned 1
 	0 2f6c69622f6c642d6c696e75782e736f2e32
 const 1 "_string_table_begin" "_string_tab" aligned 4

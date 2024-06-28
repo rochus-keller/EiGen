@@ -129,7 +129,6 @@ let libc : SourceSet {
         ./libc/memcpy.c
         ./libc/memcmp.c
         ./libc/memchr.c
-        ./libc/longjmp.c
         ./libc/localtime_s.c
         ./libc/localtime.c
         ./libc/localeconv.c
@@ -156,6 +155,7 @@ let libc : SourceSet {
         ./libc/gmtime.c
         ./libc/glue_consts.c
         ./libc/glue_imp.c
+        ./unix_binding.c
         ./libc/getchar.c
         ./libc/getc.c
         ./libc/fwrite.c
@@ -199,6 +199,8 @@ let libc : SourceSet {
         ./libc/abs.c
         ./libc/abort_handler_s.c
         ./libc/abort.c
+        ./libc/malloc.c
+        ./libc/setjmp.c
         ./libc/_PDCLIB_gmtcheck.c
         ./libc/_PDCLIB_gmtsub.c
         ./libc/_PDCLIB_increment_overflow.c
@@ -328,7 +330,7 @@ let libm : SourceSet {
 let test ! : Executable {
     .deps += [ libm libc ]
     .configs += config;
-    .sources += ./test.c
+    .sources += [ ./test.c ]
 }
 
 let lua ! : Executable {

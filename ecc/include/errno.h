@@ -188,8 +188,6 @@ typedef int errno_t;
 #endif
 #endif
 
-extern void __set_errno(int); // TODO
-
 /* Extension hook for downstream projects that want to have non-standard
    extensions to standard headers.
 */

@@ -355,12 +355,12 @@ base:	.equals	0x08048000
 
 #enddef
 
-	library	libc, "libc.so.6"
+	; library	libc, "libc.so.6"
 
 	; imported functions from libc
-	function	libc, free, 1
-	function	libc, malloc, 1
-	function	libc, realloc, 2
+	; function	libc, free, 1
+	; function	libc, malloc, 1
+	; function	libc, realloc, 2
 
 #undef library
 #undef function

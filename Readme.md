@@ -46,6 +46,12 @@ So I switched to uClibc for the maths part of the library, which turned out to b
 
 Next I do more compiler debugging to make all libc files compile with ecc, and then I extend default implementations for the parts still required to build the Lua 5.1 VM together with the mentioned versions of libm and libc.
 
+#### Status on June 28, 2024
+
+Now all files of libm and libc compile and link together with a test app or the Lua VM and there are no more linker errors. I modified amd32linuxrun.asm so that there are no name collisions. I also had to migrate the ECS runtime.cpp to an ecc/chibicc-compatible version, because its functions are used e.g. for 64 integer arithmetic on 32 bit systems; to ease this process, I added the C++ raw string literal syntax to ecc. Then I implemented all glue functions and added a unix binding for testing purpose. 
+
+The ecc compiler and ECS code generator and linker are very fast; the build of the ~270 library files together with the Lua 5.1 VM code from source to the linked application takes ~5 sec. on my old EliteBook 2530p. Unfortunately the Lua VM immediately segfaults; the test.c app prints "Hello" and then crashes. So I will be busy with debugging for quite some time.
+
 #### Precompiled versions
 
 Not available at this time.

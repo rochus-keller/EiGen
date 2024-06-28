@@ -177,63 +177,6 @@ const 8 "_dynamic_section_sentinel" "_dynamic_section_end" aligned 4
 const 16 "_symbol_table_begin" "_symbol_tab" aligned 4
 code 5 "_function_call_wrapper" aligned 1
 	0 5bffd0ffe3
-const 8 duplicable "_dynamic_section_libc" "_dynamic_section" aligned 4
-	0 01
-	"_dynamic_section_sentinel"
-	"_libc_string" 4 pos 1 0 +4
-const 10 duplicable "_libc_string" "_string_table" aligned 1
-	0 6c6962632e736f2e36
-const 16 duplicable "_free_symbol" "_symbol_table" aligned 4
-	12 12
-	"_dynamic_section_libc"
-	"_free_string" 0 pos 1 0 +4
-const 5 duplicable "_free_string" "_string_table" aligned 1
-	0 66726565
-const 12 duplicable "_free_relocation" "_relocation_table" aligned 4
-	4 01
-	"_free" 0 abs 0 0 +4
-	"_free_symbol" 5 idx 1 0 +3
-const 4 duplicable "_free" aligned 4
-	"_free_relocation"
-code 10 duplicable replaceable "free" aligned 1
-	0 a1
-	5 e9
-	"_free" 1 abs 0 0 +4
-	"_function_call_wrapper" 6 rel -4 0 +4
-const 16 duplicable "_malloc_symbol" "_symbol_table" aligned 4
-	12 12
-	"_dynamic_section_libc"
-	"_malloc_string" 0 pos 1 0 +4
-const 7 duplicable "_malloc_string" "_string_table" aligned 1
-	0 6d616c6c6f63
-const 12 duplicable "_malloc_relocation" "_relocation_table" aligned 4
-	4 01
-	"_malloc" 0 abs 0 0 +4
-	"_malloc_symbol" 5 idx 1 0 +3
-const 4 duplicable "_malloc" aligned 4
-	"_malloc_relocation"
-code 10 duplicable replaceable "malloc" aligned 1
-	0 a1
-	5 e9
-	"_malloc" 1 abs 0 0 +4
-	"_function_call_wrapper" 6 rel -4 0 +4
-const 16 duplicable "_realloc_symbol" "_symbol_table" aligned 4
-	12 12
-	"_dynamic_section_libc"
-	"_realloc_string" 0 pos 1 0 +4
-const 8 duplicable "_realloc_string" "_string_table" aligned 1
-	0 7265616c6c6f63
-const 12 duplicable "_realloc_relocation" "_relocation_table" aligned 4
-	4 01
-	"_realloc" 0 abs 0 0 +4
-	"_realloc_symbol" 5 idx 1 0 +3
-const 4 duplicable "_realloc" aligned 4
-	"_realloc_relocation"
-code 10 duplicable replaceable "realloc" aligned 1
-	0 a1
-	5 e9
-	"_realloc" 1 abs 0 0 +4
-	"_function_call_wrapper" 6 rel -4 0 +4
 code 12 replaceable "_rt_abort" aligned 1
 	0 b8fc000000bb01000000cd80
 data 4 "_argc" aligned 4

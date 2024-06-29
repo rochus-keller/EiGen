@@ -1,0 +1,59 @@
+header 530 required "_header" fixed 4197888
+	0 4d5a80000100000004
+	24 40
+	60 800000000e1fba0e00b409cd21b8014ccd21546869732070726f6772616d2063616e6e6f742062652072756e20696e20444f53206d6f64652e0d0d0a24
+	128 504500004c0101
+	148 60002f030b01
+	169 0200000010
+	182 4000001000000002000004
+	200 04
+	213 02
+	220 0a000004000010000010
+	234 10000010
+	248 2e74657874
+	261 10
+	269 02
+	284 200000e0
+	512 8b442404a3
+	521 8b442408a3
+	"_trailer" 156 abs -4198400 0 +4 208 abs -4194304 0 +4 256 abs -4198400 0 +4 264 abs -4198400 0 +4
+	"_ImageHandle" 517 abs 0 0 +4
+	"_SystemTable" 526 abs 0 0 +4
+trailer 0 "_trailer" aligned 512
+const 4 "_extension" aligned 1
+	0 2e656669
+const 11 "_environment" aligned 1
+	0 4546492033322d626974
+data 4 "_ImageHandle" aligned 4
+data 4 "_SystemTable" aligned 4
+code 23 "abort" aligned 1
+	0 6a006a006a01ff35
+	12 a1
+	17 8b403cff5078
+	"_ImageHandle" 8 abs 0 0 +4
+	"_SystemTable" 13 abs 0 0 +4
+code 25 "_Exit" aligned 1
+	0 6a006a00ff74240cff35
+	14 a1
+	19 8b403cff5078
+	"_ImageHandle" 10 abs 0 0 +4
+	"_SystemTable" 15 abs 0 0 +4
+code 25 "free" aligned 1
+	0 8b44240483f800740f50a1
+	15 8b403cff503083c404c3
+	"_SystemTable" 11 abs 0 0 +4
+code 51 "getchar" aligned 1
+	0 6a0054a1
+	8 8b40248d4008506a01a1
+	22 8b403cff503c83c408a1
+	36 8b402450ff500483c40858c1e810c3
+	"_SystemTable" 4 abs 0 0 +4 18 abs 0 0 +4 32 abs 0 0 +4
+code 37 "malloc" aligned 1
+	0 6a0054ff74240c6a02a1
+	14 8b403cff502c83c40c83f8007407c70424
+	35 58c3
+	"_SystemTable" 10 abs 0 0 +4
+code 29 "putchar" aligned 1
+	0 81642404ff0000008d44240450a1
+	18 8b402c50ff500483c408c3
+	"_SystemTable" 14 abs 0 0 +4

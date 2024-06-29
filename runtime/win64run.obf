@@ -1,0 +1,296 @@
+header 512 required "_header" fixed 4197888
+	0 4d5a80000100000004
+	24 40
+	60 800000000e1fba0e00b409cd21b8014ccd21546869732070726f6772616d2063616e6e6f742062652072756e20696e20444f53206d6f64652e0d0d0a24
+	128 50450000648601
+	148 f0002f020b02
+	169 1000000010
+	178 40
+	185 1000000002000004
+	200 04
+	213 02
+	223 04000010
+	233 10
+	242 10
+	249 10
+	260 10
+	392 2e74657874
+	405 10
+	413 02
+	428 200000e0
+	"_trailer" 156 abs -4198400 0 +4 208 abs -4194304 0 +4 400 abs -4198400 0 +4 408 abs -4198400 0 +4
+	"abort\?_Exit\?stderr\?stdin\?stdout\?_kernel32_sentinel" 220 siz 16 3 +2
+	"_import_table\?_import_table" 272 abs -4194304 0 +4 276 siz 20 0 +4
+trailer 0 "_trailer" aligned 512
+const 4 "_extension" aligned 1
+	0 2e657865
+const 15 "_environment" aligned 1
+	0 57696e646f77732036342d626974
+code 13 "_system_call_wrapper0" aligned 1
+	0 5b4883ec20ffd04883c420ffe3
+code 17 "_system_call_wrapper1" aligned 1
+	0 5b488b0c244883ec18ffd04883c418ffe3
+code 22 "_system_call_wrapper2" aligned 1
+	0 5b488b0c24488b5424084883ec10ffd04883c410ffe3
+code 27 "_system_call_wrapper3" aligned 1
+	0 5b488b0c24488b5424084c8b4424104883ec08ffd04883c408ffe3
+code 24 "_system_call_wrapper4" 0 "_system_call_wrapper5" 0 "_system_call_wrapper6" 0 "_system_call_wrapper7" 0 "_system_call_wrapper8" 0 "_system_call_wrapper9" 0 "_system_call_wrapper10" 0 "_system_call_wrapper11" 0 "_system_call_wrapper12" aligned 1
+	0 5b488b0c24488b5424084c8b4424104c8b4c2418ffd0ffe3
+const 20 duplicable "_import_kernel32" "_import_table" aligned 4
+	"_import_sentinel"
+	"_kernel32_imports" 0 abs -4194304 0 +4 16 abs -4194304 0 +4
+	"_kernel32_name" 12 abs -4194304 0 +4
+const 13 duplicable "_kernel32_name" aligned 1
+	0 6b65726e656c33322e646c6c
+const 8 duplicable "_kernel32_sentinel" "_kernel32_imports_end" aligned 8
+	"_import_kernel32"
+const 20 "_import_sentinel" "_import_table_end" aligned 4
+const 8 duplicable "_CloseHandle" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_CloseHandle_hint" 0 abs -4194304 0 +8
+const 14 duplicable "_CloseHandle_hint" aligned 2
+	2 436c6f736548616e646c65
+const 8 duplicable "_CreateProcessA" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_CreateProcessA_hint" 0 abs -4194304 0 +8
+const 17 duplicable "_CreateProcessA_hint" aligned 2
+	2 43726561746550726f6365737341
+const 8 duplicable "_DeleteFileA" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_DeleteFileA_hint" 0 abs -4194304 0 +8
+const 14 duplicable "_DeleteFileA_hint" aligned 2
+	2 44656c65746546696c6541
+const 8 duplicable "_ExitProcess" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_ExitProcess_hint" 0 abs -4194304 0 +8
+const 14 duplicable "_ExitProcess_hint" aligned 2
+	2 4578697450726f63657373
+const 8 duplicable "_FileTimeToSystemTime" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_FileTimeToSystemTime_hint" 0 abs -4194304 0 +8
+const 23 duplicable "_FileTimeToSystemTime_hint" aligned 2
+	2 46696c6554696d65546f53797374656d54696d65
+const 8 duplicable "_GetCommandLineA" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetCommandLineA_hint" 0 abs -4194304 0 +8
+const 18 duplicable "_GetCommandLineA_hint" aligned 2
+	2 476574436f6d6d616e644c696e6541
+const 8 duplicable "_GetEnvironmentVariableA" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetEnvironmentVariableA_hint" 0 abs -4194304 0 +8
+const 26 duplicable "_GetEnvironmentVariableA_hint" aligned 2
+	2 476574456e7669726f6e6d656e745661726961626c6541
+const 8 duplicable "_GetExitCodeProcess" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetExitCodeProcess_hint" 0 abs -4194304 0 +8
+const 21 duplicable "_GetExitCodeProcess_hint" aligned 2
+	2 47657445786974436f646550726f63657373
+const 8 duplicable "_GetProcessHeap" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetProcessHeap_hint" 0 abs -4194304 0 +8
+const 17 duplicable "_GetProcessHeap_hint" aligned 2
+	2 47657450726f6365737348656170
+const 8 duplicable "_GetStdHandle" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetStdHandle_hint" 0 abs -4194304 0 +8
+const 15 duplicable "_GetStdHandle_hint" aligned 2
+	2 47657453746448616e646c65
+const 8 duplicable "_GetSystemTimeAsFileTime" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetSystemTimeAsFileTime_hint" 0 abs -4194304 0 +8
+const 26 duplicable "_GetSystemTimeAsFileTime_hint" aligned 2
+	2 47657453797374656d54696d65417346696c6554696d65
+const 8 duplicable "_GetTickCount" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_GetTickCount_hint" 0 abs -4194304 0 +8
+const 15 duplicable "_GetTickCount_hint" aligned 2
+	2 4765745469636b436f756e74
+const 8 duplicable "_HeapAlloc" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_HeapAlloc_hint" 0 abs -4194304 0 +8
+const 12 duplicable "_HeapAlloc_hint" aligned 2
+	2 48656170416c6c6f63
+const 8 duplicable "_HeapFree" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_HeapFree_hint" 0 abs -4194304 0 +8
+const 11 duplicable "_HeapFree_hint" aligned 2
+	2 4865617046726565
+const 8 duplicable "_MoveFileA" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_MoveFileA_hint" 0 abs -4194304 0 +8
+const 12 duplicable "_MoveFileA_hint" aligned 2
+	2 4d6f766546696c6541
+const 8 duplicable "_ReadFile" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_ReadFile_hint" 0 abs -4194304 0 +8
+const 11 duplicable "_ReadFile_hint" aligned 2
+	2 5265616446696c65
+const 8 duplicable "_SystemTimeToTzSpecificLocalTime" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_SystemTimeToTzSpecificLocalTime_hint" 0 abs -4194304 0 +8
+const 34 duplicable "_SystemTimeToTzSpecificLocalTime_hint" aligned 2
+	2 53797374656d54696d65546f547a53706563696669634c6f63616c54696d65
+const 8 duplicable "_WaitForSingleObject" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_WaitForSingleObject_hint" 0 abs -4194304 0 +8
+const 22 duplicable "_WaitForSingleObject_hint" aligned 2
+	2 57616974466f7253696e676c654f626a656374
+const 8 duplicable "_WriteFile" "_kernel32_imports" aligned 8
+	"_kernel32_sentinel"
+	"_WriteFile_hint" 0 abs -4194304 0 +8
+const 12 duplicable "_WriteFile_hint" aligned 2
+	2 577269746546696c65
+data 8 "_default_heap_handle" aligned 8
+	"_init_default_heap_handle"
+initdata 21 "_init_default_heap_handle" aligned 1
+	0 4883ec20ff15
+	10 488905
+	17 4883c420
+	"_GetProcessHeap" 6 rel -4 0 +4
+	"_default_heap_handle" 13 rel -4 0 +4
+data 4 "_initial_tick_count" aligned 4
+	"_init_initial_tick_count"
+initdata 20 "_init_initial_tick_count" aligned 1
+	0 4883ec20ff15
+	10 8905
+	16 4883c420
+	"_GetTickCount" 6 rel -4 0 +4
+	"_initial_tick_count" 12 rel -4 0 +4
+code 15 replaceable "abort" aligned 1
+	0 4883ec20b901000000ff15
+	"_ExitProcess" 11 rel -4 0 +4
+data 4 "_argc" aligned 4
+	"_init_argc"
+initdata 54 "_init_argc" aligned 1
+	0 4883ec20ff15
+	10 4883c42031c98a1880fb00741980fb207708c6000048ffc0ebecffc148ffc080382077f8ebe0890d
+	"_GetCommandLineA" 6 rel -4 0 +4
+	"_argc" 50 rel -4 0 +4
+data 8 "_argv" aligned 8
+	"_init_argv"
+initdata 93 "_init_argv" aligned 1
+	0 8b0d
+	6 89c8ffc0c1e00350e8
+	19 83f8000f84
+	28 8905
+	34 4883ec20ff15
+	44 4883c420488b1d
+	55 8b0d
+	61 803800750548ffc0ebf64889034883c30848ffc080380075f8ffc975e348890b
+	"_argc" 2 rel -4 0 +4 57 rel -4 0 +4
+	"malloc" 15 rel -4 0 +4
+	"abort" 24 rel -4 0 +4
+	"_argv" 30 rel -4 0 +4 51 rel -4 0 +4
+	"_GetCommandLineA" 40 rel -4 0 +4
+code 21 "clock" aligned 1
+	0 4883ec20ff15
+	10 4883c4202b05
+	20 c3
+	"_GetTickCount" 6 rel -4 0 +4
+	"_initial_tick_count" 16 rel -4 0 +4
+code 14 replaceable "_Exit" aligned 1
+	0 4883ec208b4c2428ff15
+	"_ExitProcess" 10 rel -4 0 +4
+code 25 "fclose" aligned 1
+	0 4883ec2066ff742428ff15
+	15 4883c42883f80119c0c3
+	"_CloseHandle" 11 rel -4 0 +4
+code 62 "fgetc" aligned 1
+	0 6a006a006a004883ec204c8d4c242841b801000000488d542430488b4c2440ff15
+	37 4883c4285a5b83f800740883fa01750389d8c3b8ffffffffc3
+	"_ReadFile" 33 rel -4 0 +4
+code 40 "fputc" aligned 1
+	0 6a006a004883ec204c8d4c242841b801000000488d542438488b4c2440ff15
+	35 4883c430c3
+	"_WriteFile" 31 rel -4 0 +4
+code 38 "free" aligned 1
+	0 488b4424084883f800741a4883ec204989c031d2488b0d
+	27 ff15
+	33 4883c420c3
+	"_default_heap_handle" 23 rel -4 0 +4
+	"_HeapFree" 29 rel -4 0 +4
+code 53 "getenv" aligned 1
+	0 4883ec20b940000000488d15
+	16 4c8d442428ff15
+	27 4883c42083f840770d83f8007408488d05
+	48 c34831c0c3
+	"_getenv_buffer" 12 rel -4 0 +4 44 rel -4 0 +4
+	"_GetEnvironmentVariableA" 23 rel -4 0 +4
+data 64 "_getenv_buffer" aligned 1
+code 145 "gmtime" aligned 1
+	0 8b44240848c7c38096980048f7e348bb00803ed5deb19d014801d8504889e14883ec104889e24883ec20ff15
+	48 4883c4200fbf44240c8905
+	63 0fbf44240a8905
+	74 0fbf4424088905
+	85 0fbf4424068905
+	96 0fbf4424028905
+	107 0fbf04242d6c0700008905
+	122 0fbf4424048905
+	133 4883c41848c7c0
+	144 c3
+	"_FileTimeToSystemTime" 44 rel -4 0 +4
+	"_tm" 59 rel -4 0 +4 70 rel 0 0 +4 81 rel 4 0 +4 92 rel 8 0 +4 103 rel 12 0 +4 118 rel 16 0 +4 129 rel 20 0 +4 140 abs 0 0 +4
+data 36 "_tm" aligned 4
+code 162 "localtime" aligned 1
+	0 8b44240848c7c38096980048f7e348bb00803ed5deb19d014801d8504889e14883ec104889e24883ec20ff15
+	48 4831c9488d5424204989d0ff15
+	65 4883c4200fbf44240c8905
+	80 0fbf44240a8905
+	91 0fbf4424088905
+	102 0fbf4424068905
+	113 0fbf4424028905
+	124 0fbf04242d6c0700008905
+	139 0fbf4424048905
+	150 4883c41848c7c0
+	161 c3
+	"_FileTimeToSystemTime" 44 rel -4 0 +4
+	"_SystemTimeToTzSpecificLocalTime" 61 rel -4 0 +4
+	"_tm" 76 rel -4 0 +4 87 rel 0 0 +4 98 rel 4 0 +4 109 rel 8 0 +4 120 rel 12 0 +4 135 rel 16 0 +4 146 rel 20 0 +4 157 abs 0 0 +4
+code 29 "malloc" aligned 1
+	0 4883ec204c8b44242831d2488b0d
+	18 ff15
+	24 4883c420c3
+	"_default_heap_handle" 14 rel -4 0 +4
+	"_HeapAlloc" 20 rel -4 0 +4
+code 34 "realloc" aligned 1
+	0 4883ec204c8b4c24304c8b44242831d2488b0d
+	23 ff15
+	29 4883c420c3
+	"_default_heap_handle" 19 rel -4 0 +4
+	"_HeapReAlloc" 25 rel -4 0 +4
+code 26 "remove" aligned 1
+	0 4883ec20488b4c2428ff15
+	15 4883c420f7d819c0ffc0c3
+	"_DeleteFileA" 11 rel -4 0 +4
+code 31 "rename" aligned 1
+	0 4883ec20488b542430488b4c2428ff15
+	20 4883c420f7d819c0ffc0c3
+	"_MoveFileA" 16 rel -4 0 +4
+const 8 "stderr" aligned 8
+	"_init_stderr"
+initdata 28 "_init_stderr" aligned 1
+	0 4883ec2048c7c1f4ffffffff15
+	17 488905
+	24 4883c420
+	"_GetStdHandle" 13 rel -4 0 +4
+	"stderr" 20 rel -4 0 +4
+const 8 "stdin" aligned 8
+	"_init_stdin"
+initdata 28 "_init_stdin" aligned 1
+	0 4883ec2048c7c1f6ffffffff15
+	17 488905
+	24 4883c420
+	"_GetStdHandle" 13 rel -4 0 +4
+	"stdin" 20 rel -4 0 +4
+const 8 "stdout" aligned 8
+	"_init_stdout"
+initdata 28 "_init_stdout" aligned 1
+	0 4883ec2048c7c1f5ffffffff15
+	17 488905
+	24 4883c420
+	"_GetStdHandle" 13 rel -4 0 +4
+	"stdout" 20 rel -4 0 +4
+code 61 "time" aligned 1
+	0 4883ec084889e14883ec20ff15
+	17 4883c42058489948bb00803ed5deb19d014829d848c7c38096980048f7f3488b5c24104883fb0074028903c3
+	"_GetSystemTimeAsFileTime" 13 rel -4 0 +4

@@ -1,0 +1,144 @@
+header 28 required "_header" fixed 4096
+	0 cefaedfe070000000300000002
+	24 01
+	"_commands" 16 cnt 0 0 +4 20 siz 0 0 +4
+trailer 0 "_trailer" aligned 4096
+const 0 "_extension" aligned 1
+const 12 "_environment" aligned 1
+	0 4f5320582033322d626974
+header 56 required "_text_segment_command" "_commands" aligned 4
+	0 01000000380000005f5f54455854
+	25 10
+	40 0700000007
+	"_symbol_table\?_symbol_table:_trailer" 28 abs -4096 0 +4 36 abs -4096 0 +4
+header 56 required "_linkedit_segment_command" "_commands" aligned 4
+	0 01000000380000005f5f4c494e4b45444954
+	40 0700000007
+	"_symbol_table\?_symbol_table:_trailer" 24 abs 0 0 +4 28 siz 0 0 +4 32 abs -4096 0 +4 36 siz 0 0 +4
+header 80 required "_thread_command" "_commands" aligned 4
+	0 05000000500000000100000010
+	"_last_command" 56 abs 0 0 +4
+header 28 "_dylinker_command" "_commands" aligned 4
+	0 0e0000001c0000000c0000002f7573722f6c69622f64796c64
+header 24 "_symtab_command" "_commands" aligned 4
+	0 0200000018
+	"_dylinker_command"
+	"_symbol_table_begin" 8 abs -4096 0 +4
+	"_symbol_table" 12 cnt 0 0 +4
+	"_text_table_begin" 16 abs -4096 0 +4
+	"_text_table" 20 siz 1 0 +4
+header 80 "_dysymtab_command" "_commands" aligned 4
+	0 0b00000050
+	"_symtab_command"
+	"_symbol_table" 28 cnt 0 0 +4
+	"_relocations" 64 abs -4096 0 +4 68 cnt 0 0 +4
+header 56 "_section_command" "_commands" aligned 4
+	0 01
+	40 0700000007
+	"_commands_sections" 4 siz 56 0 +4 28 siz 0 0 +4 32 abs -4096 0 +4 36 siz 0 0 +4 48 cnt 0 0 +4
+header 68 "_debug_abbrev_header" "_commands_sections" aligned 4
+	0 5f5f64656275675f616262726576
+	59 02
+	"_section_command"
+	"_debug_abbrev_section" 36 siz 1 0 +4 40 abs -4096 0 +4
+header 68 "_debug_info_header" "_commands_sections" aligned 4
+	0 5f5f64656275675f696e666f
+	59 02
+	"_section_command"
+	"_debug_info_section" 36 siz 0 0 +4 40 abs -4096 0 +4
+header 68 "_debug_line_header" "_commands_sections" aligned 4
+	0 5f5f64656275675f6c696e65
+	59 02
+	"_section_command"
+	"_debug_line_section" 36 siz 0 0 +4 40 abs -4096 0 +4
+header 0 "_last_command" "_commands_stop" aligned 4
+code 8 "sys_brk" aligned 1
+	0 b82d000000cd80c3
+code 8 "sys_close" aligned 1
+	0 b806000000cd80c3
+code 8 "sys_exit" aligned 1
+	0 b801000000cd80c3
+code 8 "sys_open" aligned 1
+	0 b805000000cd80c3
+code 8 "sys_read" aligned 1
+	0 b803000000cd80c3
+code 8 "sys_rename" aligned 1
+	0 b880000000cd80c3
+code 8 "sys_unlink" aligned 1
+	0 b80a000000cd80c3
+code 8 "sys_write" aligned 1
+	0 b804000000cd80c3
+trailer 0 "_symbol_table_begin" "_symbol_tab" aligned 4096
+trailer 1 "_text_table_begin" "_text_tab" aligned 4
+code 5 "_function_call_wrapper" aligned 1
+	0 5bffd0ffe3
+header 52 duplicable "_dylib_command_libc" "_commands" aligned 4
+	0 0c0000003400000018
+	24 2f7573722f6c69622f6c696253797374656d2e422e64796c6962
+	"_dysymtab_command"
+trailer 12 duplicable "_free_symbol" "_symbol_table" aligned 4
+	4 01
+	"_dylib_command_libc"
+	"_free_text" 0 pos 1 0 +4
+trailer 6 duplicable "_free_text" "_text_table" aligned 1
+	0 5f66726565
+const 8 duplicable "_free_relocation" "_relocations" aligned 4
+	7 0c
+	"_free" 0 abs -4096 0 +4
+	"_free_symbol" 4 idx 0 0 +3
+const 4 duplicable "_free" aligned 4
+	"_free_relocation"
+code 10 duplicable "free" aligned 1
+	0 a1
+	5 e9
+	"_free" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+trailer 12 duplicable "_malloc_symbol" "_symbol_table" aligned 4
+	4 01
+	"_dylib_command_libc"
+	"_malloc_text" 0 pos 1 0 +4
+trailer 8 duplicable "_malloc_text" "_text_table" aligned 1
+	0 5f6d616c6c6f63
+const 8 duplicable "_malloc_relocation" "_relocations" aligned 4
+	7 0c
+	"_malloc" 0 abs -4096 0 +4
+	"_malloc_symbol" 4 idx 0 0 +3
+const 4 duplicable "_malloc" aligned 4
+	"_malloc_relocation"
+code 10 duplicable "malloc" aligned 1
+	0 a1
+	5 e9
+	"_malloc" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+trailer 12 duplicable "_realloc_symbol" "_symbol_table" aligned 4
+	4 01
+	"_dylib_command_libc"
+	"_realloc_text" 0 pos 1 0 +4
+trailer 9 duplicable "_realloc_text" "_text_table" aligned 1
+	0 5f7265616c6c6f63
+const 8 duplicable "_realloc_relocation" "_relocations" aligned 4
+	7 0c
+	"_realloc" 0 abs -4096 0 +4
+	"_realloc_symbol" 4 idx 0 0 +3
+const 4 duplicable "_realloc" aligned 4
+	"_realloc_relocation"
+code 10 duplicable "realloc" aligned 1
+	0 a1
+	5 e9
+	"_realloc" 1 abs 0 0 +4
+	"_function_call_wrapper" 6 rel -4 0 +4
+code 12 replaceable "abort" aligned 1
+	0 6a0183ec04b801000000cd80
+data 4 "_argc" aligned 4
+data 4 "_argv" aligned 4
+code 7 replaceable "_Exit" aligned 1
+	0 b801000000cd80
+code 41 "fgetc" aligned 1
+	0 6a006a018d44240450ff74241083ec04b803000000cd8083c4105b83f801750389d8c3b8ffffffffc3
+code 25 "fputc" aligned 1
+	0 6a018d44240850ff74241083ec04b804000000cd8083c410c3
+const 4 "stderr" aligned 4
+	0 02
+const 4 "stdin" aligned 4
+const 4 "stdout" aligned 4
+	0 01

@@ -243,6 +243,12 @@ let libc : SourceSet {
         ../include/errno.h
         ../include/ctype.h
         ../include/assert.h
+        ../include/pdclib/_PDCLIB_glue.h
+        ../include/pdclib/_PDCLIB_print.h
+        ../include/pdclib/_PDCLIB_internal.h
+        ../include/pdclib/_PDCLIB_lib_ext1.h
+        ../include/pdclib/_PDCLIB_config.h
+        ../pdclib/_PDCLIB_tzcode.h
     ]
 }
 

@@ -1,0 +1,181 @@
+header 32 required "_header" fixed 4096
+	0 cffaedfe070000010300008002
+	24 01
+	"_commands" 16 cnt 0 0 +4 20 siz 0 0 +4
+trailer 0 "_trailer" aligned 4096
+const 0 "_extension" aligned 1
+const 12 "_environment" aligned 1
+	0 4f5320582036342d626974
+header 72 required "_pagezero_command" "_commands" aligned 8
+	0 19000000480000005f5f504147455a45524f
+	33 10
+header 72 required "_text_segment_command" "_commands" aligned 8
+	0 19000000480000005f5f54455854
+	25 10
+	56 0700000007
+	"_symbol_table\?_symbol_table:_trailer" 32 abs -4096 0 +8 48 abs -4096 0 +8
+header 72 required "_linkedit_segment_command" "_commands" aligned 8
+	0 19000000480000005f5f4c494e4b45444954
+	56 0700000007
+	"_symbol_table\?_symbol_table:_trailer" 24 abs 0 0 +8 32 siz 0 0 +8 40 abs -4096 0 +8 48 siz 0 0 +8
+header 184 required "_thread_command" "_commands" aligned 8
+	0 05000000b8000000040000002a
+	"_last_command" 144 abs 0 0 +8
+header 32 "_dylinker_command" "_commands" aligned 8
+	0 0e000000200000000c0000002f7573722f6c69622f64796c64
+header 24 "_symtab_command" "_commands" aligned 8
+	0 0200000018
+	"_dylinker_command"
+	"_symbol_table_begin" 8 abs -4096 0 +4
+	"_symbol_table" 12 cnt 0 0 +4
+	"_text_table_begin" 16 abs -4096 0 +4
+	"_text_table" 20 siz 1 0 +4
+header 80 "_dysymtab_command" "_commands" aligned 8
+	0 0b00000050
+	"_symtab_command"
+	"_symbol_table" 28 cnt 0 0 +4
+	"_relocations" 64 abs -4096 0 +4 68 cnt 0 0 +4
+header 72 "_section_command" "_commands" aligned 8
+	0 19
+	56 0700000007
+	"_commands_sections" 4 siz 72 0 +4 32 siz 0 0 +8 40 abs -4096 0 +8 48 siz 0 0 +8 64 cnt 0 0 +4
+header 80 "_debug_abbrev_header" "_commands_sections" aligned 8
+	0 5f5f64656275675f616262726576
+	67 02
+	"_section_command"
+	"_debug_abbrev_section" 40 siz 1 0 +8 48 abs -4096 0 +4
+header 80 "_debug_info_header" "_commands_sections" aligned 8
+	0 5f5f64656275675f696e666f
+	67 02
+	"_section_command"
+	"_debug_info_section" 40 siz 0 0 +8 48 abs -4096 0 +4
+header 80 "_debug_line_header" "_commands_sections" aligned 8
+	0 5f5f64656275675f6c696e65
+	67 02
+	"_section_command"
+	"_debug_line_section" 40 siz 0 0 +8 48 abs -4096 0 +4
+header 0 "_last_command" "_commands_stop" aligned 8
+code 3 "_system_call_wrapper0" aligned 1
+	0 0f05c3
+code 8 "_system_call_wrapper1" aligned 1
+	0 488b7c24080f05c3
+code 13 "_system_call_wrapper2" aligned 1
+	0 488b7c2408488b7424100f05c3
+code 18 "_system_call_wrapper3" aligned 1
+	0 488b7c2408488b742410488b5424180f05c3
+code 23 "_system_call_wrapper4" aligned 1
+	0 488b7c2408488b742410488b5424184c8b5424200f05c3
+code 28 "_system_call_wrapper5" aligned 1
+	0 488b7c2408488b742410488b5424184c8b5424204c8b4424280f05c3
+code 33 "_system_call_wrapper6" aligned 1
+	0 488b7c2408488b742410488b5424184c8b5424204c8b4424284c8b4c24300f05c3
+code 10 "sys_brk" aligned 1
+	0 b82d000002e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_close" aligned 1
+	0 b806000002e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_exit" aligned 1
+	0 b801000002e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_open" aligned 1
+	0 b805000002e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_read" aligned 1
+	0 b803000002e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+code 10 "sys_rename" aligned 1
+	0 b880000002e9
+	"_system_call_wrapper2" 6 rel -4 0 +4
+code 10 "sys_unlink" aligned 1
+	0 b80a000002e9
+	"_system_call_wrapper1" 6 rel -4 0 +4
+code 10 "sys_write" aligned 1
+	0 b804000002e9
+	"_system_call_wrapper3" 6 rel -4 0 +4
+trailer 0 "_symbol_table_begin" "_symbol_tab" aligned 4096
+trailer 1 "_text_table_begin" "_text_tab" aligned 8
+code 15 "_function_call_wrapper0" aligned 1
+	0 5b4989e44883e4f0ffd04c89e4ffe3
+code 19 "_function_call_wrapper1" aligned 1
+	0 5b488b3c244989e44883e4f0ffd04c89e4ffe3
+code 24 "_function_call_wrapper2" aligned 1
+	0 5b488b3c24488b7424084989e44883e4f0ffd04c89e4ffe3
+code 29 "_function_call_wrapper3" aligned 1
+	0 5b488b3c24488b742408488b5424104989e44883e4f0ffd04c89e4ffe3
+code 34 "_function_call_wrapper4" aligned 1
+	0 5b488b3c24488b742408488b542410488b4c24184989e44883e4f0ffd04c89e4ffe3
+code 39 "_function_call_wrapper5" aligned 1
+	0 5b488b3c24488b742408488b542410488b4c24184c8b4424204989e44883e4f0ffd04c89e4ffe3
+code 44 "_function_call_wrapper6" aligned 1
+	0 5b488b3c24488b742408488b542410488b4c24184c8b4424204c8b4c24284989e44883e4f0ffd04c89e4ffe3
+header 56 duplicable "_dylib_command_libc" "_commands" aligned 8
+	0 0c0000003800000018
+	24 2f7573722f6c69622f6c696253797374656d2e422e64796c6962
+	"_dysymtab_command"
+trailer 16 duplicable "_free_symbol" "_symbol_table" aligned 8
+	4 01
+	"_dylib_command_libc"
+	"_free_text" 0 pos 1 0 +4
+trailer 6 duplicable "_free_text" "_text_table" aligned 1
+	0 5f66726565
+const 8 duplicable "_free_relocation" "_relocations" aligned 4
+	7 0e
+	"_free" 0 abs -4096 0 +4
+	"_free_symbol" 4 idx 0 0 +3
+const 8 duplicable "_free" aligned 8
+	"_free_relocation"
+code 12 duplicable "free" aligned 1
+	0 488b05
+	7 e9
+	"_free" 3 rel -4 0 +4
+	"_function_call_wrapper1" 8 rel -4 0 +4
+trailer 16 duplicable "_malloc_symbol" "_symbol_table" aligned 8
+	4 01
+	"_dylib_command_libc"
+	"_malloc_text" 0 pos 1 0 +4
+trailer 8 duplicable "_malloc_text" "_text_table" aligned 1
+	0 5f6d616c6c6f63
+const 8 duplicable "_malloc_relocation" "_relocations" aligned 4
+	7 0e
+	"_malloc" 0 abs -4096 0 +4
+	"_malloc_symbol" 4 idx 0 0 +3
+const 8 duplicable "_malloc" aligned 8
+	"_malloc_relocation"
+code 12 duplicable "malloc" aligned 1
+	0 488b05
+	7 e9
+	"_malloc" 3 rel -4 0 +4
+	"_function_call_wrapper1" 8 rel -4 0 +4
+trailer 16 duplicable "_realloc_symbol" "_symbol_table" aligned 8
+	4 01
+	"_dylib_command_libc"
+	"_realloc_text" 0 pos 1 0 +4
+trailer 9 duplicable "_realloc_text" "_text_table" aligned 1
+	0 5f7265616c6c6f63
+const 8 duplicable "_realloc_relocation" "_relocations" aligned 4
+	7 0e
+	"_realloc" 0 abs -4096 0 +4
+	"_realloc_symbol" 4 idx 0 0 +3
+const 8 duplicable "_realloc" aligned 8
+	"_realloc_relocation"
+code 12 duplicable "realloc" aligned 1
+	0 488b05
+	7 e9
+	"_realloc" 3 rel -4 0 +4
+	"_function_call_wrapper2" 8 rel -4 0 +4
+code 12 replaceable "abort" aligned 1
+	0 b801000002bf010000000f05
+data 4 "_argc" aligned 4
+data 8 "_argv" aligned 8
+code 11 replaceable "_Exit" aligned 1
+	0 b8010000028b7c24080f05
+code 39 "fgetc" aligned 1
+	0 6a00b803000002488b7c24104889e648c7c2010000000f055b83f801750389d8c3b8ffffffffc3
+code 40 "fputc" aligned 1
+	0 b804000002488b7c2410488d74240848c7c2010000000f0583f80175058b442408c3b8ffffffffc3
+const 8 "stderr" aligned 8
+	0 02
+const 8 "stdin" aligned 8
+const 8 "stdout" aligned 8
+	0 01

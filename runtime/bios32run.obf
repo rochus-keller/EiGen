@@ -1,0 +1,139 @@
+header 512 required "_header" fixed 1048576
+	0 31c08ec08ed88ed066bc007c0000e4920c02e692fa1e0f01165c7d0f20c06683c8010f22c0bb10008edb24fe0f22c01ffbb400cd13520631ffb408cd138836927d80e13f880e937d075ab90100b60066bf000010006681ff
+	92 734ab80102bb007ecd137314b80102cd13730db80102cd137306cd18faf4ebfa668b076667890783c3046683c70481fb008075ecfec13a0e937d76bdb101fec63a36927d76b3b600fec5ebad88d02401baf203ee6631db66ba50414d53bf7a7d66be
+	194 66b820e8000066b918000000cd1573036631db66ba50414d536639d0753366833e8a7d01752566833e7e7d00751d66833e867d00751566a17a7d6667890666a1827d66678946046683c6086683fb0075af6631db6667895e046683c60866ba
+	293 66678932b80200cd10b80005cd10b80001b90728cd10fa0f20c06683c8010f22c0bb10008edb8ec38ee38eeb8ed366ea000210000800001800627d
+	362 ffff0000009ecf00ffff00000092cf
+	510 55aa
+	"_trailer" 88 abs 0 0 +4
+	"_memory_map" 190 abs 0 0 +4
+	"_heap_start" 289 abs 0 0 +4
+trailer 0 "_trailer" 0 "_memory_map" aligned 512
+const 12 "_environment" aligned 1
+	0 42494f532033322d626974
+const 6 "_idt" aligned 2
+	"_interrupts" 0 siz 0 0 +2 2 abs 0 0 +4
+data 384 "_interrupts" aligned 4
+	2 0800008e
+	10 0800008e
+	18 0800008e
+	26 0800008e
+	34 0800008e
+	42 0800008e
+	50 0800008e
+	58 0800008e
+	66 0800008e
+	82 0800008e
+	90 0800008e
+	98 0800008e
+	106 0800008e
+	114 0800008e
+	130 0800008e
+	138 0800008e
+	146 0800008e
+	154 0800008e
+	242 0800008e
+	258 0800008e
+	266 0800008e
+	274 0800008e
+	282 0800008e
+	290 0800008e
+	298 0800008e
+	306 0800008e
+	314 0800008e
+	322 0800008e
+	330 0800008e
+	338 0800008e
+	346 0800008e
+	354 0800008e
+	362 0800008e
+	370 0800008e
+	378 0800008e
+	"_init_interrupt_controllers"
+	"_default_handler" 0 abs 0 0 +2 6 abs 0 16 +2 8 abs 0 0 +2 14 abs 0 16 +2 16 abs 0 0 +2 22 abs 0 16 +2 24 abs 0 0 +2 30 abs 0 16 +2 32 abs 0 0 +2 38 abs 0 16 +2 40 abs 0 0 +2 46 abs 0 16 +2 48 abs 0 0 +2 54 abs 0 16 +2 56 abs 0 0 +2 62 abs 0 16 +2 128 abs 0 0 +2 134 abs 0 16 +2 144 abs 0 0 +2 150 abs 0 16 +2 152 abs 0 0 +2 158 abs 0 16 +2 240 abs 0 0 +2 246 abs 0 16 +2 256 abs 0 0 +2 262 abs 0 16 +2 264 abs 0 0 +2 270 abs 0 16 +2 272 abs 0 0 +2 278 abs 0 16 +2 280 abs 0 0 +2 286 abs 0 16 +2 288 abs 0 0 +2 294 abs 0 16 +2 296 abs 0 0 +2 302 abs 0 16 +2 304 abs 0 0 +2 310 abs 0 16 +2 312 abs 0 0 +2 318 abs 0 16 +2 320 abs 0 0 +2 326 abs 0 16 +2 328 abs 0 0 +2 334 abs 0 16 +2 336 abs 0 0 +2 342 abs 0 16 +2 344 abs 0 0 +2 350 abs 0 16 +2 352 abs 0 0 +2 358 abs 0 16 +2 360 abs 0 0 +2 366 abs 0 16 +2 368 abs 0 0 +2 374 abs 0 16 +2 376 abs 0 0 +2 382 abs 0 16 +2
+	"_default_error_handler" 64 abs 0 0 +2 70 abs 0 16 +2 80 abs 0 0 +2 86 abs 0 16 +2 88 abs 0 0 +2 94 abs 0 16 +2 96 abs 0 0 +2 102 abs 0 16 +2 104 abs 0 0 +2 110 abs 0 16 +2 112 abs 0 0 +2 118 abs 0 16 +2 136 abs 0 0 +2 142 abs 0 16 +2
+code 1 "_default_handler" aligned 1
+	0 cf
+code 4 "_default_error_handler" aligned 1
+	0 83c404cf
+initdata 35 "_init_interrupt_controllers" aligned 1
+	0 b011e620e6a0b020e621b028e6a1b004e621b002e6a1b001e621e6a1b0ffe621e6a1fb
+data 4 "_clock" aligned 4
+	"_init_timer"
+initdata 49 "_init_timer" aligned 1
+	0 b034e64366b8a904e64088e0e640b8
+	19 66a3
+	25 c1e81066a3
+	34 0f011d
+	41 e4210fbaf000e621
+	"_timer_handler" 15 abs 0 0 +4
+	"_interrupts" 21 abs 256 0 +4 30 abs 262 0 +4
+	"_idt" 37 abs 0 0 +4
+code 13 "_timer_handler" aligned 1
+	0 50ff05
+	7 b020e62058cf
+	"_clock" 3 abs 0 0 +4
+data 1 "_input_buffer" aligned 1
+	0 ff
+	"_init_keyboard"
+initdata 110 "_init_keyboard" aligned 1
+	0 e8
+	5 b0ade664e8
+	14 b0a7e664e8
+	23 b020e664e8
+	32 e46088c30fbaeb000fbaf3010fbaeb06e8
+	53 b060e664e8
+	62 88d8e660e8
+	71 b0aee664b8
+	80 66a3
+	86 c1e81066a3
+	95 0f011d
+	102 e4210fbaf001e621
+	"_keyboard_wait_out" 1 rel -4 0 +4 10 rel -4 0 +4 19 rel -4 0 +4 49 rel -4 0 +4 58 rel -4 0 +4 67 rel -4 0 +4
+	"_keyboard_wait_in" 28 rel -4 0 +4
+	"_keyboard_handler" 76 abs 0 0 +4
+	"_interrupts" 82 abs 264 0 +4 91 abs 270 0 +4
+	"_idt" 98 abs 0 0 +4
+code 9 "_keyboard_wait_in" aligned 1
+	0 e4640fbae00073f8c3
+code 9 "_keyboard_wait_out" aligned 1
+	0 e4640fbae00172f8c3
+code 30 "_keyboard_handler" aligned 1
+	0 50e4600fbae007720f0fb6c005
+	17 8a00a2
+	24 b020e62058cf
+	"_keyboard_map" 13 abs 0 0 +4
+	"_input_buffer" 20 abs 0 0 +4
+const 127 "_keyboard_map" aligned 1
+	1 1b313233343536373839302d3d080971776572747975696f705b5d0a006173646667686a6b6c3b2260005c7a786376626e6d2c2e2f00000020
+code 10 "abort" aligned 1
+	0 fa6a006a000f011c24cc
+code 6 "clock" aligned 1
+	0 a1
+	5 c3
+	"_clock" 1 abs 0 0 +4
+code 15 "_Exit" aligned 1
+	0 837c2404000f85
+	11 faf4ebfd
+	"abort" 7 rel -4 0 +4
+code 1 "free" aligned 1
+	0 c3
+code 12 "getchar" aligned 1
+	0 b0ff8605
+	8 0fbec0c3
+	"_input_buffer" 4 abs 0 0 +4
+code 28 "malloc" aligned 1
+	0 a1
+	5 89c3035c24040f82
+	17 f00fb11d
+	25 75eac3
+	"_heap_start" 1 abs 0 0 +4 21 abs 0 0 +4
+	"abort" 13 rel -4 0 +4
+data 4 "_heap_start" aligned 4
+code 94 "putchar" aligned 1
+	0 8b1d
+	6 81fbd00700007522fcbea0800b00bf00800b00b9d007000066f3a566b82007b95000000066f3ab83eb50b4078a4424043c0a74106689045d00800b0043891d
+	73 c389d831d2bb50000000f7f329d3011d
+	93 c3
+	"_cursor" 2 abs 0 0 +4 69 abs 0 0 +4 89 abs 0 0 +4
+data 4 "_cursor" aligned 4

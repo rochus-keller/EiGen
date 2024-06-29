@@ -540,7 +540,10 @@ struct _PDCLIB_imaxdiv_t
 /* conventions used, and you probably have to replace them with builtins of   */
 /* your compiler.                                                             */
 
-#if defined( __i386 )
+#ifdef __ecs_chibicc__
+typedef unsigned char * _PDCLIB_va_list;
+
+#elif defined( __i386 )
 
 /* The following generic implementation works only for pure stack-based       */
 /* architectures, and only if arguments are aligned to pointer type. Credits  */
@@ -548,16 +551,11 @@ struct _PDCLIB_imaxdiv_t
 
 /* Internal helper macro. va_round is not part of <stdarg.h>.                 */
 #define _PDCLIB_va_round( type ) ( (sizeof(type) + sizeof(void *) - 1) & ~(sizeof(void *) - 1) )
-
-#ifdef __ecs_chibicc__
-typedef unsigned char * _PDCLIB_va_list;
-#else
 typedef char * _PDCLIB_va_list;
 #define _PDCLIB_va_arg( ap, type ) ( (ap) += (_PDCLIB_va_round(type)), ( *(type*) ( (ap) - (_PDCLIB_va_round(type)) ) ) )
 #define _PDCLIB_va_copy( dest, src ) ( (dest) = (src), (void)0 )
 #define _PDCLIB_va_end( ap ) ( (ap) = (void *)0, (void)0 )
 #define _PDCLIB_va_start( ap, parmN ) ( (ap) = (char *) &parmN + ( _PDCLIB_va_round(parmN) ), (void)0 )
-#endif
 
 #elif defined( __x86_64 ) || defined( __arm__ ) || defined( __ARM_NEON )
 
@@ -574,6 +572,7 @@ typedef __builtin_va_list _PDCLIB_va_list;
 #error Please create your own _PDCLIB_config.h. Using the existing one as-is will not work. (Unsupported varargs.)
 
 #endif
+
 
 /* -------------------------------------------------------------------------- */
 /* OS "glue", part 1                                                          */

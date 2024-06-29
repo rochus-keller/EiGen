@@ -1046,7 +1046,7 @@ static char *format_time(struct tm *tm) {
 
 static void define_int_macro(char* name, uint64_t val)
 {
-    char buf[16];
+    char buf[32];
     sprintf(buf,"%lld",val);
     char* str = malloc(strlen(buf)+1); // NOTE like read_file this mem is allocated and never freed!
     strcpy(str,buf);

@@ -959,14 +959,14 @@ u2 _div_u2 (const u2 x, const u2 y)
 	s8 _div_s8 (s8 x, s8 y) 
 	{
 		u8 q = 0, r = 0; bool s = x < 0; if (s) x = -x; if (y < 0) s ^= true, y = -y;
-		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= u8 (x >> i & 1), r >= y) r -= y, q |= u8 (1) << i;
+		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= (u8) (x >> i & 1), r >= y) r -= y, q |= (u8) (1) << i;
 		return s ? -q : q;
 	}
 
 	u8 _div_u8 (const u8 x, const u8 y) 
 	{
 		u8 q = 0, r = 0;
-		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= u8 (x >> i & 1), r >= y) r -= y, q |= u8 (1) << i;
+		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= (u8) (x >> i & 1), r >= y) r -= y, q |= (u8) (1) << i;
 		return q;
 	}
 
@@ -1362,14 +1362,14 @@ u2 _mod_u2 (const u2 x, const u2 y)
 	s8 _mod_s8 (s8 x, s8 y) 
 	{
 		u8 r = 0; bool s = x < 0; if (s) x = -x; if (y < 0) s ^= true, y = -y;
-		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= u8 (x >> i & 1), r >= y) r -= y;
+		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= (u8) (x >> i & 1), r >= y) r -= y;
 		return s ? -r : r;
 	}
 
 	u8 _mod_u8 (const u8 x, const u8 y) 
 	{
 		u8 r = 0;
-		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= u8 (x >> i & 1), r >= y) r -= y;
+		for (int i = 63; i >= 0; --i) if (r <<= 1, r |= (u8) (x >> i & 1), r >= y) r -= y;
 		return r;
 	}
 
@@ -1436,7 +1436,7 @@ u2 _mod_u2 (const u2 x, const u2 y)
 
 	s8 _lsh_s8 (const s8 x, const s8 y) 
 	{
-		union {s8 v; us8 c;} a {x}, b {y}, r;
+		union {s8 v; us8 c;} a, b, r; a.v = x; b.v = y;
 		if (b.c.l == 0) r.c.l = a.c.l, r.c.h = a.c.h;
 		else if (b.c.l >= 32) r.c.l = 0, r.c.h = a.c.l << b.c.l - 32;
 		else r.c.l = a.c.l << b.c.l, r.c.h = a.c.h << b.c.l | a.c.l >> 32 - b.c.l;
@@ -1545,16 +1545,16 @@ u2 _mod_u2 (const u2 x, const u2 y)
 
 	s8 _rsh_s8 (const s8 x, const s8 y) 
 	{
-		union {s8 v; us8 c;} a {x}, b {y}, r;
+		union {s8 v; us8 c;} a, b, r; a.v = x; b.v = y;
 		if (b.c.l == 0) r.c.l = a.c.l, r.c.h = a.c.h;
-		else if (b.c.l >= 32) r.c.l = a.c.h >> s4 (b.c.l) - 32, r.c.h = a.c.h >> 31;
-		else r.c.l = a.c.l >> b.c.l | a.c.h << 32 - b.c.l, r.c.h = a.c.h >> s4 (b.c.l);
+		else if (b.c.l >= 32) r.c.l = a.c.h >> (s4) (b.c.l) - 32, r.c.h = a.c.h >> 31;
+		else r.c.l = a.c.l >> b.c.l | a.c.h << 32 - b.c.l, r.c.h = a.c.h >> (s4) (b.c.l);
 		return r.v;
 	}
 
 	u8 _rsh_u8 (const u8 x, const u8 y) 
 	{
-		union {u8 v; uu8 c;} a {x}, b {y}, r;
+		union {u8 v; uu8 c;} a, b, r; a.v = x; b.v = y;
 		if (b.c.l == 0) r.c.l = a.c.l, r.c.h = a.c.h;
 		else if (b.c.l >= 32) r.c.l = a.c.h >> b.c.l - 32, r.c.h = 0;
 		else r.c.l = a.c.l >> b.c.l | a.c.h << 32 - b.c.l, r.c.h = a.c.h >> b.c.l;

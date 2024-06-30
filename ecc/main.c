@@ -32,6 +32,7 @@ static StringArray std_include_paths;
 
 char *base_file;
 static char *output_file;
+uint8_t debug_info = 0;
 
 static StringArray input_paths;
 static StringArray tmpfiles;
@@ -373,6 +374,11 @@ static void parse_args(int argc, char **argv) {
       strarray_push(&ld_extra_args, "-L");
       strarray_push(&ld_extra_args, argv[i] + 2);
       continue;
+    }
+
+    if (!strncmp(argv[i], "-g", 2)) {
+        debug_info = 1;
+        continue;
     }
 
 #if 0

@@ -40,6 +40,7 @@ extern uint8_t target_pointer_width; // 2, 4, 8
 extern uint8_t target_has_linkregister; // 0, 1
 extern uint8_t target_stack_align; // 4, 8, 16
 extern uint8_t target; // Target
+extern uint8_t debug_info;
 
 #define CHIBICC_HAVE_LLONG
 

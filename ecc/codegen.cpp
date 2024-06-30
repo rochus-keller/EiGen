@@ -548,9 +548,18 @@ static void loc(Token * tok)
 
     if( tok->file->file_no != file_no || tok->line_no != line_no )
     {
-        std::ostringstream s;
-        s << "line " << file_name(file_path(tok->file->file_no)) << ":" << tok->line_no;
-        e->Comment(s.str().c_str());
+        if( debug_info )
+        {
+            if( current_fn )
+                e->Break(file_path(tok->file->file_no),tok->line_no);
+            else
+                e->Locate(file_path(tok->file->file_no),tok->line_no);
+        }else
+        {
+            std::ostringstream s;
+            s << "line " << file_name(file_path(tok->file->file_no)) << ":" << tok->line_no;
+            e->Comment(s.str().c_str());
+        }
         file_no = tok->file->file_no;
         line_no = tok->line_no;
     }
@@ -1233,20 +1242,38 @@ static void emit_data(Obj *prog) {
 
 static void print_var_names(Obj* fn)
 {
-    std::ostringstream s;
-    if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
-        s << "| return buffer ptr offset=" << firstParamOffset() << " ";
-    for (Obj *var = fn->params; var; var = var->next) {
-        s << "| param '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
-             " size=" << var->ty->size << " align=" << var->align << " ";
+#if 0
+    if( debug_info )
+    {
+        e->Locate(file_path(tok->file->file_no),tok->line_no);
+        for (Obj *var = fn->params; var; var = var->next) {
+            s << "| param '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+                 " size=" << var->ty->size << " align=" << var->align << " ";
+        }
+        for (Obj *var = fn->locals; var; var = var->next) {
+            if( var->offset > 0 )
+                break; // hit a param; apparently chibicc links params just behind locals
+            s << "| local '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+                 " size=" << var->ty->size << " align=" << var->align << " ";
+        }
+    }else
+#endif
+    {
+        std::ostringstream s;
+        if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
+            s << "| return buffer ptr offset=" << firstParamOffset() << " ";
+        for (Obj *var = fn->params; var; var = var->next) {
+            s << "| param '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+                 " size=" << var->ty->size << " align=" << var->align << " ";
+        }
+        for (Obj *var = fn->locals; var; var = var->next) {
+            if( var->offset > 0 )
+                break; // hit a param; apparently chibicc links params just behind locals
+            s << "| local '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
+                 " size=" << var->ty->size << " align=" << var->align << " ";
+        }
+        e->Comment(s.str().c_str());
     }
-    for (Obj *var = fn->locals; var; var = var->next) {
-        if( var->offset > 0 )
-            break; // hit a param; apparently chibicc links params just behind locals
-        s << "| local '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
-             " size=" << var->ty->size << " align=" << var->align << " ";
-    }
-    e->Comment(s.str().c_str());
 }
 
 static void emit_text(Obj *prog) {

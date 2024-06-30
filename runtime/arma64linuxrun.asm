@@ -203,8 +203,13 @@ base:	.equals	0x00008000
 	system_call	sys_sched_getaffinity, 123, 3
 	system_call	sys_sched_setaffinity, 122, 3
 	system_call	sys_times, 153, 1
+	system_call	sys_unlink, 87, 1
 	system_call	sys_waitid, 95, 5
 	system_call	sys_write, 64, 3
+	; added by RK
+	system_call sys_gettimeofday, 96, 2
+	system_call sys_renameat, 264, 4
+	system_call sys_getcwd, 79, 2
 
 #undef system_call
 
@@ -365,76 +370,8 @@ base:	.equals	0x00008000
 
 #enddef
 
-	library	libc, "libc.so.6"
-
-	; imported functions from libc
-	function	libc, free, 1
-	function	libc, malloc, 1
-	function	libc, realloc, 2
 
 #undef library
 #undef function
 
-; standard abort function
-.code abort
 
-	mov	w0, 1
-	mov	w8, 94
-	svc	0
-
-; standard _Exit function
-.code _Exit
-
-	ldr	w0, [sp]
-	mov	w8, 93
-	svc	0
-
-; standard fclose function
-.code fclose
-
-	ldr	w0, [sp, 0]
-	svc	57	; sys_close
-	ret	x27
-
-; standard fgetc function
-.code fgetc
-
-	mov	x27, x30
-	mov	w0, 0
-	str	w0, [sp, -16]!
-	ldr	w0, [sp, 16]
-	mov	x1, sp
-	mov	x2, 1
-	mov	w8, 63
-	svc	0	; sys_read
-	ldr	w0, [sp], 16
-	ret	x27
-
-; standard fputc function
-.code fputc
-
-	mov	x27, x30
-	ldr	w0, [sp, 16]
-	mov	x1, sp
-	mov	x2, 1
-	mov	w8, 64
-	svc	0	; sys_write
-	ret	x27
-
-; standard stderr variable
-.const stderr
-
-	.alignment	4
-	.qbyte	2
-
-; standard stdin variable
-.const stdin
-
-	.alignment	4
-	.qbyte	0
-
-; standard stdout variable
-.const stdout
-
-	.alignment	4
-	.qbyte	1

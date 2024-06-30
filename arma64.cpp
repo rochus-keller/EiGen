@@ -552,7 +552,7 @@ FloatImmediate A64::Operand::Decode (Opcode opcode)
 
 Opcode A64::Operand::Encode (ARM::FloatImmediate value)
 {
-	if (value == 0) return Invalid;
+    if (!std::isnormal (value)) return Invalid;
 	Opcode opcode = 0; signed exponent = 0;
 	if (value < 0) value = -value, opcode= 0x8;
 	while (value < 1) value *= 2, --exponent; while (value >= 2) value /= 2, ++exponent;

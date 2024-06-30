@@ -199,6 +199,10 @@ base:	.equals	0x00008000
 	system_call	sys_unlink, 10, 1
 	system_call	sys_waitid, 280, 5
 	system_call	sys_write, 4, 3
+	; added by RK
+	system_call sys_gettimeofday, 96, 2
+	system_call sys_renameat, 264, 4
+	system_call sys_getcwd, 79, 2
 
 #undef system_call
 
@@ -361,73 +365,8 @@ base:	.equals	0x00008000
 
 #enddef
 
-	library	libc, "libc.so.6"
-
-	; imported functions from libc
-	function	libc, free, 1
-	function	libc, malloc, 1
-	function	libc, realloc, 2
 
 #undef library
 #undef function
 
-; standard abort function
-.code abort
 
-	mov	r0, 1
-	mov	r7, 248
-	swi	0	; sys_exit_group
-
-; standard _Exit function
-.code _Exit
-
-	ldr	r0, [sp, 0]
-	mov	r7, 1
-	swi	0	; sys_exit
-
-; standard fclose function
-.code fclose
-
-	ldr	r0, [sp, 0]
-	swi	6	; sys_close
-	bx	lr
-
-; standard fgetc function
-.code fgetc
-
-	stmdb	sp!, {r0}
-	ldr	r0, [sp, 4]
-	mov	r1, sp
-	mov	r2, 1
-	mov	r7, 3
-	swi	0	; sys_read
-	ldmia	sp!, {r0}
-	bx	lr
-
-; standard fputc function
-.code fputc
-
-	ldr	r0, [sp, 4]
-	mov	r1, sp
-	mov	r2, 1
-	mov	r7, 4
-	swi	0	; sys_write
-	bx	lr
-
-; standard stderr variable
-.const stderr
-
-	.alignment	4
-	.qbyte	2
-
-; standard stdin variable
-.const stdin
-
-	.alignment	4
-	.qbyte	0
-
-; standard stdout variable
-.const stdout
-
-	.alignment	4
-	.qbyte	1

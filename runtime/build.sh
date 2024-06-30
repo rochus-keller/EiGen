@@ -11,3 +11,7 @@
 ./amd64asm efi64run.asm
 ./amd64asm osx64run.asm
 ./amd64asm win64run.asm
+
+./arma64asm arma64linuxrun.asm
+./arma32asm arma32linuxrun.asm
+

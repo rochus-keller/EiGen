@@ -1,0 +1,188 @@
+header 64 required "_header" fixed 32768
+	0 7f454c46020101
+	16 0200b70001
+	52 40003800000040
+	"_program_headers" 24 ext 0 0 +8 32 abs -32768 0 +8 56 cnt 0 0 +2
+	"_section_headers\?_section_headers:_header" 40 abs -32768 0 +8
+	"_section_headers\?_section_headers" 60 cnt 0 0 +2
+	"_strtab_header\?_strtab_header" 62 idx 0 0 +2
+trailer 0 "_trailer" aligned 1
+const 0 "_extension" aligned 1
+const 14 "_environment" aligned 1
+	0 41524d20413634204c696e7578
+header 56 required "_program_header" "_program_headers" aligned 8
+	0 0100000007
+	17 80
+	25 80
+	49 10
+	"_trailer" 32 abs -32768 0 +8 40 abs -32768 0 +8
+header 56 "_interpreter_header" "_program_headers" aligned 8
+	0 0300000004
+	48 01
+	"_interpreter_name" 8 abs -32768 0 +8 16 abs 0 0 +8 24 abs 0 0 +8 32 siz 0 0 +8 40 siz 0 0 +8
+header 56 "_dynamic_header" "_program_headers" aligned 8
+	0 0200000006
+	48 08
+	"_interpreter_header"
+	"_dynamic_section" 8 abs -32768 0 +8 16 abs 0 0 +8 24 abs 0 0 +8 32 siz 16 0 +8 40 siz 16 0 +8
+const 64 "_null_header" "_section_headers" aligned 8
+const 64 "_debug_abbrev_header" "_section_headers" aligned 8
+	4 01
+	48 01
+	"_text_header"
+	"_.debug_abbrev_string" 0 pos 1 0 +4
+	"_debug_abbrev_section" 24 abs -32768 0 +8 32 siz 1 0 +8
+const 14 duplicable "_.debug_abbrev_string" "_string_table" aligned 1
+	0 2e64656275675f616262726576
+const 64 "_debug_info_header" "_section_headers" aligned 8
+	4 01
+	48 01
+	"_text_header"
+	"_.debug_info_string" 0 pos 1 0 +4
+	"_debug_info_section" 24 abs -32768 0 +8 32 siz 0 0 +8
+const 12 duplicable "_.debug_info_string" "_string_table" aligned 1
+	0 2e64656275675f696e666f
+const 64 "_debug_line_header" "_section_headers" aligned 8
+	4 01
+	48 01
+	"_text_header"
+	"_.debug_line_string" 0 pos 1 0 +4
+	"_debug_line_section" 24 abs -32768 0 +8 32 siz 0 0 +8
+const 12 duplicable "_.debug_line_string" "_string_table" aligned 1
+	0 2e64656275675f6c696e65
+const 64 "_strtab_header" "_section_headers" aligned 8
+	4 03
+	48 01
+	"_null_header"
+	"_.strtab_string" 0 pos 1 0 +4
+	"_string_table_begin" 24 abs -32768 0 +8
+	"_string_table" 32 siz 1 0 +8
+const 8 duplicable "_.strtab_string" "_string_table" aligned 1
+	0 2e737472746162
+const 64 "_text_header" "_section_headers" aligned 8
+	4 0100000007
+	17 80
+	48 01
+	"_strtab_header"
+	"_.text_string" 0 pos 1 0 +4
+	"_trailer" 32 abs -32768 0 +8
+const 6 duplicable "_.text_string" "_string_table" aligned 1
+	0 2e74657874
+code 12 "_system_call_wrapper0" aligned 4
+	0 db030091010000d460035fd6
+code 16 "_system_call_wrapper1" aligned 4
+	0 db030091e00340f9010000d460035fd6
+code 20 "_system_call_wrapper2" aligned 4
+	0 db030091e00340f9e10b40f9010000d460035fd6
+code 24 "_system_call_wrapper3" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9010000d460035fd6
+code 28 "_system_call_wrapper4" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f9010000d460035fd6
+code 32 "_system_call_wrapper5" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f9e42340f9010000d460035fd6
+code 36 "_system_call_wrapper6" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f9e42340f9e52b40f9010000d460035fd6
+code 8 "sys_brk" aligned 4
+	0 c81a805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_clock_getres" aligned 4
+	0 480e805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_clock_gettime" aligned 4
+	0 280e805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_clone" aligned 4
+	0 881b805200000014
+	"_system_call_wrapper5" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_close" aligned 4
+	0 2807805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_exit" aligned 4
+	0 a80b805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_exit_group" aligned 4
+	0 c80b805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_futex" aligned 4
+	0 480c805200000014
+	"_system_call_wrapper6" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_getpid" aligned 4
+	0 8815805200000014
+	"_system_call_wrapper0" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_gettid" aligned 4
+	0 4816805200000014
+	"_system_call_wrapper0" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_lseek" aligned 4
+	0 c807805200000014
+	"_system_call_wrapper3" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_nanosleep" aligned 4
+	0 a80c805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_read" aligned 4
+	0 e807805200000014
+	"_system_call_wrapper3" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_rename" aligned 4
+	0 480a805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_sched_getaffinity" aligned 4
+	0 680f805200000014
+	"_system_call_wrapper3" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_sched_setaffinity" aligned 4
+	0 480f805200000014
+	"_system_call_wrapper3" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_times" aligned 4
+	0 2813805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_unlink" aligned 4
+	0 e80a805200000014
+	"_system_call_wrapper1" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_waitid" aligned 4
+	0 e80b805200000014
+	"_system_call_wrapper5" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_write" aligned 4
+	0 0808805200000014
+	"_system_call_wrapper3" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_gettimeofday" aligned 4
+	0 080c805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_renameat" aligned 4
+	0 0821805200000014
+	"_system_call_wrapper4" 4 rel 0 2 0ff1ff2ff303
+code 8 "sys_getcwd" aligned 4
+	0 e809805200000014
+	"_system_call_wrapper2" 4 rel 0 2 0ff1ff2ff303
+const 27 "_interpreter_name" aligned 1
+	0 2f6c69622f6c642d6c696e75782d616172636836342e736f2e31
+const 1 "_string_table_begin" "_string_tab" aligned 8
+const 112 "_dynamic_section_begin" "_dynamic_section" aligned 8
+	0 05
+	16 06
+	32 07
+	48 08
+	64 09
+	72 18
+	80 0a
+	96 0b
+	104 18
+	"_dynamic_header"
+	"_string_table_begin" 8 abs 0 0 +8
+	"_symbol_table_begin" 24 abs 0 0 +8
+	"_relocation_table" 40 abs 0 0 +8 56 siz 0 0 +8
+	"_string_table" 88 siz 1 0 +8
+const 16 "_dynamic_section_sentinel" "_dynamic_section_end" aligned 8
+	"_dynamic_section_begin"
+const 24 "_symbol_table_begin" "_symbol_tab" aligned 8
+code 12 "_function_call_wrapper0" aligned 4
+	0 db03009100011fd660035fd6
+code 16 "_function_call_wrapper1" aligned 4
+	0 db030091e00340f900011fd660035fd6
+code 20 "_function_call_wrapper2" aligned 4
+	0 db030091e00340f9e10b40f900011fd660035fd6
+code 24 "_function_call_wrapper3" aligned 4
+	0 db030091e00340f9e10b40f9e21340f900011fd660035fd6
+code 28 "_function_call_wrapper4" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f900011fd660035fd6
+code 32 "_function_call_wrapper5" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f9e42340f900011fd660035fd6
+code 36 "_function_call_wrapper6" aligned 4
+	0 db030091e00340f9e10b40f9e21340f9e31b40f9e42340f9e52b40f900011fd660035fd6

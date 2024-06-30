@@ -233,8 +233,8 @@ void Generator::Context::Load (const Operand& register_, const Immediate immedia
 void Generator::Context::Load (const Operand& register_, const Code::Operand& operand)
 {
 	const auto mnemonic = GetLoadMnemonic (operand.type);
-	const auto offset = mnemonic == Instruction::LDR || mnemonic == Instruction::LDRB ? 4096 - 52 : mnemonic == Instruction::FLDD || mnemonic == Instruction::FLDS ? 1024 - 52 : 256 - 52;
-	const auto label = DefineLocal (operand, offset, offset); AddFixup (label, mnemonic << 6 | GetRegister (register_), 4);
+    const auto offset = mnemonic == Instruction::LDR || mnemonic == Instruction::LDRB ? 4096 - 64 : mnemonic == Instruction::FLDD || mnemonic == Instruction::FLDS ? 1024 - 64 : 256 - 64;
+    const auto label = DefineLocal (operand, offset, offset); AddFixup (label, mnemonic << 6 | GetRegister (register_), 4);
 	if (listing) listing << '\t' << mnemonic << '\t' << register_ << ", [" << PC << ", " << Assembly::Lexer::Offset << " (" << label << ")]\n";
 }
 

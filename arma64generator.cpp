@@ -566,7 +566,7 @@ bool Generator::Context::IsValidUnsigned (const Immediate immediate)
 
 bool Generator::Context::IsValidDisplacement (const Immediate immediate, const Code::Type& type)
 {
-	return immediate >= 0 && immediate <= 4095 << type.size - 1 && immediate % type.size == 0;
+    return immediate >= 0 && immediate <= 4095 * type.size && immediate % type.size == 0;
 }
 
 bool Generator::Context::IsRegister (const Code::Operand& operand)

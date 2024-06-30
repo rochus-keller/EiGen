@@ -178,7 +178,7 @@ void Generator::Context::Access (const Instruction::Mnemonic mnemonic, const Ope
 {
 	assert (IsMemory (operand));
 	const auto displacement = (!operand.address.empty () || operand.register_ != Code::RVoid ? operand.displacement : 0) + (index * 4 % 8);
-	const auto isValidDisplacement = (displacement < 0 ? -displacement : displacement) < 4095 / (operand.type.size < 4 ? operand.type.size : 4);
+    const auto isValidDisplacement = mnemonic == Instruction::VLDR || mnemonic == Instruction::VSTR ? displacement >= -1020 && displacement <= 1020 && displacement % 4 == 0 : displacement >= -255 && displacement <= 4095;
 
 	if (operand.address.empty () && operand.register_ != Code::RVoid && isValidDisplacement)
 		return Emit ({mnemonic, register_, {registers[Low][operand.register_], Immediate (displacement)}});

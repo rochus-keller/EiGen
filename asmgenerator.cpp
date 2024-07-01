@@ -350,7 +350,7 @@ try
 		break;
 
 	case Code::Instruction::ARRAY:
-		Declare ({Debugging::Type::Array, instruction.operand2.size}).index = instruction.operand1.size;
+        DeclareCompound ({Debugging::Type::Array, instruction.operand2.size}).index = instruction.operand1.size;
 		break;
 
 	case Code::Instruction::REC:
@@ -358,19 +358,19 @@ try
 		break;
 
 	case Code::Instruction::PTR:
-		Declare (Debugging::Type::Pointer);
+        DeclareCompound (Debugging::Type::Pointer);
 		break;
 
 	case Code::Instruction::REF:
-		Declare (Debugging::Type::Reference);
+        DeclareCompound (Debugging::Type::Reference);
 		break;
 
 	case Code::Instruction::FUNC:
-		declarations.emplace_back (currentInstruction + instruction.operand1.offset, Declare (Debugging::Type::Function));
+        declarations.emplace_back (currentInstruction + instruction.operand1.offset, DeclareCompound (Debugging::Type::Function));
 		break;
 
 	case Code::Instruction::ENUM:
-		declarations.emplace_back (currentInstruction + instruction.operand1.offset, Declare (Debugging::Type::Enumeration));
+        declarations.emplace_back (currentInstruction + instruction.operand1.offset, DeclareCompound (Debugging::Type::Enumeration));
 		break;
 
 	default:
@@ -659,11 +659,14 @@ Debugging::Type& Generator::Context::Declare (Debugging::Type&& type)
             declarations.back ().type->subtypes.emplace_back ();
             types.push_back (&declarations.back ().type->subtypes.back());
         }else EmitError ("invalid type declaration");
-    auto& result = *types.back ();
-    result = std::move (type); types.pop_back ();
-    for( auto i = result.subtypes.rbegin(); i != result.subtypes.rend(); ++i)
-        types.push_back(&(*i));
-    return result;
+    auto& result = *types.back (); result = std::move (type); types.pop_back (); return result;
+}
+
+Debugging::Type& Generator::Context::DeclareCompound (Debugging::Type&& type)
+{
+    assert (IsCompound (type)); auto& result = Declare (std::move (type));
+    for (auto subtype = result.subtypes.rbegin(); subtype != result.subtypes.rend(); ++subtype )
+        types.push_back (&*subtype); return result;
 }
 
 void Generator::Context::AddEntry (const Debugging::Entry::Model model)
@@ -729,7 +732,7 @@ Debugging::Type Generator::Context::GetType (const Code::Operand& operand)
 	case Code::Type::Pointer:
 		return {Debugging::Type::Pointer, 0, Debugging::Type::Void};
 	case Code::Type::Function:
-		return {Debugging::Type::Pointer, 0, Debugging::Type::Function};
+        return {Debugging::Type::Pointer, 0, {Debugging::Type::Function, 0, Debugging::Type::Void}};
 	default:
 		assert (Code::Type::Unreachable);
 	}

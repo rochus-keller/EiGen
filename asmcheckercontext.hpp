@@ -52,7 +52,7 @@ namespace ECS {
 
             Context (const Checker&, Object::Section&, Origin, Alignment, Inlined);
 
-            void EmitError [[noreturn]] (const Message&) const;
+            void EmitError /*[[noreturn]]*/ (const Message&) const;
 
             bool GetString (const Expression&, String&) const;
             bool GetIdentifier (const Expression&, Identifier&) const;

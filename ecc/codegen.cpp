@@ -1318,6 +1318,18 @@ static void emit_text(Obj *prog) {
         Label lret = e->CreateLabel();
         return_label = &lret;
 
+        if( debug_info )
+        {
+            e->Locate(file_path(fn->ty->name->file->file_no),fn->ty->name->line_no);
+            if( fn->ty->return_ty )
+            {
+                if( fn->ty->return_ty->kind != TY_VOID )
+                    e->DeclareType(getCodeType(fn->ty->return_ty));
+                else
+                    e->DeclareVoid();
+            }
+        }
+
         current_fn = fn;
 
         const int isMain = !fn->is_static && name == "main";

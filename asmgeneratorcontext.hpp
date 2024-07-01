@@ -99,7 +99,7 @@ namespace Assembly {
         Code::Type registerTypes[Code::UserRegisters];
         std::list<LocalDefinition> pendingDefinitions, appliedDefinitions;
 
-        void EmitError [[noreturn]] (const Message&) const;
+        void EmitError /*[[noreturn]]*/ (const Message&) const;
 
         void Process (const Code::Section&);
         void Initialize (const Code::Section&);
@@ -143,6 +143,7 @@ namespace Assembly {
 
         Debugging::Index Insert (const Source&);
         Debugging::Type& Declare (Debugging::Type&&);
+        Debugging::Type& DeclareCompound (Debugging::Type&&);
 
         virtual auto Acquire (Code::Register, const Types&) -> void {}
         virtual auto FixupInstruction (Span<Byte>, const Byte*, FixupCode) const -> void {}

@@ -469,6 +469,7 @@ extern const char* file_name(const char* path);
 extern void name_hash(const char* path, char* buf, int buflen );
 extern void run_linker(StringArray *inputs, StringArray *extra_args, const char *output);
 extern void run_codegen(const char *input, const char *output);
+extern void register_for_cleanup(const char* path, int make_copy);
 
 //
 // helper.c

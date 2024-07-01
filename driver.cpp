@@ -31,7 +31,7 @@
 
 namespace ECS {
 
-static inline std::string replace_extension(const std::string &source, const std::string &extension)
+std::string File::replace_extension(const std::string &source, const std::string &extension)
 {
     const size_t pos = source.find_last_of(".");
     std::string res;

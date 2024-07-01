@@ -553,7 +553,7 @@ static void loc(Token * tok)
             if( current_fn )
                 e->Break(file_path(tok->file->file_no),tok->line_no);
             else
-                e->Locate(file_path(tok->file->file_no),tok->line_no);
+                e->Locate(file_path(tok->file->file_no),ECS::Position(tok->line_no,1));
         }else
         {
             std::ostringstream s;
@@ -1320,7 +1320,7 @@ static void emit_text(Obj *prog) {
 
         if( debug_info )
         {
-            e->Locate(file_path(fn->ty->name->file->file_no),fn->ty->name->line_no);
+            e->Locate(file_path(fn->ty->name->file->file_no),ECS::Position(fn->ty->name->line_no,1));
             if( fn->ty->return_ty )
             {
                 if( fn->ty->return_ty->kind != TY_VOID )

@@ -462,10 +462,21 @@ static void cleanup(void) {
   cleanup_base_types();
 }
 
+void register_for_cleanup(const char* path, int make_copy)
+{
+    if( make_copy )
+    {
+        char* buf = (char*)malloc(strlen(path)+1);
+        strcpy(buf,path);
+        path = buf;
+    }
+    strarray_push(&tmpfiles, path);
+}
+
 static char *create_tmpfile(void) {
   char* path = (char*)malloc(TMP_MAX);
   tmpnam(path);
-  strarray_push(&tmpfiles, path);
+  register_for_cleanup(path,0);
   return path;
 }
 

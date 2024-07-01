@@ -316,6 +316,11 @@ let compiler : Executable {
         ./cdemitter.hpp
         ./cdgenerator.cpp
         ./cdgenerator.hpp
+        ./dbgconverter.cpp
+        ./dbgconverter.hpp
+        ./dbgconvertercontext.hpp
+        ./dbgdwarfconverter.cpp
+        ./dbgdwarfconverter.hpp
         ]
     .defines += "ECC_HAVE_BACKEND"
     .include_dirs += .

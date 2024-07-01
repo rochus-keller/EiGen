@@ -493,6 +493,12 @@ double strtod( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endp
     return 0.0; // TODO
 }
 
+float strtof( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
+{
+    return 0.0; // TODO
+}
+
+
 //extern char ** environ; // TODO
 
 char * getenv( const char * name )

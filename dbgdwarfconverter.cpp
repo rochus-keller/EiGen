@@ -1,20 +1,21 @@
 // DWARF debugging information converter
 // Copyright (C) Florian Negele
 
-// This file is part of the Eigen Compiler Suite.
+// This file is derivative work of the Eigen Compiler Suite.
+// See https://github.com/rochus-keller/EiGen for more information.
 
-// The ECS is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// The ECS is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with the ECS.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "dbgconvertercontext.hpp"
 #include "dbgdwarfconverter.hpp"
@@ -23,13 +24,12 @@
 #include "utilities.hpp"
 
 #include <cassert>
-#include <filesystem>
 #include <map>
 
 using namespace ECS;
 using namespace Debugging;
 
-using Context = class DWARFConverter::Context : public Converter::Context
+class DWARFConverter::Context : public Converter::Context
 {
 public:
 	Context (const Converter&, const Information&, const Source&, Object::Binaries&);
@@ -50,7 +50,7 @@ private:
 	struct Platform;
 
 	using Abbreviation = const char*;
-	using Directory = std::filesystem::path;
+    struct Directory { std::string path; };
 	using Platforms = std::map<Name, Platform>;
 	using RegisterName = unsigned;
 	using Registers = std::map<Register, RegisterName>;
@@ -62,7 +62,7 @@ private:
 	Binary* abbreviation = nullptr;
 	std::vector<Abbreviation> abbreviations;
 
-	using Converter::Context::Emit;
+    using Converter::Context::Emit;
 	void Emit (Abbreviation, const Binary::Name&);
 	void Emit (Attribute, Form);
 	void Emit (Attribute, Form, const Binary::Name&, Patch::Mode, Patch::Displacement);
@@ -122,22 +122,22 @@ private:
 	static const Registers amd32, amd64, arm32, arm64;
 };
 
-struct Context::Platform
+struct DWARFConverter::Context::Platform
 {
 	const Registers& registers;
 	RegisterName framePointer;
 };
 
-struct Context::LineNumberProgram
+struct DWARFConverter::Context::LineNumberProgram
 {
 	Value::Unsigned address = 0, file = 1, line = 1, column = 0;
 };
 
-const Object::Binary::Name Context::DebugAbbreviation = "_debug_abbrev_";
-const Object::Binary::Name Context::DebugInformation = "_debug_info_";
-const Object::Binary::Name Context::DebugLine = "_debug_line_";
+const Object::Binary::Name DWARFConverter::Context::DebugAbbreviation = "_debug_abbrev_";
+const Object::Binary::Name DWARFConverter::Context::DebugInformation = "_debug_info_";
+const Object::Binary::Name DWARFConverter::Context::DebugLine = "_debug_line_";
 
-const Context::Platforms Context::platforms {
+const DWARFConverter::Context::Platforms DWARFConverter::Context::platforms {
 	{"amd32", {amd32, 5}},
 	{"amd64", {amd64, 6}},
 	{"arma32", {arm32, 11}},
@@ -145,7 +145,7 @@ const Context::Platforms Context::platforms {
 	{"armt32", {arm32, 11}},
 };
 
-const Context::Registers Context::amd32 {
+const DWARFConverter::Context::Registers DWARFConverter::Context::amd32 {
 	{"al", 0}, {"cl", 1}, {"dl", 2}, {"bl", 3},
 	{"ax", 0}, {"cx", 1}, {"dx", 2}, {"bx", 3}, {"sp", 4}, {"bp", 5}, {"si", 6}, {"di", 7},
 	{"eax", 0}, {"ecx", 1}, {"edx", 2}, {"ebx", 3}, {"esp", 4}, {"ebp", 5}, {"esi", 6}, {"edi", 7},
@@ -154,7 +154,7 @@ const Context::Registers Context::amd32 {
 	{"mmx0", 29}, {"mmx1", 30}, {"mmx2", 31}, {"mmx3", 32}, {"mmx4", 33}, {"mmx5", 34}, {"mmx6", 35}, {"mmx7", 36},
 };
 
-const Context::Registers Context::amd64 {
+const DWARFConverter::Context::Registers DWARFConverter::Context::amd64 {
 	{"al", 0}, {"dl", 1}, {"cl", 2}, {"bl", 3}, {"sil", 4}, {"dil", 5}, {"bpl", 6}, {"spl", 7}, {"r8b", 8}, {"r9b", 9}, {"r10b", 10}, {"r11b", 11}, {"r12b", 12}, {"r13b", 13}, {"r14b", 14}, {"r15b", 15},
 	{"ax", 0}, {"dx", 1}, {"cx", 2}, {"bx", 3}, {"si", 4}, {"di", 5}, {"bp", 6}, {"sp", 7}, {"r8w", 8}, {"r9w", 9}, {"r10w", 10}, {"r11w", 11}, {"r12w", 12}, {"r13w", 13}, {"r14w", 14}, {"r15w", 15},
 	{"eax", 0}, {"edx", 1}, {"ecx", 2}, {"ebx", 3}, {"esi", 4}, {"edi", 5}, {"ebp", 6}, {"esp", 7}, {"r8d", 8}, {"r9d", 9}, {"r10d", 10}, {"r11d", 11}, {"r12d", 12}, {"r13d", 13}, {"r14d", 14}, {"r15d", 15},
@@ -164,7 +164,7 @@ const Context::Registers Context::amd64 {
 	{"xmm0", 41}, {"xmm1", 42}, {"xmm2", 43}, {"xmm3", 44}, {"xmm4", 45}, {"xmm5", 46}, {"xmm6", 47}, {"xmm7", 48},
 };
 
-const Context::Registers Context::arm32 {
+const DWARFConverter::Context::Registers DWARFConverter::Context::arm32 {
 	{"r0", 0}, {"r1", 1}, {"r2", 2}, {"r3", 3}, {"r4", 4}, {"r5", 5}, {"r6", 6}, {"r7", 7}, {"r8", 8}, {"r9", 9}, {"r10", 10}, {"r11", 11}, {"r12", 12}, {"r13", 13}, {"r14", 14}, {"r15", 15}, {"sp", 13}, {"lr", 14}, {"pc", 15},
 	{"s0", 64}, {"s1", 65}, {"s2", 66}, {"s3", 67}, {"s4", 68}, {"s5", 69}, {"s6", 70}, {"s7", 71}, {"s8", 72}, {"s9", 73}, {"s10", 74}, {"s11", 75}, {"s12", 76}, {"s13", 77}, {"s14", 78}, {"s15", 79},
 	{"s16", 80}, {"s17", 81}, {"s18", 82}, {"s19", 83}, {"s20", 84}, {"s21", 85}, {"s22", 86}, {"s23", 87}, {"s24", 88}, {"s25", 89}, {"s26", 90}, {"s27", 91}, {"s28", 92}, {"s29", 93}, {"s30", 94}, {"s31", 95},
@@ -172,7 +172,7 @@ const Context::Registers Context::arm32 {
 	{"d16", 272}, {"d17", 273}, {"d18", 274}, {"d19", 275}, {"d20", 276}, {"d21", 277}, {"d22", 278}, {"d23", 279}, {"d24", 280}, {"d25", 281}, {"d26", 282}, {"d27", 283}, {"d28", 284}, {"d29", 285}, {"d30", 286}, {"d31", 287},
 };
 
-const Context::Registers Context::arm64 {
+const DWARFConverter::Context::Registers DWARFConverter::Context::arm64 {
 	{"b0", 0}, {"b1", 1}, {"b2", 2}, {"b3", 3}, {"b4", 4}, {"b5", 5}, {"b6", 6}, {"b7", 7}, {"b8", 8}, {"b9", 9}, {"b10", 10}, {"b11", 11}, {"b12", 12}, {"b13", 13}, {"b14", 14}, {"b15", 15},
 	{"b16", 16}, {"b17", 17}, {"b18", 18}, {"b19", 19}, {"b20", 20}, {"b21", 21}, {"b22", 22}, {"b23", 23}, {"b24", 24}, {"b25", 25}, {"b26", 26}, {"b27", 27}, {"b28", 28}, {"b29", 29}, {"b30", 30},
 	{"h0", 0}, {"h1", 1}, {"h2", 2}, {"h3", 3}, {"h4", 4}, {"h5", 5}, {"h6", 6}, {"h7", 7}, {"h8", 8}, {"h9", 9}, {"h10", 10}, {"h11", 11}, {"h12", 12}, {"h13", 13}, {"h14", 14}, {"h15", 15},
@@ -192,19 +192,21 @@ void DWARFConverter::Process (const Information& information, const Source& sour
 	Context {*this, information, source, binaries}.Convert ();
 }
 
-Context::Context (const Converter& c, const Information& i, const Source& s, Object::Binaries& b) :
-	Converter::Context {c, i, s, b}, platform {Lookup (i.target)}, compilationUnit {DebugInformation + "unit_" + information.sources.front () + '_'}, lineNumberProgram {DebugLine + "program_" + information.sources.front ()}
+DWARFConverter::Context::Context (const Converter& c, const Information& i, const Source& s, Object::Binaries& b) :
+    Converter::Context(c, i, s, b), platform(Lookup (i.target)),
+    compilationUnit(DebugInformation + "unit_" + information.sources.front () + '_'),
+    lineNumberProgram(DebugLine + "program_" + information.sources.front ())
 {
 	assert (!information.sources.empty ());
 }
 
-void Context::Convert ()
+void DWARFConverter::Context::Convert ()
 {
 	EmitCompilationUnit ();
 	EmitLineNumberProgram ();
 }
 
-void Context::EmitCompilationUnit ()
+void DWARFConverter::Context::EmitCompilationUnit ()
 {
 	Begin (compilationUnit + "header", true);
 	Group (DebugInformation + "section");
@@ -214,7 +216,8 @@ void Context::EmitCompilationUnit ()
 
 	EmitEntry ("compilation", Tag::CompileUnit, true);
 	EmitAttribute (information.sources.front ());
-	std::error_code error; EmitAttribute (std::filesystem::current_path (error));
+    // TODO EmitAttribute (std::filesystem::current_path (error));
+    EmitAttribute(".");
 	Emit (Attribute::StatementList, Form::SectionOffset, lineNumberProgram, Patch::Position, 0);
 	EmitAttributeSentinel ();
 
@@ -224,7 +227,7 @@ void Context::EmitCompilationUnit ()
 	Begin (DebugAbbreviation + "sentinel"); Group (DebugAbbreviation + "section_end"); Require (DebugAbbreviation + "header"); EmitEntrySentinel ();
 }
 
-void Context::Emit (const Entry& entry)
+void DWARFConverter::Context::Emit (const Entry& entry)
 {
 	switch (entry.model)
 	{
@@ -259,13 +262,13 @@ void Context::Emit (const Entry& entry)
 	}
 }
 
-void Context::Emit (const Entry& entry, const Block& block)
+void DWARFConverter::Context::Emit (const Entry& entry, const Block& block)
 {
 	for (auto symbol: block.symbols) if (!IsParameter (*symbol)) Emit (*symbol);
 	for (auto& block_: block.blocks) if (IsEmpty (block_)) Emit (entry, block_); else Emit (entry, block_.lifetime), Emit (entry, block_), EmitEntrySentinel ();
 }
 
-void Context::Emit (const Entry& entry, const Lifetime& lifetime)
+void DWARFConverter::Context::Emit (const Entry& entry, const Lifetime& lifetime)
 {
 	EmitEntry ("block", Tag::LexicalBlock, true);
 	Emit (Attribute::LowPC, Form::Address, entry.name, Patch::Absolute, lifetime.begin);
@@ -273,7 +276,7 @@ void Context::Emit (const Entry& entry, const Lifetime& lifetime)
 	EmitAttributeSentinel ();
 }
 
-void Context::Emit (const Symbol& symbol)
+void DWARFConverter::Context::Emit (const Symbol& symbol)
 {
 	switch (symbol.model)
 	{
@@ -306,7 +309,7 @@ void Context::Emit (const Symbol& symbol)
 	}
 }
 
-void Context::EmitAttribute (const Value& value)
+void DWARFConverter::Context::EmitAttribute (const Value& value)
 {
 	switch (value.model)
 	{
@@ -327,14 +330,14 @@ void Context::EmitAttribute (const Value& value)
 	}
 }
 
-void Context::EmitAttribute (const Type& type)
+void DWARFConverter::Context::EmitAttribute (const Type& type)
 {
 	const auto name = IsName (type) ? DebugInformation + "type_" + type.name : compilationUnit + "type" + std::to_string (types++); Emit (Attribute::Type, Form::ReferenceAddress, name, Patch::Position, 0);
 	if (IsName (type)) if (IsDefined (name)) return; else for (auto& entry: information.entries) if (IsType (entry) && entry.name == type.name) return;
 	const auto previous = current, abbreviation = this->abbreviation; Begin (name, false, IsName (type)); Group (DebugInformation + "section"); Emit (type, nullptr); current = previous; this->abbreviation = abbreviation;
 }
 
-void Context::Emit (const Type& type, const Entry*const entry)
+void DWARFConverter::Context::Emit (const Type& type, const Entry*const entry)
 {
 	switch (type.model)
 	{
@@ -417,7 +420,7 @@ void Context::Emit (const Type& type, const Entry*const entry)
 	}
 }
 
-void Context::Emit (const Field& field)
+void DWARFConverter::Context::Emit (const Field& field)
 {
 	if (IsBitField (field)) EmitEntry ("bit_field", Tag::Member, false); else if (IsBase (field)) EmitEntry ("base", Tag::Inheritance, false); else EmitEntry ("field", Tag::Member, false);
 	EmitAttribute (field.name);
@@ -428,7 +431,7 @@ void Context::Emit (const Field& field)
 	EmitAttributeSentinel ();
 }
 
-void Context::Emit (const Enumerator& enumerator)
+void DWARFConverter::Context::Emit (const Enumerator& enumerator)
 {
 	EmitEntry ("enumerator", Tag::Enumerator, false);
 	EmitAttribute (enumerator.name);
@@ -437,12 +440,12 @@ void Context::Emit (const Enumerator& enumerator)
 	EmitAttributeSentinel ();
 }
 
-void Context::Emit (const Abbreviation abbreviation, const Binary::Name& name)
+void DWARFConverter::Context::Emit (const Abbreviation abbreviation, const Binary::Name& name)
 {
 	assert (abbreviation); Begin (DebugInformation + abbreviation + '_' + name, true); Group (DebugInformation + "section");
 }
 
-void Context::EmitEntry (const Abbreviation abbreviation, const Tag tag, const bool hasChildren)
+void DWARFConverter::Context::EmitEntry (const Abbreviation abbreviation, const Tag tag, const bool hasChildren)
 {
 	assert (abbreviation); const auto name = DebugAbbreviation + abbreviation; Emit (name, Patch::Index, 1, Byte);
 	if (!InsertUnique (abbreviation, abbreviations)) return void (this->abbreviation = nullptr);
@@ -450,90 +453,90 @@ void Context::EmitEntry (const Abbreviation abbreviation, const Tag tag, const b
 	Emit (name, Patch::Index, 1, Byte); Emit (Value::Unsigned (tag), Byte); Emit (hasChildren, Byte); this->abbreviation = current; current = previous;
 }
 
-void Context::EmitEntry (const Abbreviation abbreviation, const Tag tag, const bool hasChildren, const Entry* entry)
+void DWARFConverter::Context::EmitEntry (const Abbreviation abbreviation, const Tag tag, const bool hasChildren, const Entry* entry)
 {
 	if (!entry) EmitEntry (abbreviation + 12, tag, hasChildren);
 	else if (!IsValid (entry->location)) EmitEntry (abbreviation + 6, tag, hasChildren), EmitAttribute (entry->name);
 	else EmitEntry (abbreviation, tag, hasChildren), EmitAttribute (*entry);
 }
 
-void Context::EmitEntry (const Abbreviation abbreviation, const Binary::Name& name, const Tag tag, const bool hasChildren)
+void DWARFConverter::Context::EmitEntry (const Abbreviation abbreviation, const Binary::Name& name, const Tag tag, const bool hasChildren)
 {
 	Emit (abbreviation, name); EmitEntry (abbreviation, tag, hasChildren);
 }
 
-void Context::EmitEntrySentinel ()
+void DWARFConverter::Context::EmitEntrySentinel ()
 {
 	Emit (0, Byte);
 }
 
-void Context::Emit (const Attribute attribute, const Form form)
+void DWARFConverter::Context::Emit (const Attribute attribute, const Form form)
 {
 	if (!abbreviation) return; const auto previous = current; current = abbreviation;
 	Emit (Value::Unsigned (attribute), Byte); Emit (Value::Unsigned (form), Byte); abbreviation = current; current = previous;
 }
 
-void Context::Emit (const Attribute attribute, const Form form, const Binary::Name& name, const Patch::Mode mode, const Patch::Displacement displacement)
+void DWARFConverter::Context::Emit (const Attribute attribute, const Form form, const Binary::Name& name, const Patch::Mode mode, const Patch::Displacement displacement)
 {
 	Emit (attribute, form); Emit (name, mode, displacement, form == Form::Address ? Size (information.target.pointer) : QByte);
 }
 
-void Context::Emit (const Attribute attribute, const Value::Signed value)
+void DWARFConverter::Context::Emit (const Attribute attribute, const Value::Signed value)
 {
 	Emit (attribute, Form::SignedData); Encode (value);
 }
 
-void Context::EmitAttribute (const Debugging::Size size)
+void DWARFConverter::Context::EmitAttribute (const Debugging::Size size)
 {
 	Emit (Attribute::ByteSize, Form::UnsignedData); Encode (Value::Unsigned (size));
 }
 
-void Context::EmitAttribute (const BaseType baseType)
+void DWARFConverter::Context::EmitAttribute (const BaseType baseType)
 {
 	Emit (Attribute::Encoding, Form::Data1); Emit (Value::Unsigned (baseType), Byte);
 }
 
-void Context::EmitAttribute (const Name& string)
+void DWARFConverter::Context::EmitAttribute (const Name& string)
 {
 	Emit (Attribute::Name, Form::String); Emit (string, Byte); Emit (0, Byte);
 }
 
-void Context::EmitAttribute (const Directory& directory)
+void DWARFConverter::Context::EmitAttribute (const Directory& directory)
 {
-	Emit (Attribute::CompDir, Form::String); Emit (directory.string (), Byte); Emit (0, Byte);
+    Emit (Attribute::CompDir, Form::String); Emit (directory.path, Byte); Emit (0, Byte);
 }
 
-void Context::EmitAttribute (const Location& location)
+void DWARFConverter::Context::EmitAttribute (const Location& location)
 {
 	Emit (Attribute::DeclarationFile, IsValid (location) ? location.index + 1 : 0);
 	Emit (Attribute::DeclarationLine, IsValid (location) ? location.line : 0);
 	Emit (Attribute::DeclarationColumn, IsValid (location) ? location.column : 0);
 }
 
-void Context::EmitAttribute (const Symbol& symbol)
+void DWARFConverter::Context::EmitAttribute (const Symbol& symbol)
 {
 	EmitAttribute (symbol.name);
 	EmitAttribute (symbol.location);
 	EmitAttribute (symbol.type);
 }
 
-void Context::EmitAttribute (const Entry& entry)
+void DWARFConverter::Context::EmitAttribute (const Entry& entry)
 {
 	EmitAttribute (entry.name);
 	EmitAttribute (entry.location);
 }
 
-void Context::EmitAttributeSentinel ()
+void DWARFConverter::Context::EmitAttributeSentinel ()
 {
 	Emit (Attribute::Sentinel, Form::Sentinel);
 }
 
-void Context::Emit (const Operation operation)
+void DWARFConverter::Context::Emit (const Operation operation)
 {
 	Emit (Value::Unsigned (operation), Byte);
 }
 
-void Context::EmitLineNumberProgram ()
+void DWARFConverter::Context::EmitLineNumberProgram ()
 {
 	static const ECS::Byte opcodes[OpcodeBase - 1] {0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1};
 
@@ -551,7 +554,7 @@ void Context::EmitLineNumberProgram ()
 	Emit (ExtendedOpcode::EndSequence); Fixup (unitLength, QByte);
 }
 
-void Context::Emit (const Entry& entry, LineNumberProgram& program)
+void DWARFConverter::Context::Emit (const Entry& entry, LineNumberProgram& program)
 {
 	if (!IsCode (entry)) return;
 	Emit (ExtendedOpcode::SetAddress, entry.name);
@@ -560,12 +563,12 @@ void Context::Emit (const Entry& entry, LineNumberProgram& program)
 	Emit (Opcode::AdvancePC); Encode (entry.size - program.address);
 }
 
-void Context::Emit (const Breakpoint& breakpoint, LineNumberProgram& program)
+void DWARFConverter::Context::Emit (const Breakpoint& breakpoint, LineNumberProgram& program)
 {
 	Emit (breakpoint.offset, breakpoint.location, program);
 }
 
-void Context::Emit (const Offset offset, const Location& location, LineNumberProgram& program)
+void DWARFConverter::Context::Emit (const Offset offset, const Location& location, LineNumberProgram& program)
 {
 	const auto file = location.index + 1;
 	const auto addressDelta = offset - program.address;
@@ -579,66 +582,66 @@ void Context::Emit (const Offset offset, const Location& location, LineNumberPro
 	if (addressDelta) Emit (Opcode::AdvancePC), Encode (addressDelta); if (lineDelta) Emit (Opcode::AdvanceLine), Encode (lineDelta); Emit (Opcode::Copy);
 }
 
-void Context::Emit (const Opcode opcode)
+void DWARFConverter::Context::Emit (const Opcode opcode)
 {
 	Emit (Value::Unsigned (opcode), Byte);
 }
 
-void Context::Emit (const ExtendedOpcode opcode)
+void DWARFConverter::Context::Emit (const ExtendedOpcode opcode)
 {
 	Emit (0, Byte); Emit (1, Byte); Emit (Value::Unsigned (opcode), Byte);
 }
 
-void Context::Emit (const ExtendedOpcode opcode, const Binary::Name& name)
+void DWARFConverter::Context::Emit (const ExtendedOpcode opcode, const Binary::Name& name)
 {
 	Emit (0, Byte); const auto length = Emit (Byte); Emit (Value::Unsigned (opcode), Byte); Emit (name, Patch::Absolute, 0, Size (information.target.pointer)); Fixup (length, Byte);
 }
 
-void Context::Encode (Value::Unsigned value)
+void DWARFConverter::Context::Encode (Value::Unsigned value)
 {
 	Value::Unsigned byte; do {byte = value & 0x7f; value >>= 7; if (value != 0) byte |= 0x80; Emit (byte, Byte);} while (byte & 0x80);
 }
 
-void Context::Encode (Value::Signed value)
+void DWARFConverter::Context::Encode (Value::Signed value)
 {
 	Value::Unsigned byte; do {byte = value & 0x7f; value >>= 7; if ((value != 0 || byte & 0x40) && (value != -1 || !(byte & 0x40))) byte |= 0x80; Emit (byte, Byte);} while (byte & 0x80);
 }
 
-void Context::EmitLocation (const Binary::Name& name, const Size size)
+void DWARFConverter::Context::EmitLocation (const Binary::Name& name, const Size size)
 {
 	Emit (Attribute::Location, Form::ExpressionLocation); const auto length = Emit (Byte); Emit (Operation::Address); Emit (name, Patch::Absolute, 0, size); Fixup (length, Byte);
 }
 
-void Context::EmitLocation (const Register& name)
+void DWARFConverter::Context::EmitLocation (const Register& name)
 {
 	Emit (Attribute::Location, Form::ExpressionLocation); const auto length = Emit (Byte); Emit (Operation::Register); Encode (Value::Unsigned (Lookup (name))); Fixup (length, Byte);
 }
 
-void Context::EmitLocation (const Register& name, const Symbol::Displacement displacement)
+void DWARFConverter::Context::EmitLocation (const Register& name, const Symbol::Displacement displacement)
 {
 	Emit (Attribute::Location, Form::ExpressionLocation); const auto length = Emit (Byte); Emit (Operation::RegisterBase); Encode (Value::Unsigned (Lookup (name))); Encode (displacement); Fixup (length, Byte);
 }
 
-Context::RegisterName Context::Lookup (const Register& name) const
+DWARFConverter::Context::RegisterName DWARFConverter::Context::Lookup (const Register& name) const
 {
 	const auto result = platform.registers.find (name);
 	if (result == platform.registers.end ()) EmitError (Format ("unknown register '%0'", name));
 	return result->second;
 }
 
-const Context::Platform& Context::Lookup (const Target& target) const
+const DWARFConverter::Context::Platform& DWARFConverter::Context::Lookup (const Target& target) const
 {
 	const auto result = platforms.find (target.name);
 	if (result == platforms.end ()) EmitError (Format ("unsupported target '%0'", target.name));
 	return result->second;
 }
 
-bool Context::IsParameter (const Symbol& symbol) const
+bool DWARFConverter::Context::IsParameter (const Symbol& symbol) const
 {
 	return IsVariable (symbol) && symbol.displacement > 0 && Lookup (symbol.register_) == platform.framePointer || IsAlias (symbol);
 }
 
-bool Context::IsEmpty (const Block& block) const
+bool DWARFConverter::Context::IsEmpty (const Block& block) const
 {
 	for (auto symbol: block.symbols) if (!IsParameter (*symbol) && !IsResult (*symbol)) return false; return true;
 }

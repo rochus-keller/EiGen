@@ -16,6 +16,7 @@ extern "C" {
 #include "assembly.hpp"
 #include "cdchecker.hpp"
 #include "objlinker.hpp"
+#include "dbgdwarfconverter.hpp"
 #include <deque>
 
 using namespace ECS;
@@ -45,6 +46,16 @@ static void generate(const Assembly::Program& program, Assembly::Generator& gene
     generator.Generate (sections, program.source, binaries, information, listing);
 
     std::string path(output);
+
+    if( debug_info )
+    {
+        Debugging::DWARFConverter converter(diagnostics, charset);
+        Object::Binaries dbfobj;
+        converter.Convert (information, program.source, dbfobj);
+        ECS::File dbf_file {path, ".dbf"};
+        dbf_file << dbfobj;
+        register_for_cleanup(dbf_file.getPath().c_str(),1);
+    }
 
     ECS::File object( path, extensionOf(path) ); // File constructor wants to replace the extension of path in any case, even if empty
     object << binaries;
@@ -188,10 +199,25 @@ void run_linker(StringArray *inputs, StringArray *extra_args, const char *output
       file.open (inputs->data[i], file.binary);
       if (!file.is_open ())
           error("failed to open input file '%s'", inputs->data[i]);
-      // Position(file, source, 1, 1)
       file >> binaries;
       if (!file)
           error("invalid object file: %s", inputs->data[i]);
+    }
+
+    if( debug_info )
+    {
+        for (int i = 0; i < inputs->len; i++)
+        {
+          std::ifstream dbfin;
+          const std::string dbf = ECS::File::replace_extension(inputs->data[i],".dbf");
+          dbfin.open (dbf, dbfin.binary);
+          if (!dbfin.is_open ())
+              error("failed to open input file '%s'", dbf.c_str());
+          dbfin >> binaries;
+          const int s = binaries.size();
+          if (!dbfin)
+              error("invalid object file: %s", dbf.c_str());
+        }
     }
 
     for( int i = 0; i < libs.size(); i++ )

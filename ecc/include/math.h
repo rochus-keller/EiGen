@@ -101,15 +101,9 @@ double modf(double x, double * iptr);
 double frexp(double x, int *exp);
 double ldexp(double x, int exp);
 
-# if __BYTE_ORDER == __BIG_ENDIAN
-#  define __nan_bytes		{ 0x7f, 0xc0, 0, 0 }
-# endif
-# if __BYTE_ORDER == __LITTLE_ENDIAN
-#  define __nan_bytes		{ 0, 0, 0xc0, 0x7f }
-# endif
 
-static union { unsigned char __c[4]; float __d; } __nan_union = { __nan_bytes };
-# define NAN	(__nan_union.__d)
+extern float __nan_value();
+# define NAN	(__nan_value())
 
 # define INFINITY	HUGE_VALF
   

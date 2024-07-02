@@ -336,7 +336,10 @@ let libm : SourceSet {
 let test ! : Executable {
     .deps += [ libm libc ]
     .configs += config;
-    .sources += [ ./test.c ]
+    .sources += [
+        ./test.c
+        ../../runtime/runtime.c
+        ]
 }
 
 let lua ! : Executable {

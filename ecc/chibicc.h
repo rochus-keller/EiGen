@@ -360,6 +360,7 @@ struct Type {
   // Declaration
   Token *name;
   Token *name_pos;
+  Token* tag;
 
   // Array
   int array_len; // is -1 in case of "[]"

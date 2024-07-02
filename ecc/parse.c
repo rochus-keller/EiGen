@@ -362,6 +362,8 @@ static Type *find_typedef(Token *tok) {
 
 static void push_tag_scope(Token *tok, Type *ty) {
   hashmap_put2(&scope->tags, tok->loc, tok->len, ty);
+  assert(ty->tag==0);
+  ty->tag = tok;
 }
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
@@ -3152,6 +3154,8 @@ static Token *parse_typedef(Token *tok, Type *basety) {
     if (!ty->name)
       error_tok(ty->name_pos, "typedef name omitted");
     push_scope(get_ident(ty->name))->type_def = ty;
+    if( ty->tag == 0 && (ty->kind == TY_STRUCT || ty->kind == TY_UNION) )
+        ty->tag = ty->name;
   }
   return tok;
 }

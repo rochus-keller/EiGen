@@ -14,6 +14,7 @@
 #include <deque>
 #include <bitset>
 #include <sstream>
+#include <set>
 #include "layout.hpp"
 #include "cdemitter.hpp"
 #include "cdemittercontext.hpp"
@@ -53,6 +54,7 @@ static MyEmitter::Context* e = 0;
 static std::unordered_map<const char*, Label*> labels;
 static std::deque<Label> clabels;
 static Label* return_label = 0;
+static std::set<Type*> to_declare;
 
 static FILE *output_file;
 static int depth;
@@ -278,6 +280,27 @@ static std::string rename(int is_static, const char* in)
     name += in;
     return name;
 }
+
+static std::string rename2(const char* in, int inlen)
+{
+    const int len = 5;
+    char buf[len];
+    name_hash(base_file,buf,len);
+    std::string name = buf;
+    name += '#';
+    std::string file = file_name(base_file);
+    for(int i = 0; i < file.size(); i++ )
+    {
+        const char ch = file[i];
+        if( !::isalnum(ch) && ch != '_' && ch != '.' )
+            file[i] = '_';
+    }
+    name += file;
+    name += '#';
+    name += std::string(in,inlen);
+    return name;
+}
+
 
 static void pushRes(const Code::Type& type, const Smop& reg) {
 
@@ -551,7 +574,7 @@ static void loc(Token * tok)
         if( debug_info )
         {
             if( current_fn )
-                e->Break(file_path(tok->file->file_no),tok->line_no);
+                e->Break(file_path(tok->file->file_no),ECS::Position(tok->line_no,1));
             else
                 e->Locate(file_path(tok->file->file_no),ECS::Position(tok->line_no,1));
         }else
@@ -1240,21 +1263,115 @@ static void emit_data(Obj *prog) {
     }
 }
 
+static void print_type_decl(Type* ty, int type_section)
+{
+    switch(ty->kind)
+    {
+    case TY_VOID:
+        e->DeclareVoid();
+        break;
+    case TY_BOOL:
+    case TY_CHAR:
+    case TY_SHORT:
+    case TY_INT:
+    case TY_LONG:
+    case TY_LONGLONG:
+    case TY_FLOAT:
+    case TY_DOUBLE:
+    case TY_LDOUBLE:
+    case TY_ENUM:
+        e->DeclareType(getCodeType(ty));
+        break;
+    case TY_PTR:
+        e->DeclarePointer();
+        print_type_decl(ty->base,0);
+       break;
+    case TY_FUNC: {
+        Label ext = e->CreateLabel();
+        e->DeclareFunction(ext);
+        print_type_decl(ty->return_ty,0);
+        Type* param = ty->params;
+        while(param)
+        {
+            print_type_decl(param,0);
+            param = param->next;
+        }
+        ext();
+        break;
+    }
+    case TY_ARRAY:
+        e->DeclareArray(0,ty->array_len);
+        print_type_decl(ty->base,0);
+        break;
+    case TY_STRUCT:
+    case TY_UNION: {
+        if( type_section || ty->tag == 0 )
+        {
+            Label ext = e->CreateLabel();
+            e->DeclareRecord(ext,ty->size);
+            Member * m = ty->members;
+            while(m)
+            {
+                std::string name(m->name->loc,m->name->len);
+                if( m->is_bitfield )
+                {
+                    int64_t pat = 0;
+                    for( int i = 0; i < m->bit_width; i++ )
+                    {
+                        if( i != 0 )
+                            pat <<= 1;
+                        pat |=  1;
+                    }
+                    pat <<= m->bit_offset;
+                    e->DeclareField(name,m->offset,Code::Imm(getCodeType(m->ty),pat));
+                }else
+                    e->DeclareField(name,m->offset,Code::Imm(types[ptr],0));
+                e->Locate(file_path(m->name->file->file_no),ECS::Position(m->name->line_no,1));
+                print_type_decl(m->ty,0);
+                m = m->next;
+            }
+            ext();
+        }else
+        {
+            to_declare.insert(ty);
+            std::string name = rename2(ty->tag->loc, ty->tag->len);
+            e->DeclareType(name);
+        }
+        break;
+    }
+    case TY_VLA:
+        break;
+    default:
+        assert(0);
+    }
+}
+
+static void print_var_name(Obj *var)
+{
+    if( *var->name == 0 )
+        return; // anonymous local
+    if( var->ty->name_pos == 0 && var->tok == 0 )
+        return;
+    e->DeclareSymbol(*return_label,var->name,Code::Mem(types[ptr],Code::RFP, var->offset));
+    Token *tok = var->tok;
+    if( tok == 0 )
+        tok = var->ty->name_pos;
+    e->Locate(file_path(tok->file->file_no),ECS::Position(tok->line_no,1));
+    print_type_decl(var->ty,0);
+}
+
 static void print_var_names(Obj* fn)
 {
-#if 0
+#if 1
     if( debug_info )
     {
-        e->Locate(file_path(tok->file->file_no),tok->line_no);
         for (Obj *var = fn->params; var; var = var->next) {
-            s << "| param '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
-                 " size=" << var->ty->size << " align=" << var->align << " ";
+            print_var_name(var);
         }
         for (Obj *var = fn->locals; var; var = var->next) {
             if( var->offset > 0 )
                 break; // hit a param; apparently chibicc links params just behind locals
-            s << "| local '" << var->name << "' "<< getTypeName(var->ty) << " offset=" << var->offset <<
-                 " size=" << var->ty->size << " align=" << var->align << " ";
+            print_var_name(var);
         }
     }else
 #endif
@@ -1419,12 +1536,34 @@ void codegen(Obj *prog, FILE *out) {
     Code::Platform platform(layout,target_has_linkregister);
     MyEmitter emitter(diagnostics,stringPool,charset,platform);
     e = &emitter.ctx;
+    to_declare.clear();
 
     init_types();
 
     assign_lvar_offsets(prog);
     emit_data(prog);
     emit_text(prog);
+
+    if( debug_info )
+    {
+        std::set<Type*> done;
+        while( !to_declare.empty() )
+        {
+            // during print_type_decl now entries may be added to to_declare!
+            std::set<Type*>::iterator i = to_declare.begin();
+            Type* t = (*i);
+            to_declare.erase(i);
+            if( done.find(t) != done.end() )
+                continue;
+            done.insert(t);
+            assert(t->tag != 0 && (t->kind == TY_STRUCT || t->kind == TY_UNION));
+            std::string name = rename2(t->tag->loc,t->tag->len);
+            e->Begin(Code::Section::TypeSection,name);
+            e->Locate(file_path(t->tag->file->file_no),ECS::Position(t->tag->line_no,1));
+            print_type_decl(t,1);
+        }
+    }
+
     e = 0;
 
     println("; this is Eigen intermediate code, generated by ECC");

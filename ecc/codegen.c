@@ -395,7 +395,7 @@ static int push_args2(Node *args) {
         break;
     default:
         pushRes(getTypeName(args->ty));
-        res++;
+        res += align_to(args->ty->size, target_stack_align) / target_stack_align;
         break;
     }
     return res;
@@ -416,7 +416,7 @@ static int push_args(Node *node) {
     if (node->ret_buffer) {
         println("  mov ptr $0, ptr $fp%+d", node->ret_buffer->offset);
         pushRes("ptr");
-        stack++;
+        stack += align_to(target_pointer_width, target_stack_align) / target_stack_align;
     }
 
     return stack;

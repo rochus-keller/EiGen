@@ -57,7 +57,7 @@ static Label* return_label = 0;
 static std::set<Type*> to_declare;
 
 static FILE *output_file;
-static int depth;
+static int depth; // stack depth in bytes (considered target_stack_align)
 static Obj *current_fn = 0;
 static Code::Type returnType;
 
@@ -302,16 +302,18 @@ static std::string rename2(const char* in, int inlen)
 }
 
 
-static void pushRes(const Code::Type& type, const Smop& reg) {
+static int pushRes(const Code::Type& type, const Smop& reg) {
 
     e->Push(e->Convert(type,reg));
-    depth++;
+    const int aligned_size = align_to(type.size,target_stack_align);
+    depth += aligned_size;
+    return aligned_size;
 }
 
 static Smop pop(const Code::Type& type) {
 
     Smop res = e->Pop(type); // pop %s %s", type, arg
-    depth--;
+    depth -= align_to(type.size,target_stack_align);
     return res;
 }
 
@@ -458,13 +460,12 @@ static void cast(Type *from, Type *to, Smop& reg) {
 
 static int push_struct(Type *ty, const Smop& reg) {
 
-    int sz = align_to(ty->size, target_stack_align);
+    const int sz = align_to(ty->size, target_stack_align);
     e->Subtract(Code::Reg(types[ptr],Code::RSP), Code::Reg(types[ptr],Code::RSP),
                 Code::Imm(types[ptr],sz)); // sub	ptr $sp, ptr $sp, ptr %d
-    const int res = sz / target_stack_align;
-    depth += res;
+    depth += sz;
     e->Copy(Code::Reg(types[ptr],Code::RSP), reg, Code::Imm(types[ptr],sz)); // copy	ptr $sp, ptr $0, ptr %d"
-    return res;
+    return sz;
 }
 
 static int push_args2(Node *args) {
@@ -473,42 +474,40 @@ static int push_args2(Node *args) {
         return 0;
 
     // invert order of arguments
-    int res = push_args2(args->next);
+    int aligned_size = push_args2(args->next);
 
     Smop arg = gen_expr(args);
 
     switch (args->ty->kind) {
     case TY_STRUCT:
     case TY_UNION:
-        res += push_struct(args->ty, arg);
+        aligned_size += push_struct(args->ty, arg);
         break;
     default:
-        pushRes(getCodeType(args->ty), arg);
-        res++;
+        aligned_size += pushRes(getCodeType(args->ty), arg);
         break;
     }
-    return res;
+    return aligned_size;
 }
 
 static int push_args(Node *node) {
 
-    int stack = 0;
+    int aligned_size = 0;
 
     for (Node *arg = node->args; arg; arg = arg->next) {
         arg->pass_by_stack = true;
     }
 
-    stack += push_args2(node->args);
+    aligned_size += push_args2(node->args);
 
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
     if (node->ret_buffer) {
         Smop res = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
-        pushRes(types[ptr], res);
-        stack++;
+        aligned_size += pushRes(types[ptr], res);
     }
 
-    return stack;
+    return aligned_size;
 }
 
 static int firstParamOffset();
@@ -802,23 +801,24 @@ static Smop gen_expr(Node *node) {
 
         const RestoreRegisterState restore(*e);
 
-        const int stack_slots = push_args(node);
+        Type* ret = getFuncReturn(node->lhs->ty);
+
+        const int aligned_size = push_args(node);
         Smop fun = gen_expr(node->lhs);
 
-        Type* ret = getFuncReturn(node->lhs->ty);
         Smop res;
         if( node->ret_buffer )
         {
-            e->Call(fun,stack_slots * target_stack_align); // call fun $0, %d
+            e->Call(fun,aligned_size); // call fun $0, %d
             res = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
         }else if( ret )
         {
-            res = e->Call(getCodeType(ret), fun,stack_slots * target_stack_align); // call fun $0, %d
+            res = e->Call(getCodeType(ret), fun,aligned_size); // call fun $0, %d
 
         }else
-            e->Call(fun,stack_slots * target_stack_align); // call fun $0, %d
+            e->Call(fun,aligned_size); // call fun $0, %d
 
-        depth -= stack_slots;
+        depth -= aligned_size;
 
         return res;
     }
@@ -885,7 +885,12 @@ static Smop gen_expr(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
-        return e->Add(e->Convert(lhsT,lhs),rhs);
+        if( targets[target].architecture == Amd32 ) // TODO: work-around add issue with 64 bit numbers on 32 bit systems
+        {
+            Smop tmp = e->Move(e->Convert(lhsT,lhs));
+            return e->Add(tmp,rhs);
+        }else
+            return e->Add(e->Convert(lhsT,lhs),rhs);
         // add %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_SUB:
         return e->Subtract(e->Convert(lhsT,lhs),rhs);

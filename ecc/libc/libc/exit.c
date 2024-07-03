@@ -5,6 +5,7 @@
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #ifndef REGTEST
 
@@ -17,6 +18,9 @@ size_t _PDCLIB_exitptr = 0;
 
 void exit( int status )
 {
+    // TODO
+    printf("exit(%d) called!\n", status);
+    fflush(stdout);
     while ( _PDCLIB_exitptr != 0 )
     {
         _PDCLIB_exitstack[ --_PDCLIB_exitptr ]();

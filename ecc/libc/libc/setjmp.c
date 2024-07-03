@@ -1,7 +1,7 @@
 #include <setjmp.h>
 #include <stdlib.h>
 
-#ifdef ___ecs_chibicc__
+#ifdef __ecs_chibicc__
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
 
 asm(R"(

@@ -1,10 +1,16 @@
 #include <stdio.h>
 
-int main(int argc, char **argv) {
+extern int _argc;
+extern char** _argv;
+
+int main() {
 
     printf("Hello!\n");
 
     int i, n;
+    
+    for( i = 0; i < _argc; i++ )
+      printf("arg %d: %s\n",i, _argv[i]);
 
     // initialize first and second terms
     int t1 = 0, t2 = 1;
@@ -25,6 +31,5 @@ int main(int argc, char **argv) {
       nextTerm = t1 + t2;
     }
     printf("\n");
-
     return 0;
 }

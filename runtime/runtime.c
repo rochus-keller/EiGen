@@ -77,14 +77,14 @@ typedef struct {u4 l; u4 h;} uu8;
 
 s1 _conv_s1_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	if (a.c >> 31) r = -r; return (s1)r;
 }
 
 s1 _conv_s1_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	if (a.c.h >> 31) r = -r; return (s1)r;
@@ -92,14 +92,14 @@ s1 _conv_s1_f8 (const f8 x)
 
 s2 _conv_s2_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	if (a.c >> 31) r = -r; return (s2)r;
 }
 
 s2 _conv_s2_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	if (a.c.h >> 31) r = -r; return (s2)r;
@@ -107,14 +107,14 @@ s2 _conv_s2_f8 (const f8 x)
 
 s4 _conv_s4_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; s4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	if (a.c >> 31) r = -r; return r;
 }
 
 s4 _conv_s4_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; s4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	if (a.c.h >> 31) r = -r; return r;
@@ -122,7 +122,7 @@ s4 _conv_s4_f8 (const f8 x)
 
 s8 _conv_s8_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; union {s8 v; uu8 c;} r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c << 1 >> 24) - 127; union {s8 v; uu8 c;} r;
 	if (e <= 0) r.c.l = !e, r.c.h = 0; else if (e < 32) r.c.l = 1 << e | a.c << 9 >> 32 - e, r.c.h = 0;
 	else if (e < 64) r.c.l = a.c << 9 >> 64 - e, r.c.h = 1 << e - 32 | a.c << 9 >> 64 - e; else r.c.l = -1, r.c.h = -1;
 	if (a.c >> 31) r.v = -r.v; return r.v;
@@ -130,7 +130,7 @@ s8 _conv_s8_f4 (const f4 x)
 
 s8 _conv_s8_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; union {s8 v; uu8 c;} r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h << 1 >> 21) - 1023; union {s8 v; uu8 c;} r;
 	if (e <= 0) r.c.l = !e, r.c.h = 0; else if (e < 20) r.c.l = 1 << e | a.c.h << 12 >> 32 - e, r.c.h = 0;
 	else if (e < 32) r.c.l = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e, r.c.h = 0;
 	else if (e < 52) r.c.l = a.c.l >> 52 - e | a.c.h << e - 20, r.c.h = 1 << e - 32 | a.c.h << 12 >> 64 - e;
@@ -140,14 +140,14 @@ s8 _conv_s8_f8 (const f8 x)
 
 u1 _conv_u1_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	return (u1)r;
 }
 
 u1 _conv_u1_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	return (u1)r;
@@ -155,14 +155,14 @@ u1 _conv_u1_f8 (const f8 x)
 
 u2 _conv_u2_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	return (u2)r;
 }
 
 u2 _conv_u2_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	return (u2)r;
@@ -170,14 +170,14 @@ u2 _conv_u2_f8 (const f8 x)
 
 u4 _conv_u4_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; u4 r;
 	if (e <= 0) r = !e; else if (e < 32) r = 1 << e | a.c << 9 >> 32 - e; else r = -1;
 	return r;
 }
 
 u4 _conv_u4_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; u4 r;
 	if (e <= 0) r = !e; else if (e < 20) r = 1 << e | a.c.h << 12 >> 32 - e;
 	else if (e < 32) r = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e; else r = -1;
 	return r;
@@ -185,7 +185,7 @@ u4 _conv_u4_f8 (const f8 x)
 
 u8 _conv_u8_f4 (const f4 x) 
 {
-	const union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; union {u8 v; uu8 c;} r;
+    union {f4 v; u4 c;} a; a.v = x; const s4 e = (a.c >> 23) - 127; union {u8 v; uu8 c;} r;
 	if (e <= 0) r.c.l = !e, r.c.h = 0; else if (e < 32) r.c.l = 1 << e | a.c << 9 >> 32 - e, r.c.h = 0;
 	else if (e < 64) r.c.l = a.c << 9 >> 64 - e, r.c.h = 1 << e - 32 | a.c << 9 >> 64 - e; else r.c.l = -1, r.c.h = -1;
 	return r.v;
@@ -193,7 +193,7 @@ u8 _conv_u8_f4 (const f4 x)
 
 u8 _conv_u8_f8 (const f8 x) 
 {
-	const union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; union {u8 v; uu8 c;} r;
+    union {f8 v; uu8 c;} a; a.v = x; const s4 e = (a.c.h >> 20) - 1023; union {u8 v; uu8 c;} r;
 	if (e <= 0) r.c.l = !e, r.c.h = 0; else if (e < 20) r.c.l = 1 << e | a.c.h << 12 >> 32 - e, r.c.h = 0;
 	else if (e < 32) r.c.l = 1 << e | a.c.h << 12 >> 32 - e | a.c.l >> 52 - e, r.c.h = 0;
 	else if (e < 52) r.c.l = a.c.l >> 52 - e | a.c.h << e - 20, r.c.h = 1 << e - 32 | a.c.h << 12 >> 64 - e;

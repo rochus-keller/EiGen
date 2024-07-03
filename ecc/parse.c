@@ -363,7 +363,8 @@ static Type *find_typedef(Token *tok) {
 static void push_tag_scope(Token *tok, Type *ty) {
   hashmap_put2(&scope->tags, tok->loc, tok->len, ty);
   assert(ty->tag==0);
-  ty->tag = tok;
+  if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
+    ty->tag = tok;
 }
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
@@ -2679,7 +2680,9 @@ static Type *struct_union_decl(Token **rest, Token *tok) {
     // Otherwise, register the struct type.
     Type *ty2 = hashmap_get2(&scope->tags, tag->loc, tag->len);
     if (ty2) {
+      Token* tmp = ty2->tag;
       *ty2 = *ty;
+      ty2->tag = tmp;
       return ty2;
     }
 

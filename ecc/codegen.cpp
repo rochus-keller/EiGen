@@ -160,6 +160,12 @@ static Code::Type getCodeType(Type *ty) {
     return types[getTypeId(ty)];
 }
 
+static inline bool isMain(Obj *fn)
+{
+    return !fn->is_static && fn->name[0] == 'm' && fn->name[1] == 'a' && fn->name[2] == 'i' &&
+            fn->name[3] == 'n' && fn->name[4] == 0;
+}
+
 static void init_types()
 {
     for( int i = 0; i < MaxType; i++ )
@@ -1164,18 +1170,29 @@ static void assign_lvar_offsets(Obj *prog) {
             continue;
 
         int top = firstParamOffset();
+        int bottom = 0;
 
         if( fn->ty->return_ty && ( fn->ty->return_ty->kind == TY_STRUCT || fn->ty->return_ty->kind == TY_UNION ) )
-            top += target_stack_align; // if fn has struct return, the first param is a pointer to result
+            top += MAX(target_stack_align, target_pointer_width);
+            // if fn has struct return, the first param is a pointer to result
 
-        // Assign offsets to parameters.
-        for (Obj *var = fn->params; var; var = var->next) {
-            top = align_to(top, MAX(target_stack_align, var->align));
-            var->offset = top;
-            top += var->ty->size;
+        if( isMain(fn) )
+        {
+            // redeclare params of main as locals (will be set to values of _argc and _argv globals)
+            for (Obj *var = fn->params; var; var = var->next) {
+                bottom += var->ty->size;
+                bottom = align_to(bottom, var->align);
+                var->offset = -bottom;
+            }
+        }else
+        {
+            // Assign offsets to parameters.
+            for (Obj *var = fn->params; var; var = var->next) {
+                top = align_to(top, MAX(target_stack_align, var->align));
+                var->offset = top;
+                top += var->ty->size;
+            }
         }
-
-        int bottom = 0;
 
         // Assign offsets to local variables.
         for (Obj *var = fn->locals; var; var = var->next) {
@@ -1429,8 +1446,6 @@ static void emit_text(Obj *prog) {
         if (!fn->is_live)
             continue;
 
-        const std::string name = fn->name;
-
         returnType = Code::Type();
 
         // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
@@ -1454,16 +1469,47 @@ static void emit_text(Obj *prog) {
 
         current_fn = fn;
 
-        const int isMain = !fn->is_static && name == "main";
-
         print_var_names(fn);
 
+        const bool ismain = isMain(fn);
+
         // Prologue
-        if( !isMain && target_has_linkregister )
+        if( !ismain && target_has_linkregister )
             e->Push(Code::Reg(types[fun],Code::RLink)); // push fun $lnk
 
         e->Enter(fn->stack_size); // enter %d
         // TODO println("  ; alloca_bottom offset: %d", fn->alloca_bottom->offset);
+
+        if( ismain )
+        {
+            if( fn->ty->return_ty->kind != TY_VOID && fn->ty->return_ty->kind != TY_INT )
+                error_tok(fn->ty->name_pos,"return type of function main must be void or int");
+            int p = 0;
+            // initialize the parameter substitutes with the corresponding global var
+            for (Obj *var = fn->params; var; var = var->next, p++) {
+                switch( p )
+                {
+                case 0:
+                    // argc
+                    if( var->ty->kind != TY_INT )
+                        error_tok(fn->ty->name_pos,"first parameter of function main must be of int type");
+                    e->Move(e->MakeMemory(getCodeType(basic_type(TY_INT)),
+                                          Code::Reg(types[ptr],Code::RFP, var->offset)),
+                            Code::Mem(getCodeType(basic_type(TY_INT)),"_argc"));
+                    break;
+                case 1:
+                    // argv
+                    if( var->ty->kind != TY_PTR )
+                        error_tok(fn->ty->name_pos,"second parameter of function main must be of pointer type");
+                    e->Move(e->MakeMemory(types[ptr], Code::Reg(types[ptr],Code::RFP, var->offset)),
+                            Code::Mem(types[ptr],"_argv"));
+                    break;
+                default:
+                    error_tok(fn->ty->name_pos,"function main has either none or two paramters");
+                    break;
+                }
+            }
+        }
 
         // Emit code
         gen_stmt(fn->body);
@@ -1478,7 +1524,7 @@ static void emit_text(Obj *prog) {
                 e->Move(Code::Reg(types[s4],Code::RRes),Code::Imm(types[s4],0));
         }
         e->Leave();
-        if( isMain )
+        if( ismain )
         {
             if( returnType.model == Code::Type::Void )
                 e->Push(Code::Reg {types[s4], Code::RRes});

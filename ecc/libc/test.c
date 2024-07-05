@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdlib.h>
 
 int main(int argc, char** argv) {
 
@@ -16,7 +16,11 @@ int main(int argc, char** argv) {
     // initialize the next term (3rd term)
     int nextTerm = t1 + t2;
 
-    n = 30;
+    n = 0;
+    if( argc > 1 )
+        n = atoi(argv[1]);
+    if( n == 0 )
+        n = 30;
 
     // print the first two terms t1 and t2
     printf("Fibonacci Series: %d, %d, ", t1, t2);

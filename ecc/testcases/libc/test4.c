@@ -3,10 +3,10 @@
 int putchar(int);
 
 
-void f(int a, ...)
+void f(int t, ...)
 {
 	va_list l;
-	va_start(l,a);
+	va_start(l,t);
 	const int a = va_arg(l,int);
 	const double b = va_arg(l,double);
 	const char* str = va_arg(l,const char*);

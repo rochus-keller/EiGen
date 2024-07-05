@@ -1188,7 +1188,7 @@ static void assign_lvar_offsets(Obj *prog) {
         {
             // Assign offsets to parameters.
             for (Obj *var = fn->params; var; var = var->next) {
-                top = align_to(top, MAX(target_stack_align, var->align));
+                top = align_to(top, target_stack_align);
                 var->offset = top;
                 top += var->ty->size;
             }

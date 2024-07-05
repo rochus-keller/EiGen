@@ -596,7 +596,9 @@ static void cc1(void) {
     tok = append_tokens(tok, tok2);
   }
 
+#ifdef ECC_COMPILING_MESSAGE
   printf("compiling '%s'\n", base_file);
+#endif
   fflush(stdout);
   // Tokenize and parse.
   Token *tok2 = must_tokenize_file(base_file);
@@ -762,7 +764,9 @@ int main(int argc, char **argv) {
     link(&ld_args, opt_o ? opt_o : opt_lib ? "a.lib" : "a.out");
 
   end = clock();
+#ifdef ECC_SHOW_RUN_FOR_SECS
   printf("run for %.1f seconds\n", ((float) (end - start)) / CLOCKS_PER_SEC);
+#endif
   return 0;
 }
 

@@ -323,6 +323,7 @@ let compiler : Executable {
         ./dbgdwarfconverter.hpp
         ]
     .defines += "ECC_HAVE_BACKEND"
+    # ECC_COMPILING_MESSAGE ECC_SHOW_RUN_FOR_SECS
     .include_dirs += .
 
     # cannot use name "ecc" because of collision with ecc subdir

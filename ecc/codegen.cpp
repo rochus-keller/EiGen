@@ -77,17 +77,18 @@ struct EcsType {
     uint8_t type;
     uint8_t width;
     const char* name;
+    const char* dbgname;
 } ecsTypes[] = {
-    { u1, 8, "u1" },
-    { u2, 16, "u2" },
-    { u4, 32, "u4" },
-    { u8, 64, "u8" },
-    { s1, 8, "s1" },
-    { s2, 16, "s2" },
-    { s4, 32, "s4" },
-    { s8, 64, "s8" },
-    { f4, 32, "f4" },
-    { f8, 64, "f8" },
+    { u1, 8, "u1", "byte" },
+    { u2, 16, "u2", "ushort" },
+    { u4, 32, "u4", "uint" },
+    { u8, 64, "u8", "ulong" },
+    { s1, 8, "s1", "char" },
+    { s2, 16, "s2", "short" },
+    { s4, 32, "s4", "int" },
+    { s8, 64, "s8", "long" },
+    { f4, 32, "f4", "float" },
+    { f8, 64, "f8", "double" },
     { ptr, 0, "ptr" },
     { fun, 0, "fun" },
 };
@@ -1362,7 +1363,7 @@ static void print_type_decl(Type* ty, int type_section)
     case TY_DOUBLE:
     case TY_LDOUBLE:
     case TY_ENUM:
-        e->DeclareType(getCodeType(ty));
+        e->DeclareType(std::string(ecsTypes[getTypeId(ty)].dbgname));
         break;
     case TY_PTR:
         e->DeclarePointer();
@@ -1653,6 +1654,11 @@ void codegen(Obj *prog, FILE *out) {
             e->Begin(Code::Section::TypeSection,name);
             e->Locate(file_path(t->tag->file->file_no),ECS::Position(t->tag->line_no,1));
             print_type_decl(t,1);
+        }
+        for( int i = 0; i < ptr; i++ )
+        {
+            e->Begin(Code::Section::TypeSection,ecsTypes[i].dbgname);
+            e->DeclareType(types[i]);
         }
     }
 

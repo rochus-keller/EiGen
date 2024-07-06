@@ -474,29 +474,54 @@ static int push_struct(Type *ty, const Smop& reg) {
     return sz;
 }
 
-static int push_args2(Node *args) {
+static int push_args2(Node *args, bool isVararg) {
 
     if (!args)
         return 0;
 
     // invert order of arguments
-    int aligned_size = push_args2(args->next);
+    int aligned_size = push_args2(args->next,isVararg);
 
     Smop arg = gen_expr(args);
 
-    switch (args->ty->kind) {
+    Type* ty = args->ty;
+    switch (ty->kind) {
     case TY_STRUCT:
     case TY_UNION:
-        aligned_size += push_struct(args->ty, arg);
+        aligned_size += push_struct(ty, arg);
         break;
     default:
-        aligned_size += pushRes(getCodeType(args->ty), arg);
+        if( isVararg )
+        {
+            switch(ty->kind)
+            {
+            case TY_CHAR:
+            case TY_BOOL:
+            case TY_SHORT: {
+                Type* to;
+                if( ty->is_unsigned )
+                    to = basic_utype(TY_INT);
+                else
+                    to = basic_type(TY_INT);
+                cast(ty,to, arg);
+                ty = to;
+                break;
+            }
+            case TY_FLOAT: {
+                Type* to = basic_type(TY_DOUBLE);
+                cast(ty,to, arg);
+                ty = to;
+                break;
+            }
+            }
+        }
+        aligned_size += pushRes(getCodeType(ty), arg);
         break;
     }
     return aligned_size;
 }
 
-static int push_args(Node *node) {
+static int push_args(Node *node, bool isVararg) {
 
     int aligned_size = 0;
 
@@ -504,7 +529,7 @@ static int push_args(Node *node) {
         arg->pass_by_stack = true;
     }
 
-    aligned_size += push_args2(node->args);
+    aligned_size += push_args2(node->args, isVararg);
 
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
@@ -593,14 +618,14 @@ static void loc(Token * tok)
     }
 }
 
-static Type* getFuncReturn(Type* ty)
+static Type* getFunc(Type* ty)
 {
     if( ty == 0 )
         return 0;
     if( ty->kind == TY_PTR )
-        return getFuncReturn(ty->base); // function pointer go this way
-    if( ty->kind == TY_FUNC && ty->return_ty && ty->return_ty->kind != TY_VOID )
-        return ty->return_ty;
+        return getFunc(ty->base); // function pointer go this way
+    if( ty->kind == TY_FUNC )
+        return ty;
     return 0;
 }
 
@@ -807,9 +832,11 @@ static Smop gen_expr(Node *node) {
 
         const RestoreRegisterState restore(*e);
 
-        Type* ret = getFuncReturn(node->lhs->ty);
+        Type* func = getFunc(node->lhs->ty);
+        assert(func);
+        Type* ret = func->return_ty && func->return_ty->kind != TY_VOID ? func->return_ty : 0;
 
-        const int aligned_size = push_args(node);
+        const int aligned_size = push_args(node,func->is_variadic);
         Smop fun = gen_expr(node->lhs);
 
         Smop res;
@@ -1285,6 +1312,39 @@ static void emit_data(Obj *prog) {
     }
 }
 
+static void print_type_decl(Type* ty, int type_section);
+
+static void print_members(Member * m)
+{
+    while(m)
+    {
+        if( m->name == 0 && (m->ty->kind == TY_STRUCT || m->ty->kind == TY_UNION) )
+        {
+            // anonymous struct or union
+            print_members(m->ty->members);
+            m = m->next;
+            continue;
+        }
+        std::string name(m->name->loc,m->name->len);
+        if( m->is_bitfield )
+        {
+            int64_t pat = 0;
+            for( int i = 0; i < m->bit_width; i++ )
+            {
+                if( i != 0 )
+                    pat <<= 1;
+                pat |=  1;
+            }
+            pat <<= m->bit_offset;
+            e->DeclareField(name,m->offset,Code::Imm(getCodeType(m->ty),pat));
+        }else
+            e->DeclareField(name,m->offset,Code::Imm(types[ptr],0));
+        e->Locate(file_path(m->name->file->file_no),ECS::Position(m->name->line_no,1));
+        print_type_decl(m->ty,0);
+        m = m->next;
+    }
+}
+
 static void print_type_decl(Type* ty, int type_section)
 {
     switch(ty->kind)
@@ -1332,26 +1392,7 @@ static void print_type_decl(Type* ty, int type_section)
             Label ext = e->CreateLabel();
             e->DeclareRecord(ext,ty->size);
             Member * m = ty->members;
-            while(m)
-            {
-                std::string name(m->name->loc,m->name->len);
-                if( m->is_bitfield )
-                {
-                    int64_t pat = 0;
-                    for( int i = 0; i < m->bit_width; i++ )
-                    {
-                        if( i != 0 )
-                            pat <<= 1;
-                        pat |=  1;
-                    }
-                    pat <<= m->bit_offset;
-                    e->DeclareField(name,m->offset,Code::Imm(getCodeType(m->ty),pat));
-                }else
-                    e->DeclareField(name,m->offset,Code::Imm(types[ptr],0));
-                e->Locate(file_path(m->name->file->file_no),ECS::Position(m->name->line_no,1));
-                print_type_decl(m->ty,0);
-                m = m->next;
-            }
+            print_members(m);
             ext();
         }else
         {

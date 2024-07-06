@@ -237,6 +237,7 @@ void DWARFConverter::Context::Emit (const Entry& entry)
 		EmitAttribute (entry.type);
 		Emit (Attribute::LowPC, Form::Address, entry.name, Patch::Absolute, 0);
 		Emit (Attribute::HighPC, Form::Address, entry.name, Patch::Extent, 0);
+        Emit (Attribute::External, Form::FlagPresent);
 		EmitAttributeSentinel ();
 		for (auto& symbol: entry.symbols) if (IsParameter (symbol)) Emit (symbol);
 		Emit (entry, Block {entry});
@@ -332,7 +333,7 @@ void DWARFConverter::Context::EmitAttribute (const Value& value)
 
 void DWARFConverter::Context::EmitAttribute (const Type& type)
 {
-	const auto name = IsName (type) ? DebugInformation + "type_" + type.name : compilationUnit + "type" + std::to_string (types++); Emit (Attribute::Type, Form::ReferenceAddress, name, Patch::Position, 0);
+    const auto name = DebugInformation + "type_" + (IsName (type) ? type.name : Format ("(%0)", type)); Emit (Attribute::Type, Form::ReferenceAddress, name, Patch::Position, 0);
 	if (IsName (type)) if (IsDefined (name)) return; else for (auto& entry: information.entries) if (IsType (entry) && entry.name == type.name) return;
 	const auto previous = current, abbreviation = this->abbreviation; Begin (name, false, IsName (type)); Group (DebugInformation + "section"); Emit (type, nullptr); current = previous; this->abbreviation = abbreviation;
 }
@@ -422,9 +423,9 @@ void DWARFConverter::Context::Emit (const Type& type, const Entry*const entry)
 
 void DWARFConverter::Context::Emit (const Field& field)
 {
-	if (IsBitField (field)) EmitEntry ("bit_field", Tag::Member, false); else if (IsBase (field)) EmitEntry ("base", Tag::Inheritance, false); else EmitEntry ("field", Tag::Member, false);
-	EmitAttribute (field.name);
-	EmitAttribute (field.location);
+    EmitEntry (IsBase (field) ? "base" : IsBitField (field) ? "bit_field" : IsValid (field.location) ? "field" : "member", IsBase (field) ? Tag::Inheritance : Tag::Member, false);
+    if (!IsBase (field)) EmitAttribute (field.name);
+    if (IsValid (field.location)) EmitAttribute (field.location);
 	EmitAttribute (field.type);
 	Emit (Attribute::DataMemberLocation, field.offset);
 	if (IsBitField (field)) Emit (Attribute::DataBitOffset, CountTrailingZeros (field.mask)), Emit (Attribute::DataBitSize, CountOnes (field.mask));
@@ -433,9 +434,9 @@ void DWARFConverter::Context::Emit (const Field& field)
 
 void DWARFConverter::Context::Emit (const Enumerator& enumerator)
 {
-	EmitEntry ("enumerator", Tag::Enumerator, false);
+    EmitEntry (IsValid (enumerator.location) ? "enumerator" : "value", Tag::Enumerator, false);
 	EmitAttribute (enumerator.name);
-	EmitAttribute (enumerator.location);
+    if (IsValid (enumerator.location)) EmitAttribute (enumerator.location);
 	EmitAttribute (enumerator.value);
 	EmitAttributeSentinel ();
 }
@@ -508,9 +509,10 @@ void DWARFConverter::Context::EmitAttribute (const Directory& directory)
 
 void DWARFConverter::Context::EmitAttribute (const Location& location)
 {
-	Emit (Attribute::DeclarationFile, IsValid (location) ? location.index + 1 : 0);
-	Emit (Attribute::DeclarationLine, IsValid (location) ? location.line : 0);
-	Emit (Attribute::DeclarationColumn, IsValid (location) ? location.column : 0);
+    assert (IsValid (location));
+    Emit (Attribute::DeclarationFile, location.index + 1);
+    Emit (Attribute::DeclarationLine, location.line);
+    Emit (Attribute::DeclarationColumn, location.column);
 }
 
 void DWARFConverter::Context::EmitAttribute (const Symbol& symbol)

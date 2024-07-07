@@ -727,6 +727,8 @@ static Smop gen_expr(Node *node) {
 
             store(node->ty, lhs, rhs);
             return savedRhs; // mov %s $0, %s %s
+            // TODO: not rhs shall be returned according to the standard, but what was actually stored in lhs!
+            // gcc effectively seems to consider sign and mem->bit_width; see bitfield-immediate-assign.c
         }else {
             store(node->ty, lhs, rhs);
             return rhs;
@@ -1325,6 +1327,11 @@ static void print_members(Member * m)
             print_members(m->ty->members);
             m = m->next;
             continue;
+        }
+        if( m->name == 0 )
+        {
+            m = m->next;
+            continue; // anonymous member of basic type, apparently legal
         }
         std::string name(m->name->loc,m->name->len);
         if( m->is_bitfield )

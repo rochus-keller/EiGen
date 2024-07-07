@@ -2764,7 +2764,7 @@ static Member *get_struct_member(Type *ty, Token *tok) {
     }
 
     // Regular struct member
-    if (mem->name->len == tok->len &&
+    if (mem->name && mem->name->len == tok->len &&
         !strncmp(mem->name->loc, tok->loc, tok->len))
       return mem;
   }

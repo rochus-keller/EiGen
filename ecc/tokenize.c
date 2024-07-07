@@ -412,10 +412,10 @@ static bool convert_pp_int(Token *tok) {
       startswith(p, "uLL") || startswith(p, "ull")) {
     p += 3;
     l = u = true;
-  } else if (startswith(p, "lu") || startswith(p, "ul")) {
+  } else if (startswith(tmp, "lu") || startswith(tmp, "ul")) {
     p += 2;
     l = u = true;
-  } else if (startswith(p, "LL") || startswith(p, "ll")) {
+  } else if (startswith(tmp, "LL") || startswith(tmp, "ll")) {
     p += 2;
     l = true;
   } else if (*p == 'L' || *p == 'l') {

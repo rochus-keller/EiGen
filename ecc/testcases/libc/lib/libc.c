@@ -300,6 +300,16 @@ int printf(const char* fmt, ... )
     return length;
 }
 
+int floor( float f )
+{
+	return f;
+}
+
+int ceil( float f )
+{
+	return f + 1.0;
+}
+
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
 
 asm(R"(

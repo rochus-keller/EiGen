@@ -43,6 +43,7 @@
 #include <string.h>
 #include <float.h>
 #include <inttypes.h>
+#include <math.h>
 
 #include "pdclib/_PDCLIB_print.h"
 
@@ -113,11 +114,7 @@ static size_t _ftoa(struct _PDCLIB_status_t * status, double value, unsigned int
   // test for very large values
   // standard printf behavior is to print EVERY whole number digit -- which could be 100s of characters overflowing your buffers == bad
   if ((value > PRINTF_MAX_FLOAT) || (value < -PRINTF_MAX_FLOAT)) {
-#if defined(PRINTF_SUPPORT_EXPONENTIAL)
-    return _etoa(out, buffer, idx, maxlen, value, prec, width, flags);
-#else
-    return 0U;
-#endif
+    return _etoa(status, value, prec, width, flags);
   }
 
   // test for negative
@@ -137,9 +134,9 @@ static size_t _ftoa(struct _PDCLIB_status_t * status, double value, unsigned int
     prec--;
   }
 
-  int whole = (int)value;
+  int whole = floor(value);
   double tmp = (value - whole) * pow10[prec];
-  unsigned long frac = (unsigned long)tmp;
+  unsigned long frac = (unsigned long)floor(tmp);
   diff = tmp - frac;
 
   if (diff > 0.5) {
@@ -168,7 +165,7 @@ static size_t _ftoa(struct _PDCLIB_status_t * status, double value, unsigned int
   else {
     unsigned int count = prec;
     // now do fractional part, as an unsigned number
-    while (len < PRINTF_FTOA_BUFFER_SIZE) {
+    while (len < PRINTF_FTOA_BUFFER_SIZE && count > 0) {
       --count;
       buf[len++] = (char)(48U + (frac % 10U));
       if (!(frac /= 10U)) {
@@ -176,8 +173,9 @@ static size_t _ftoa(struct _PDCLIB_status_t * status, double value, unsigned int
       }
     }
     // add extra 0s
-    while ((len < PRINTF_FTOA_BUFFER_SIZE) && (count-- > 0U)) {
+    while ((len < PRINTF_FTOA_BUFFER_SIZE) && (count > 0U)) {
       buf[len++] = '0';
+      count--;
     }
     if (len < PRINTF_FTOA_BUFFER_SIZE) {
       // add decimal

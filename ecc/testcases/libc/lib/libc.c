@@ -300,11 +300,6 @@ int printf(const char* fmt, ... )
     return length;
 }
 
-int floor( float f )
-{
-	return f;
-}
-
 int ceil( float f )
 {
 	return f + 1.0;

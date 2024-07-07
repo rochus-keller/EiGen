@@ -209,17 +209,8 @@ private:
 };
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c, const OperatingMode m, const MediaFloat mf, const DirectAddressing da) :
-    Assembly::Generator {d, sp, assembler, "amd", "AMD64",
-        // with 0.0.41 fixes
-        Layout(
-            {m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u}, // Integer: size, alignment{minimum, maximum}
-            {8, 4, m == LongMode ? 8u : 4u},      // Float: dito
-            m >> 3,                               // Pointer: only size
-            m >> 3,                               // Function: dito
-            {0, m >> 3, m == LongMode ? 8u : 4u}, // Stack: displacement, alignment{minimum, maximum}
-            true                                  // CallStack
-        )
-        , false},
+    Assembly::Generator(d, sp, assembler, "amd", "AMD64", {{m == RealMode ? 2u : 4u, 1, m == LongMode ? 8u : 4u},
+        {8, 4, m == LongMode ? 8u : 4u}, m >> 3, m >> 3, {0, m >> 3, m == LongMode ? 8u : 4u}, true}, false),
     assembler (d, c, m), mode (m), mediaFloat (mf), directAddressing (da)
 {
 }
@@ -674,7 +665,8 @@ void Generator::Context::Store (const SmartOperand& register_, const Code::Opera
 void Generator::Context::LegacyFloatLoad (const Code::Operand& operand)
 {
 	if (IsImmediate (operand)) if (operand.fimm == 0) return Emit (FLDZ {mode}); else if (operand.fimm == 1) return Emit (FLD1 {mode});
-	Emit (Instruction::FLD, Access (operand, Float), {});
+    if (IsRegister (operand) && Select (operand, operand.type, Float) == ST0) return;
+    Emit (Instruction::FLD, Access (operand, Float), {});
 }
 
 void Generator::Context::LegacyFloatStore (const Code::Operand& operand)

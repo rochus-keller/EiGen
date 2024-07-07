@@ -181,12 +181,11 @@ void Linker::Context::EmitError (const Binary::Name& name, const Message& messag
 bool Linker::Context::IsRequired (const Binary::Name& name) const
 {
 	Binary::Name::size_type begin = 0;
-	for (auto next = name.find ('?'); next != name.npos; begin = next + 1, next = name.find ('?', begin))
-	{
-		const auto entry = directory.find (name.substr (begin, next - begin));
-		if (entry != directory.end () && entry->second.block->used) return true;
-	}
-	return begin == 0;
+    for (auto next = name.find ('?'); next != name.npos; begin = next + 1, next = name.find ('?', begin)) {
+        const auto entry = directory.find (name.substr (begin, next - begin));
+        if (entry != directory.end () && entry->second.block->used) return true;
+    }
+    return begin == 0;
 }
 
 void Linker::Context::Process (const Binaries& binaries)
@@ -231,10 +230,12 @@ void Linker::Context::Enter (const Alias& alias)
 void Linker::Context::Replace (Block& block, const Linker::Reference& reference)
 {
 	assert (!block.replaced); block.replaced = true;
-	auto iterator = directory.find (block.binary.name); if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
-    for (auto& alias: block.binary.aliases)
-        if (iterator = directory.find (alias.name), iterator != directory.end () && &iterator->second != &reference)
-            directory.erase (iterator);
+    const auto iterator = directory.find (block.binary.name);
+    if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
+    for (auto& alias: block.binary.aliases) {
+        const auto iterator = directory.find (alias.name);
+        if (iterator != directory.end () && &iterator->second != &reference) directory.erase (iterator);
+    }
 }
 
 void Linker::Context::Use (Block& block)
@@ -246,8 +247,8 @@ void Linker::Context::Use (Block& block)
 void Linker::Context::Touch (const struct Link& link)
 {
 	if (HasConditionals (link.name)) return;
-	const auto entry = directory.find (link.name);
-	if (entry != directory.end () && !entry->second.isGroup) Use (*entry->second.block);
+    const auto entry = directory.find (link.name);
+    if (entry != directory.end () && !entry->second.isGroup) Use (*entry->second.block);
 }
 
 void Linker::Context::Reference (Block& block)

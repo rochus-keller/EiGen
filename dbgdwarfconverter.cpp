@@ -58,7 +58,6 @@ private:
 	const Platform& platform;
 	const Binary::Name compilationUnit, lineNumberProgram;
 
-	Object::Size types = 0;
 	Binary* abbreviation = nullptr;
 	std::vector<Abbreviation> abbreviations;
 

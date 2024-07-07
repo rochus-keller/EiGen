@@ -64,6 +64,7 @@ namespace Assembly {
         auto DefineGlobal (const Code::Operand&) -> Code::Section::Name;
         auto DefineLocal (const Code::Operand&, Code::Size, Code::Size) -> Label;
         auto DisplaceStackPointer (const Code::Operand&, Code::Displacement) -> Code::Operand;
+        auto GetAddress (const Code::Instruction&) const -> Code::Operand;
         auto GetBranchOffset (const Label&, Code::Offset) const -> Code::Offset;
         auto GetLabel (const Code::Offset) const -> Label;
         auto GetOffset (const Byte*) const -> Code::Offset;
@@ -117,13 +118,13 @@ namespace Assembly {
         void ReleaseRegisters (const Code::Instruction&);
         void Release (Code::Register, Code::Size);
 
-        void ApplyLocalDefinitions ();
         void Apply (LocalDefinition&);
         void Emit (const Code::Instruction&);
         void List (const Code::Instruction&);
         void Encode (const Code::Instruction&);
         Code::Size Push (const Code::Operand&);
         void Assemble (const Code::Instruction&);
+        void ApplyLocalDefinitions (Code::Offset);
         void Assemble (const Source&, Line, const Code::String&);
         void AssembleInline (const Source&, Line, const Code::String&);
         void AddType (Code::Register, const Code::Operand&, Types&) const;
@@ -162,6 +163,8 @@ namespace Assembly {
 
         static Debugging::Type GetType (const Code::Operand&);
         static Debugging::Value GetValue (const Code::Operand&);
+
+        static std::ostream& WriteValue (std::ostream&, const Debugging::Value&);
 
         friend std::ostream& operator << (std::ostream&, const Label&);
     };

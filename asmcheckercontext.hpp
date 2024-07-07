@@ -36,21 +36,23 @@ namespace ECS {
         protected:
             struct Link;
 
-            using Alignment = std::size_t;
             using Inlined = bool;
+            using InstructionAlignment = std::size_t;
             using Origin = std::size_t;
+            using SectionAlignment = std::size_t;
             using Size = std::size_t;
             using Value = std::int64_t;
 
             Charset& charset;
+            const InstructionAlignment instructionAlignment;
+            const SectionAlignment sectionAlignment;
             const Inlined inlined;
-            const Alignment alignment;
 
             Size offset;
             bool parsing = true;
             const Location* location;
 
-            Context (const Checker&, Object::Section&, Origin, Alignment, Inlined);
+            Context (const Checker&, Object::Section&, Origin, InstructionAlignment, SectionAlignment, Inlined);
 
             void EmitError /*[[noreturn]]*/ (const Message&) const;
 
@@ -71,7 +73,7 @@ namespace ECS {
             Object::Section& section;
             const Origin origin;
 
-            Size index;
+            Size* size;
             Conditional conditional = Including;
             std::vector<Size> sizes;
             std::vector<Conditional> conditionals;

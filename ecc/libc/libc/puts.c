@@ -24,10 +24,11 @@ int puts( const char * s )
         return EOF;
     }
 
+    int n = 0;
     while ( *s != '\0' )
     {
         stdout->buffer[ stdout->bufidx++ ] = *s++;
-
+        n++;
         if ( stdout->bufidx == stdout->bufsize )
         {
             if ( _PDCLIB_flushbuffer( stdout ) == EOF )
@@ -45,12 +46,15 @@ int puts( const char * s )
     {
         int rc = _PDCLIB_flushbuffer( stdout );
         _PDCLIB_UNLOCK( stdout->mtx );
-        return rc;
+        if( rc == EOF )
+            return EOF;
+        else
+            return n;
     }
     else
     {
         _PDCLIB_UNLOCK( stdout->mtx );
-        return 0;
+        return n;
     }
 }
 

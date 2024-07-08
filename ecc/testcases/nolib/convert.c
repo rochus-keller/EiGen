@@ -32,5 +32,6 @@ int double_convert()
 
 int main()
 {
-    return double_convert() + float_convert1() + float_convert2();
+    int res = double_convert() + float_convert1() + float_convert2();
+    return res;
 }

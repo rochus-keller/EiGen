@@ -475,13 +475,13 @@ static int push_struct(Type *ty, const Smop& reg) {
     return sz;
 }
 
-static int push_args2(Node *args, bool isVararg) {
+static int push_args2(Node *args, int param_count) {
 
     if (!args)
         return 0;
 
     // invert order of arguments
-    int aligned_size = push_args2(args->next,isVararg);
+    int aligned_size = push_args2(args->next,param_count-1);
 
     Smop arg = gen_expr(args);
 
@@ -492,8 +492,9 @@ static int push_args2(Node *args, bool isVararg) {
         aligned_size += push_struct(ty, arg);
         break;
     default:
-        if( isVararg )
+        if( param_count <= 0 )
         {
+            // this is one of the variable arguments
             switch(ty->kind)
             {
             case TY_CHAR:
@@ -522,7 +523,7 @@ static int push_args2(Node *args, bool isVararg) {
     return aligned_size;
 }
 
-static int push_args(Node *node, bool isVararg) {
+static int push_args(Node *node, int param_count) {
 
     int aligned_size = 0;
 
@@ -530,7 +531,7 @@ static int push_args(Node *node, bool isVararg) {
         arg->pass_by_stack = true;
     }
 
-    aligned_size += push_args2(node->args, isVararg);
+    aligned_size += push_args2(node->args, param_count);
 
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
@@ -628,6 +629,17 @@ static Type* getFunc(Type* ty)
     if( ty->kind == TY_FUNC )
         return ty;
     return 0;
+}
+
+static int getParamCount(Type* fn)
+{
+    int res = 0;
+    Type * arg = fn->params;
+    while(arg) {
+        res++;
+        arg = arg->next;
+    }
+    return res;
 }
 
 // Generate code for a given node.
@@ -839,7 +851,7 @@ static Smop gen_expr(Node *node) {
         assert(func);
         Type* ret = func->return_ty && func->return_ty->kind != TY_VOID ? func->return_ty : 0;
 
-        const int aligned_size = push_args(node,func->is_variadic);
+        const int aligned_size = push_args(node,getParamCount(func));
         Smop fun = gen_expr(node->lhs);
 
         Smop res;
@@ -1257,64 +1269,6 @@ static int is_static(Obj *prog, const char* name)
     return 0;
 }
 
-static void emit_data(Obj *prog) {
-
-    for (Obj *var = prog; var; var = var->next) {
-        if (var->is_function || !var->is_definition)
-            continue;
-
-        // if (var->is_static)
-        e->Begin(Code::Section::Data, rename(var->is_static,var->name), var->align,
-                 false, // required
-                 false, // duplicable
-                 var->is_tentative // replaceable
-                 );
-
-        // Common symbol
-        if (opt_fcommon && var->is_tentative) {
-            if( var->ty->size > 0 )
-                e->Reserve(var->ty->size);
-            continue;
-        }
-
-
-        // .data or .tdata
-        if (var->init_data) {
-#if 0
-            // TODO
-            if (var->is_tls)
-                println("  ; tls");
-#endif
-
-            Relocation *rel = var->rel;
-            int pos = 0;
-            // var->ty is either an ARRAY or STRUCT or UNION, but initdata is always array of char
-            while (pos < var->ty->size) {
-                if (rel && rel->offset == pos) {
-                    Type* ty = getTypeOf(prog,*rel->label);
-
-                    Code::Type type(Code::Type::Pointer,target_pointer_width);
-                    if( ty && ty->kind == TY_FUNC )
-                        type.model = Code::Type::Function;
-
-                    e->Define(Code::Adr(type,rename(is_static(prog,*rel->label),*rel->label)));
-                    rel = rel->next;
-                    pos += target_pointer_width;
-                } else {
-                    const char d = var->init_data[pos++];
-                    e->Define(Code::Imm(types[s1],d));
-                }
-            }
-#if 0
-            // TODO
-            if (var->is_tls)
-                println("  ; end tls");
-#endif
-            continue;
-        }
-    }
-}
-
 static void print_type_decl(Type* ty, int type_section);
 
 static void print_members(Member * m)
@@ -1461,6 +1415,71 @@ static void print_var_names(Obj* fn)
                  " size=" << var->ty->size << " align=" << var->align << " ";
         }
         e->Comment(s.str().c_str());
+    }
+}
+
+static void emit_data(Obj *prog) {
+
+    for (Obj *var = prog; var; var = var->next) {
+        if (var->is_function || !var->is_definition)
+            continue;
+
+        // if (var->is_static)
+        e->Begin(Code::Section::Data, rename(var->is_static,var->name), var->align,
+                 false, // required
+                 false, // duplicable
+                 var->is_tentative // replaceable
+                 );
+
+        if( debug_info && var->ty && !var->is_tentative )
+        {
+            Token *tok = var->tok;
+            if( tok == 0 )
+                tok = var->ty->name_pos;
+            if( tok )
+            {
+                e->Locate(file_path(tok->file->file_no),ECS::Position(tok->line_no,1));
+                print_type_decl(var->ty, 0);
+            }
+        }
+
+        // .data or .tdata
+        if (var->init_data) {
+            // TODO: var->is_tls
+
+            Relocation *rel = var->rel;
+            int pos = 0;
+            // var->ty is either an ARRAY or STRUCT or UNION, but initdata is always array of char
+            while (pos < var->ty->size) {
+                if (rel && rel->offset == pos) {
+                    Type* ty = getTypeOf(prog,*rel->label);
+
+                    Code::Type type(Code::Type::Pointer,target_pointer_width);
+                    if( ty && ty->kind == TY_FUNC )
+                        type.model = Code::Type::Function;
+
+                    e->Define(Code::Adr(type,rename(is_static(prog,*rel->label),*rel->label)));
+                    rel = rel->next;
+                    pos += target_pointer_width;
+                } else {
+                    const char d = var->init_data[pos++];
+                    e->Define(Code::Imm(types[s1],d));
+                }
+            }
+        }else if( var->ty && var->ty->name_pos )
+        {
+            if( var->is_static ) {
+                // these are static local variables which need to be zeroed according to standard
+                for( int i = 0; i < var->ty->size; i++ )
+                    e->Define(Code::Imm(types[s1],0));
+            }else if (opt_fcommon && var->is_tentative) {
+                // these are variables usually first seen in a header and only later
+                // seen as a fully initialized declaration
+                if( var->ty->size > 0 )
+                    e->Reserve(var->ty->size);
+            }
+        }else
+            printf("warning: uninitialized anonymous data!\n"); // not seen so far
     }
 }
 

@@ -50,9 +50,11 @@ typedef struct {u4 l; u4 h;} uu8;
 
 #if defined __amd16__
 
+    // applied patch https://software.openbrace.org/attachments/download/360/fpu.patch
 	asm target (R"(
 		.initdata _init_fpu
-			fninit
+            .required
+            fninit
 			push	word 0x0f7f
 			mov	si, sp
 			fldcw	[si]
@@ -61,13 +63,25 @@ typedef struct {u4 l; u4 h;} uu8;
 
 #elif defined __amd32__
 
+    // change according to https://software.openbrace.org/projects/ecs/activity?from=2024-07-08
 	asm target (R"(
-		.initdata _init_fpu
-			fninit
-			push	word 0x0f7f
-			fldcw	[esp]
-			pop	ax
-	)");
+        .initdata _init_fpu
+            .required
+            push	dword 000111111110000000b
+            ldmxcsr	dword [esp]
+            pop	eax
+    )");
+
+#elif defined __amd64__
+
+    // applied patch https://software.openbrace.org/attachments/download/360/fpu.patch
+    asm target (R"(
+        .initdata _init_fpu
+            .required
+            push	dword 000111111110000000b
+            ldmxcsr	dword [rsp]
+            pop	rax
+    )");
 
 #endif
 

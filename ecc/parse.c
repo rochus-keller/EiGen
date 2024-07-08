@@ -1466,6 +1466,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
   if (!init->expr)
     return cur;
 
+  // TODO: consider target endianness (here and in write_buf)
   if (ty->kind == TY_FLOAT) {
     *(float *)(buf + offset) = eval_double(init->expr);
     return cur;
@@ -3263,11 +3264,14 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   enter_scope();
   create_param_lvars(ty->params);
 
+#if 0
   // A buffer for a struct/union return value is passed
   // as the hidden first parameter.
   Type *rty = ty->return_ty;
-  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size > 16)
+  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION))
     new_lvar("", pointer_to(rty));
+  // we no longer need an explicit parameter object for this
+#endif
 
   fn->params = locals;
 

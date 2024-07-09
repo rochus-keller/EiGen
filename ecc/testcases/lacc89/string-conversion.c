@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-static long foo = 43 + (long) "What" - 1;
+static long foo = 43 + "What" - 1; 
+// original was (long)"What" which doesn't work with chibicc
 
 int main(void) {
 	int a = "abc" == (void *)0;

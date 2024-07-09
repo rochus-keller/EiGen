@@ -917,10 +917,10 @@ static Smop gen_expr(Node *node) {
     }
     }
 
-    Smop rhs = gen_expr(node->rhs);
-    e->SaveRegister(rhs);
     Smop lhs = gen_expr(node->lhs);
-    e->RestoreRegister(rhs);
+    e->SaveRegister(lhs);
+    Smop rhs = gen_expr(node->rhs);
+    e->RestoreRegister(lhs);
 
     const Code::Type lhsT = getCodeType(node->lhs->ty);
     Code::Type rhsT = getCodeType(node->rhs->ty);
@@ -1458,7 +1458,8 @@ static void emit_data(Obj *prog) {
                     if( ty && ty->kind == TY_FUNC )
                         type.model = Code::Type::Function;
 
-                    e->Define(Code::Adr(type,rename(is_static(prog,*rel->label),*rel->label)));
+                    e->Define(Code::Adr(type,rename(is_static(prog,*rel->label),*rel->label),rel->addend));
+                    // example of rel->addend: glue_consts.c _PDCLIB_lc_ctype_C
                     rel = rel->next;
                     pos += target_pointer_width;
                 } else {

@@ -3,7 +3,7 @@
 struct foo {
 	char c;
 	int y;
-	long x;
+	long long x;
 };
 
 struct s2 {
@@ -52,17 +52,28 @@ struct s10 {
 };
 
 int main() {
+    int res = 1;
+    res &= sizeof(struct foo) == 16;
+    res &= sizeof(struct s2) == 12;
+    res &= sizeof(struct s3) ==
+#if __SIZEOF_POINTER__ == 8
+            16;
+#else
+            8;
+#endif
+    res &= sizeof(struct s4) == 12;
+    res &= sizeof(struct s5) == 1;
+    res &= sizeof(struct s6) == 9;
+    res &= sizeof(struct s7) ==
+#if __SIZEOF_POINTER__ == 8
+            24;
+#else
+            16;
+#endif
+    res &= sizeof(struct s8) == 8;
+    res &= sizeof(struct s9) == 6;
+    res &= sizeof(struct s10) == 12;
+    assert(res == 1);
 
-	assert(sizeof(struct foo) == 16);
-	assert(sizeof(struct s2) == 12);
-	assert(sizeof(struct s3) == 16);
-	assert(sizeof(struct s4) == 12);
-	assert(sizeof(struct s5) == 1);
-	assert(sizeof(struct s6) == 9);
-	assert(sizeof(struct s7) == 24);
-	assert(sizeof(struct s8) == 8);
-	assert(sizeof(struct s9) == 6);
-	assert(sizeof(struct s10) == 12);
-
-	return 0;
+    return !res;
 }

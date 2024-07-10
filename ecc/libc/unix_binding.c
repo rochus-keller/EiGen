@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sys/times.h>
 
-#ifndef __ecs_chibicc__
+#ifndef __ECS_C__
 
 void sys_exit(int status)
 {

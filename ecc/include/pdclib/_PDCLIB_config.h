@@ -234,7 +234,7 @@
 #define _PDCLIB_uint64_t unsigned long long
 
 /* INTn_C / UINTn_C macros to define int_leastN_t / uint_leastN_t literals.   */
-#ifdef __ecs_chibicc__
+#ifdef __ECS_C__
 /* From GCC   */
 #define __INT8_C(c) c
 #define __UINT8_C(c) c
@@ -540,7 +540,7 @@ struct _PDCLIB_imaxdiv_t
 /* conventions used, and you probably have to replace them with builtins of   */
 /* your compiler.                                                             */
 
-#ifdef __ecs_chibicc__
+#ifdef __ECS_C__
 typedef unsigned char * _PDCLIB_va_list;
 
 #elif defined( __i386 )

@@ -1179,8 +1179,8 @@ void init_macros(void) {
   define_macro("__SIG_ATOMIC_TYPE__", "int");
   define_int_macro("__SIG_ATOMIC_MAX__", maxValueOf(TY_INT));
 
-  define_macro("__chibicc__", "1");
   define_macro("__ecs_chibicc__", "1");
+  define_macro("__ECS_C__", "1");
   define_macro("__STDC_VERSION__", "199901L"); // orig: 201112L");
   define_macro("__STDC__", "1");
   define_macro("__STDC_HOSTED__", "1");

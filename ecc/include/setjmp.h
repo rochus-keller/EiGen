@@ -9,7 +9,7 @@ extern "C" {
 #endif
 #define _SETJMP_H_
 
-#ifdef __ecs_chibicc__
+#ifdef __ECS_C__
 // ECS specific, implementation in setjmp.cod
 typedef struct jmp_buf {void *sp, *fp, (*pc) ();} jmp_buf[1];
 #endif 

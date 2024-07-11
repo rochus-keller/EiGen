@@ -1,0 +1,132 @@
+let config : Config {
+    if target_toolchain == `gcc {
+        .lib_names += [ "m" "stdc++" ]
+        .ldflags += "-shared-libgcc"
+        .cflags += ["-std=c99" ]
+    }else if target_toolchain == `msvc {
+        # nothing to do
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+let libfirm : SourceSet {
+    .configs += config;
+    .sources += [
+    ./libfirm/xmalloc.c
+    ./libfirm/array.c
+    ./libfirm/tv.c
+    ./libfirm/irmode.c
+    ./libfirm/pset.c
+    ./libfirm/timing.c
+    ./libfirm/target.c
+    ]
+}
+
+let cparser ! : Executable {
+    .configs += config;
+    .deps += [ libfirm ]
+    .sources += [
+        ./actions.c
+        ./ast.c
+        ./attribute.c
+        ./builtins.c
+        ./c_driver.c
+        ./constfold.c
+        ./diagnostic.c
+        ./driver.c
+        ./entity.c
+        ./format_check.c
+        ./help.c
+        ./input.c
+        ./main.c
+        ./options.c
+        ./panic.c
+        ./parser.c
+        ./predefs.c
+        ./preprocessor.c
+        ./printer.c
+        ./pset_new.c
+        ./string_hash.c
+        ./string_rep.c
+        ./strutil.c
+        ./symbol_table.c
+        ./target.c
+        ./tempfile.c
+        ./timing.c
+        ./token.c
+        ./type.c
+        ./type_hash.c
+        ./types.c
+        ./walk.c
+        ./warning.c
+        ./actions.h
+        ./array.h
+        ./ast2ir.c
+        ./ast2ir.h
+        ./ast.h
+        ./ast_t.h
+        ./attribute.h
+        ./attribute_t.h
+        ./bitfiddle.h
+        ./builtins.h
+        ./c_driver.h
+        ./constfoldbits.h
+        ./constfold.h
+        ./diagnostic.h
+        ./dialect.h
+        ./driver.h
+        ./driver_t.h
+        ./enable_posix.h
+        ./entity.h
+        ./entity_t.h
+        ./format_check.h
+        ./hashset.c.h
+        ./hashset.h
+        ./hash_string.h
+        ./help.h
+        ./input.h
+        ./obst.h
+        ./options.h
+        ./panic.h
+        ./parser.h
+        ./parser_t.h
+        ./position.h
+        ./predefs.h
+        ./preprocessor.h
+        ./printer.h
+        ./pset_new.h
+        ./separator_t.h
+        ./string_hash.h
+        ./string_rep.h
+        ./strutil.h
+        ./symbol.h
+        ./symbol_table.h
+        ./symbol_table_t.h
+        ./symbol_t.h
+        ./target.h
+        ./tempfile.h
+        ./timing.h
+        ./tokens.h
+        ./tokens_preprocessor.h
+        ./token_t.h
+        ./type.h
+        ./type_hash.h
+        ./types.h
+        ./type_t.h
+        ./unicode.h
+        ./util.h
+        ./version.h
+        ./walk.h
+        ./warning.h
+        ./xmalloc.h
+
+        ./write_compoundsizes.c
+        ./write_compoundsizes.h
+        ./write_fluffy.c
+        ./write_fluffy.h
+        ./write_jna.c
+        ./write_jna.h
+    ]
+    .include_dirs += .
+}

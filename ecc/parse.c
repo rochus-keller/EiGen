@@ -1114,11 +1114,6 @@ static void array_initializer1(Token **rest, Token *tok, Initializer *init) {
 
   bool first = true;
 
-  if (init->is_flexible) {
-    int len = count_array_init_elements(tok, init->ty);
-    *init = *new_initializer(array_of(init->ty->base, len), false);
-  }
-
   for (int i = 0; !consume_end(rest, tok); i++) {
     if (!first)
       tok = skip(tok, ",");
@@ -1288,6 +1283,11 @@ static void initializer2(Token **rest, Token *tok, Initializer *init) {
   }
 
   init->expr = assign(rest, tok);
+  if( init->expr->var && init->ty->kind != TY_ARRAY && init->ty->kind != TY_PTR &&
+          init->expr->var->ty->kind == TY_ARRAY )
+      // RK: assure char c[] = {"World" "hello"}; from initialize-string.c is illegal
+      // cannot use is_compatible because then a lot of other code fails!
+      error_tok(tok, "incompatible initializer element");
 }
 
 static Type *copy_struct_type(Type *ty) {
@@ -1868,6 +1868,8 @@ static int64_t eval2(Node *node, char ***label) {
     if (node->ty->is_unsigned)
       return (uint64_t)eval(node->lhs) / eval(node->rhs);
     return eval(node->lhs) / eval(node->rhs);
+  case ND_PLUS:
+    return eval(node->lhs);
   case ND_NEG:
     return -eval(node->lhs);
   case ND_MOD:
@@ -1989,6 +1991,7 @@ static bool is_const_expr(Node *node) {
   case ND_COMMA:
     return is_const_expr(node->rhs);
   case ND_NEG:
+  case ND_PLUS:
   case ND_NOT:
   case ND_BITNOT:
   case ND_CAST:
@@ -2025,6 +2028,8 @@ static double eval_double(Node *node) {
     return eval_double(node->lhs) / eval_double(node->rhs);
   case ND_NEG:
     return -eval_double(node->lhs);
+  case ND_PLUS:
+    return eval_double(node->lhs);
   case ND_COND:
     return eval_double(node->cond) ? eval_double(node->then) : eval_double(node->els);
   case ND_COMMA:
@@ -2505,7 +2510,7 @@ static Node *cast(Token **rest, Token *tok) {
 //       | postfix
 static Node *unary(Token **rest, Token *tok) {
   if (equal(tok, "+"))
-    return cast(rest, tok->next);
+    return new_unary(ND_PLUS, cast(rest, tok->next), tok);
 
   if (equal(tok, "-"))
     return new_unary(ND_NEG, cast(rest, tok->next), tok);
@@ -2921,7 +2926,8 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
     } else if (arg->ty->kind == TY_FLOAT) {
       // If parameter type is omitted (e.g. in "..."), float
       // arguments are promoted to double.
-      arg = new_cast(arg, basic_type(TY_DOUBLE));
+      arg->ty = basic_type(TY_DOUBLE);
+      arg = new_cast(arg, arg->ty);
     }
 
     cur = cur->next = arg;

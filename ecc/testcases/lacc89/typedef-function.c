@@ -15,5 +15,6 @@ int bar(bar_fn fn) {
 }
 
 int main(void) {
-	return foo(atoi) + bar(isalnum);
+    int res = foo(atoi) + bar(isalnum);
+    return res;
 }

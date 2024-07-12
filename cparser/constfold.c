@@ -1061,12 +1061,9 @@ void init_constfold(void)
 	m[ATOMIC_TYPE_ULONGLONG] = ir_platform_type_mode(IR_TYPE_LONG_LONG, false);
 	m[ATOMIC_TYPE_FLOAT]     = ir_platform_type_mode(IR_TYPE_FLOAT, true);
 	m[ATOMIC_TYPE_DOUBLE]    = ir_platform_type_mode(IR_TYPE_DOUBLE, true);
-	m[ATOMIC_TYPE_LONG_DOUBLE]
-		= ir_platform_type_mode(IR_TYPE_LONG_DOUBLE, true);
-	m[ATOMIC_TYPE_CHAR]
-		= m[get_atomic_type_flags(ATOMIC_TYPE_CHAR) & ATOMIC_TYPE_FLAG_SIGNED
+    m[ATOMIC_TYPE_LONG_DOUBLE] = ir_platform_type_mode(IR_TYPE_LONG_DOUBLE, true);
+    m[ATOMIC_TYPE_CHAR] = m[get_atomic_type_flags(ATOMIC_TYPE_CHAR) & ATOMIC_TYPE_FLAG_SIGNED
 		    ? ATOMIC_TYPE_SCHAR : ATOMIC_TYPE_UCHAR];
-	m[ATOMIC_TYPE_WCHAR_T]
-		= ir_platform_type_mode(ir_platform_wchar_type(),
+    m[ATOMIC_TYPE_WCHAR_T] = ir_platform_type_mode(ir_platform_wchar_type(),
 								ir_platform_wchar_is_signed());
 }

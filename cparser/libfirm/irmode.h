@@ -385,6 +385,9 @@ FIRM_API size_t ir_get_n_modes(void);
 /** Returns known mode number @p num. */
 FIRM_API ir_mode *ir_get_mode(size_t num);
 
+/** Returns the larger of lhs and rhs if of the same kind, or 0 else. */
+FIRM_API ir_mode *ir_common_mode(const ir_mode *lhs, const ir_mode *rhs);
+
 /** @} */
 
 #include "end.h"

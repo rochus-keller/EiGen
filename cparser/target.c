@@ -243,6 +243,16 @@ void set_target_option(char const *const arg)
 
 void target_adjust_types_and_dialect(void)
 {
+    // TODO RK
+    unsigned int_size     = 4;
+    unsigned long_size    = 4;
+    unsigned pointer_size = 4;
+    atomic_type_kind_t pointer_sized_int = ATOMIC_TYPE_INT;
+    atomic_type_kind_t pointer_sized_uint = ATOMIC_TYPE_UINT;
+    atomic_type_kind_t wchar_atomic_kind = ATOMIC_TYPE_USHORT;
+
+    init_types(int_size, long_size, pointer_size, wchar_atomic_kind,
+               pointer_sized_int, pointer_sized_uint);
 
 }
 
@@ -289,6 +299,12 @@ bool target_setup(void)
 
 	return res;
 #else
+
+    memset(&target,0,sizeof(target));
+    target.biggest_alignment     = 8;
+    target.user_label_prefix     = '.';
+    target.byte_order_big_endian = 1;
+    target.triple = "this is a nice triple";
     return 1;
 #endif
 }

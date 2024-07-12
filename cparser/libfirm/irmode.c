@@ -1,99 +1,151 @@
 #include "irmode.h"
-
-/**
- * A descriptor for an IEEE754 float value.
- */
-typedef struct float_descriptor_t {
-    unsigned char exponent_size;    /**< size of exponent in bits */
-    unsigned char mantissa_size;    /**< size of mantissa in bits */
-    unsigned char explicit_one;     /**< set if the leading one is explicit */
-} float_descriptor_t;
-
+#include "target.h"
+#include "tv.h"
+#include <inttypes.h>
 
 struct ir_mode {
-    ir_mode_arithmetic arithmetic; /**< Class of possible arithmetic ops */
-    unsigned           size;       /**< Size of the mode in Bits. */
-    unsigned char      sign:1;     /**< Whether mode has a sign bit. */
-    float_descriptor_t float_desc; /**< Floatingpoint descriptor */
-
-    ir_tarval          *null;      /**< The value 0 */
-    ir_tarval          *one;       /**< The value 1 */
+    ir_platform_type_t type;
+    uint8_t size; // in bytes
+    uint8_t signed_; // false:0 or true:1
 };
 
-ir_mode *mode_Ls = 0;
-ir_mode *mode_Lu = 0;
+static struct ir_mode ir_modes[] =
+{
+{ IR_TYPE_BOOL, 1, 1 },
+{ IR_TYPE_CHAR, 1, 1 },
+{ IR_TYPE_SHORT, 2, 1 },
+{ IR_TYPE_INT, 4, 1 },
+{ IR_TYPE_LONG, 4, 1 },
+{ IR_TYPE_LONG_LONG, 8, 1 },
+{ IR_TYPE_FLOAT, 4, 1 },
+{ IR_TYPE_DOUBLE, 8, 1 },
+{ IR_TYPE_LONG_DOUBLE, 8, 1 },
+};
 
-ir_mode *mode_P = 0;
+static struct ir_mode ir_umodes[] =
+{
+{ IR_TYPE_BOOL, 1, 0 },
+{ IR_TYPE_CHAR, 1, 0 },
+{ IR_TYPE_SHORT, 2, 0 },
+{ IR_TYPE_INT, 4, 0 },
+{ IR_TYPE_LONG, 4, 0 },
+{ IR_TYPE_LONG_LONG, 8, 0 },
+{ IR_TYPE_FLOAT, 4, 0 },
+{ IR_TYPE_DOUBLE, 8, 0 },
+{ IR_TYPE_LONG_DOUBLE, 8, 0 },
+};
+
+ir_mode *mode_Ls = &ir_modes[IR_TYPE_LONG];
+ir_mode *mode_Lu = &ir_umodes[IR_TYPE_LONG];
+
+ir_mode *mode_P = &ir_umodes[IR_TYPE_LONG];
 
 unsigned get_mode_size_bytes(const ir_mode *mode)
 {
-    unsigned size = mode->size;
-    if ((size & 7) != 0) return (unsigned) -1;
-    return size >> 3;
+    return mode->size;
 }
 
 int mode_is_signed(const ir_mode *mode)
 {
-    return mode->sign;
-}
-
-ir_tarval *get_mode_null(const ir_mode *mode)
-{
-    return mode->null;
-}
-
-ir_tarval *get_mode_one(const ir_mode *mode)
-{
-    return mode->one;
-}
-
-unsigned get_mode_exponent_size(const ir_mode *mode)
-{
-    return mode->float_desc.exponent_size;
-}
-
-unsigned get_mode_mantissa_size(const ir_mode *mode)
-{
-    return mode->float_desc.mantissa_size;
-}
-
-ir_mode_arithmetic get_mode_arithmetic(const ir_mode *mode)
-{
-    return mode->arithmetic;
-}
-
-ir_mode *get_reference_offset_mode(const ir_mode *mode)
-{
-    return 0; // TODO
-}
-
-int mode_is_float(const ir_mode *mode)
-{
-    return 0;
-}
-
-ir_tarval *get_mode_max(const ir_mode *mode)
-{
-    return 0;
-}
-
-ir_tarval *get_mode_min(const ir_mode *mode)
-{
-    return 0;
-}
-
-ir_tarval *get_mode_infinite(const ir_mode *mode)
-{
-    return 0;
+    if( mode == 0 )
+        return 0;
+    return mode->signed_;
 }
 
 unsigned get_mode_size_bits(const ir_mode *mode)
 {
-    return 0;
+    if( mode == 0 )
+        return 0;
+    return mode->size * 8;
 }
 
-ir_tarval *get_mode_all_one(const ir_mode *mode)
+ir_mode *ir_platform_type_mode(ir_platform_type_t type, int is_signed)
+{
+    if( is_signed )
+        return &ir_modes[type];
+    else
+        return &ir_umodes[type];
+}
+
+ir_platform_type_t ir_platform_wchar_type()
+{
+    return IR_TYPE_SHORT;
+}
+
+int ir_platform_wchar_is_signed()
 {
     return 0;
 }
 
+ir_mode_arithmetic get_mode_arithmetic(const ir_mode *mode)
+{
+    if( mode_is_float(mode) )
+        return irma_ieee754;
+    else
+        return irma_twos_complement;
+}
+
+int mode_is_float(const ir_mode *mode)
+{
+    if( mode == 0 )
+        return 0;
+    return mode->type >= IR_TYPE_FLOAT;
+}
+
+unsigned get_mode_exponent_size(const ir_mode *mode)
+{
+    if( mode == 0 )
+        return 0;
+    switch(mode->type)
+    {
+    case IR_TYPE_FLOAT:
+        return 8;
+    case IR_TYPE_DOUBLE:
+    case IR_TYPE_LONG_DOUBLE:
+        return 11;
+    }
+    return 0;
+}
+
+unsigned get_mode_mantissa_size(const ir_mode *mode)
+{
+    if( mode == 0 )
+        return 0;
+    switch(mode->type)
+    {
+    case IR_TYPE_FLOAT:
+        return 23;
+    case IR_TYPE_DOUBLE:
+    case IR_TYPE_LONG_DOUBLE:
+        return 52;
+    }
+    return 0;
+}
+
+ir_mode *get_reference_offset_mode(const ir_mode *mode)
+{
+    return mode_Ls;
+}
+
+ir_mode *ir_common_mode(const ir_mode *lhs, const ir_mode *rhs)
+{
+    if( lhs == 0 || rhs == 0 )
+        return 0;
+    if( mode_is_float(lhs) && mode_is_float(rhs) ||
+            mode_is_signed(lhs) && mode_is_signed(rhs) ||
+            mode_is_int(lhs) && mode_is_int(rhs) )
+    {
+        if( lhs->type < rhs->type )
+            return rhs;
+        else
+            return lhs;
+    }
+    return 0;
+}
+
+int mode_is_int(const ir_mode *mode)
+{
+    if( mode == 0 )
+        return 0;
+    return mode->type < IR_TYPE_FLOAT;
+}

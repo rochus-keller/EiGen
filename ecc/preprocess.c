@@ -419,14 +419,13 @@ static MacroArg *read_macro_arg_one(Token **rest, Token *tok, bool read_rest) {
 
 static MacroArg *
 read_macro_args(Token **rest, Token *tok, MacroParam *params, char *va_args_name) {
-  Token *start = tok;
   tok = tok->next->next;
 
   MacroArg head = {};
   MacroArg *cur = &head;
 
-  MacroParam *pp = params;
-  for (; pp; pp = pp->next) {
+  // applied https://github.com/fuhsnn/slimcc/commit/c164bc8a8639bd0fb8e4383beaaaec9b95e29caa
+  for (MacroParam *pp = params; pp; pp = pp->next) {
     if (cur != &head)
       tok = skip(tok, ",");
     cur = cur->next = read_macro_arg_one(&tok, tok, false);
@@ -439,15 +438,13 @@ read_macro_args(Token **rest, Token *tok, MacroParam *params, char *va_args_name
       arg = calloc(1, sizeof(MacroArg));
       arg->tok = new_eof(tok);
     } else {
-      if (pp != params)
+      if (params)
         tok = skip(tok, ",");
       arg = read_macro_arg_one(&tok, tok, true);
     }
     arg->name = va_args_name;;
     arg->is_va_args = true;
     cur = cur->next = arg;
-  } else if (pp) {
-    error_tok(start, "too many arguments");
   }
 
   skip(tok, ")");
@@ -754,65 +751,16 @@ static char *read_include_filename(Token **rest, Token *tok, bool *is_dquote) {
   error_tok(tok, "expected a filename");
 }
 
-// Detect the following "include guard" pattern.
-//
-//   #ifndef FOO_H
-//   #define FOO_H
-//   ...
-//   #endif
-static char *detect_include_guard(Token *tok) {
-  // Detect the first two lines.
-  if (!is_hash(tok) || !equal(tok->next, "ifndef"))
-    return NULL;
-  tok = tok->next->next;
-
-  if (tok->kind != TK_IDENT)
-    return NULL;
-
-  char *macro = mystrndup(tok->loc, tok->len);
-  tok = tok->next;
-
-  if (!is_hash(tok) || !equal(tok->next, "define") || !equal(tok->next->next, macro))
-    return NULL;
-
-  // Read until the end of the file.
-  while (tok->kind != TK_EOF) {
-    if (!is_hash(tok)) {
-      tok = tok->next;
-      continue;
-    }
-
-    if (equal(tok->next, "endif") && tok->next->next->kind == TK_EOF)
-      return macro;
-
-    if (equal(tok, "if") || equal(tok, "ifdef") || equal(tok, "ifndef"))
-      tok = skip_cond_incl(tok->next);
-    else
-      tok = tok->next;
-  }
-  return NULL;
-}
-
 static Token *include_file(Token *tok, char *path, Token *filename_tok) {
   // Check for "#pragma once"
   if (hashmap_get(&pragma_once, path))
     return tok;
 
-  // If we read the same file before, and if the file was guarded
-  // by the usual #ifndef ... #endif pattern, we may be able to
-  // skip the file without opening it.
-  static HashMap include_guards;
-  char *guard_name = hashmap_get(&include_guards, path);
-  if (guard_name && hashmap_get(&macros, guard_name))
-    return tok;
+  // applied https://github.com/fuhsnn/slimcc/commit/42361c98ed7f88f1172eff94e55995e3f87cbe5b
 
   Token *tok2 = tokenize_file(path);
   if (!tok2)
     error_tok(filename_tok, "%s: cannot open file: %s", path, strerror(errno));
-
-  guard_name = detect_include_guard(tok2);
-  if (guard_name)
-    hashmap_put(&include_guards, path, guard_name);
 
   return append(tok2, tok);
 }
@@ -820,11 +768,15 @@ static Token *include_file(Token *tok, char *path, Token *filename_tok) {
 // Read #line arguments
 static void read_line_marker(Token **rest, Token *tok) {
   Token *start = tok;
-  tok = preprocess(copy_line(rest, tok));
+
+  // applied https://github.com/fuhsnn/slimcc/commit/b0d68ce6d61d973a3f7a35c9c214ad49b1d18506
+  tok = preprocess2(copy_line(rest, tok));
+  convert_pp_tokens(tok);
 
   if (tok->kind != TK_NUM || tok->ty->kind != TY_INT)
     error_tok(tok, "invalid line marker");
-  start->file->line_delta = tok->val - start->line_no;
+  // applied https://github.com/fuhsnn/slimcc/commit/6543be04ec9ed5fde93663e76680851dfe08dbed
+  start->file->line_delta = tok->val - start->line_no - 1;
 
   tok = tok->next;
   if (tok->kind == TK_EOF)

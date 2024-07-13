@@ -26,15 +26,14 @@ int sys_open(const char *pathname, int flags, ... /* mode_t mode */ )
     return syscall(5,pathname,flags,0);
 }
 
-int sys_renameat(int olddirfd, const char *oldpath,
-                    int newdirfd, const char *newpath)
+int sys_rename(const char *oldpath, const char *newpath)
 {
-    return syscall(264,olddirfd,oldpath,newdirfd,newpath);
+    return syscall(38,oldpath,newpath);
 }
 
 int sys_gettimeofday(struct timeval *restrict tv, void * restrict tz)
 {
-    return syscall(96,tv,tz);
+    return syscall(78,tv,tz);
 }
 
 int sys_unlink(const char *pathname)

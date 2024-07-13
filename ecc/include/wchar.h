@@ -3,5 +3,7 @@
 
 #include <stddef.h>
 
+int wcscmp(const wchar_t *, const wchar_t *);
+size_t wcslen(const wchar_t *);
 
 #endif

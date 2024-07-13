@@ -13,6 +13,7 @@ let libc : SourceSet {
     .configs += config;
     .defines += [ "__STDC_WANT_LIB_EXT1__" ]
     .sources += [
+        ./libc/wchar.c
         ./libc/vsscanf.c
         ./libc/vsprintf.c
         ./libc/vsnprintf.c
@@ -220,6 +221,7 @@ let libc : SourceSet {
     ]
     # headers:
     .sources += [
+        ../include/wchar.h
         ../include/wctype.h
         ../include/time.h
         ../include/threads.h

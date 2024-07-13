@@ -1179,6 +1179,9 @@ void init_macros(void) {
   define_macro("__INTMAX_MAX__", "9223372036854775807LL");
   define_macro("__SIG_ATOMIC_TYPE__", "int");
   define_int_macro("__SIG_ATOMIC_MAX__", maxValueOf(TY_INT));
+  define_macro("__WCHAR_TYPE__", "unsigned short");
+  define_int_macro("__WCHAR_MAX__", 65535);
+  define_int_macro("__WCHAR_MIN__", 0);
 
   define_macro("__ecs_chibicc__", "1");
   define_macro("__ECS_C__", "1");

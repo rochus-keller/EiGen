@@ -87,3 +87,7 @@ round (double x)
   return x;
 }
 
+float roundf(float x)
+{
+    return round(x);
+}

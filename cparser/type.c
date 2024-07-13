@@ -6,14 +6,14 @@
 
 #include <stdio.h>
 
-#include "adt/bitfiddle.h"
-#include "adt/panic.h"
-#include "adt/separator_t.h"
-#include "adt/util.h"
+#include "bitfiddle.h"
+#include "panic.h"
+#include "separator_t.h"
+#include "util.h"
 #include "dialect.h"
-#include "driver/diagnostic.h"
-#include "driver/target.h"
-#include "driver/warning.h"
+#include "diagnostic.h"
+#include "target.h"
+#include "warning.h"
 #include "entity_t.h"
 #include "printer.h"
 #include "symbol_t.h"

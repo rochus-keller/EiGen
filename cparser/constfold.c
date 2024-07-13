@@ -8,12 +8,12 @@
 #include <libfirm/tv.h>
 #include <libfirm/irmode.h>
 
-#include "adt/panic.h"
-#include "adt/unicode.h"
-#include "adt/util.h"
+#include "panic.h"
+#include "unicode.h"
+#include "util.h"
 #include "ast_t.h"
 #include "dialect.h"
-#include "driver/target.h"
+#include "target.h"
 #include "type_t.h"
 #include "types.h"
 

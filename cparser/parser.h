@@ -5,9 +5,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "ast/ast.h"
-#include "ast/entity_t.h"
-#include "ast/type.h"
+#include "ast.h"
+#include "entity_t.h"
+#include "type.h"
 
 /**
  * Initialize parser. Should be called once when the program starts

@@ -16,12 +16,12 @@
 #include <libfirm/firm.h>
 
 #include "firm_opt.h"
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "adt/util.h"
-#include "driver/diagnostic.h"
-#include "driver/target.h"
-#include "driver/timing.h"
+#include "panic.h"
+#include "strutil.h"
+#include "util.h"
+#include "diagnostic.h"
+#include "target.h"
+#include "timing.h"
 
 /* optimization settings */
 struct a_firm_opt {

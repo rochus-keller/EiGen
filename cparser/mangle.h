@@ -7,7 +7,7 @@
 
 #include <libfirm/firm_types.h>
 
-#include "ast/entity.h"
+#include "entity.h"
 
 ident *create_ld_ident(entity_t const *entity);
 

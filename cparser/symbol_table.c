@@ -4,9 +4,9 @@
  */
 #include "symbol_table_t.h"
 
-#include "adt/hash_string.h"
-#include "adt/obst.h"
-#include "adt/strutil.h"
+#include "hash_string.h"
+#include "obst.h"
+#include "strutil.h"
 #include "position.h"
 #include "symbol_t.h"
 
@@ -46,7 +46,7 @@ void symbol_table_iterator_init_(symbol_table_iterator_t *iterator, const symbol
 #define hashset_iterator_init   symbol_table_iterator_init_
 #define hashset_iterator_next   symbol_table_iterator_next
 
-#include "adt/hashset.c.h"
+#include "hashset.c.h"
 
 static symbol_table_t  symbol_table;
 

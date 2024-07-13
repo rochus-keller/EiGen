@@ -4,18 +4,18 @@
  */
 #include <string.h>
 
-#include "adt/panic.h"
-#include "adt/pset_new.h"
-#include "adt/separator_t.h"
-#include "adt/strutil.h"
-#include "adt/xmalloc.h"
-#include "ast/ast_t.h"
-#include "ast/entity_t.h"
-#include "ast/printer.h"
-#include "ast/symbol_t.h"
-#include "ast/symbol_table.h"
-#include "ast/type.h"
-#include "ast/type_t.h"
+#include "panic.h"
+#include "pset_new.h"
+#include "separator_t.h"
+#include "strutil.h"
+#include "xmalloc.h"
+#include "ast_t.h"
+#include "entity_t.h"
+#include "printer.h"
+#include "symbol_t.h"
+#include "symbol_table.h"
+#include "type.h"
+#include "type_t.h"
 #include "write_jna.h"
 
 typedef struct output_limit {

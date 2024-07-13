@@ -12,9 +12,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "adt/util.h"
+#include "panic.h"
+#include "strutil.h"
+#include "util.h"
 #include "c_driver.h"
 #include "diagnostic.h"
 #include "timing.h"

@@ -5,7 +5,7 @@
 #ifndef FIRM_ADT_GAUSSJORDAN_H
 #define FIRM_ADT_GAUSSJORDAN_H
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup algorithms
@@ -26,6 +26,6 @@ FIRM_API int firm_gaussjordansolve(double *matrix, double *result, unsigned n);
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

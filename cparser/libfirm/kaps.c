@@ -11,8 +11,8 @@
  */
 #include "kaps.h"
 
-#include "adt/array.h"
-#include "adt/xmalloc.h"
+#include "array.h"
+#include "xmalloc.h"
 #include "matrix.h"
 #include "pbqp_edge.h"
 #include "pbqp_edge_t.h"

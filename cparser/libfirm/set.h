@@ -13,7 +13,7 @@
 
 #include <stddef.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -233,6 +233,6 @@ FIRM_API void *_set_search(set *set, void const *key, size_t size,
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

@@ -9,7 +9,7 @@
 #include <libfirm/firm_types.h>
 #include <stdbool.h>
 
-#include "adt/util.h"
+#include "util.h"
 #include "ast.h"
 #include "type.h"
 

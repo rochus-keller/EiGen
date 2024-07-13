@@ -11,7 +11,7 @@
  */
 #include "pbqp_edge.h"
 
-#include "adt/array.h"
+#include "array.h"
 #include "kaps.h"
 #include "matrix.h"
 #include "optimal.h"

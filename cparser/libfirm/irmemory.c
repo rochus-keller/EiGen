@@ -11,7 +11,7 @@
  */
 #include "irmemory_t.h"
 
-#include "adt/pmap.h"
+#include "pmap.h"
 #include "debug.h"
 #include "hashptr.h"
 #include "irflag.h"

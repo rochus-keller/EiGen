@@ -12,7 +12,7 @@
  */
 #include "belower.h"
 
-#include "adt/obstack.h"
+#include "obstack.h"
 #include "array.h"
 #include "bearch.h"
 #include "beirg.h"

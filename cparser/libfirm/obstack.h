@@ -118,7 +118,7 @@ Summary:
 #ifndef _OBSTACK_H
 #define _OBSTACK_H 1
 
-#include "../begin.h"
+#include "./begin.h"
 
 /** @cond PRIVATE */
 
@@ -516,6 +516,6 @@ FIRM_API int obstack_vprintf(struct obstack *obst, const char *fmt, va_list ap)
 
 /** @endcond */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

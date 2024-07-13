@@ -6,7 +6,7 @@
 #define C_DRIVER_H
 
 #include "driver.h"
-#include "ast/dialect.h"
+#include "dialect.h"
 
 typedef enum lang_standard_t {
 	STANDARD_DEFAULT, /* gnu99 (for C, GCC does gnu89) or gnu++98 (for C++) */

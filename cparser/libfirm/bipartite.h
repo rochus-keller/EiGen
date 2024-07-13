@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup algorithms
@@ -54,6 +54,6 @@ FIRM_API void bipartite_dump(char const *name, bipartite_t const *gr);
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

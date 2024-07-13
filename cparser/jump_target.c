@@ -4,7 +4,7 @@
  */
 #include "jump_target.h"
 
-#include "adt/util.h"
+#include "util.h"
 
 void jump_from_block_to_target(jump_target *const tgt, ir_node *const block)
 {

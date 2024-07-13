@@ -6,11 +6,11 @@
 
 #include <libfirm/be.h>
 
-#include "ast/entity_t.h"
-#include "ast/position.h"
-#include "ast/symbol.h"
+#include "entity_t.h"
+#include "position.h"
+#include "symbol.h"
 #include "dialect.h"
-#include "parser/parser.h"
+#include "parser.h"
 #include "type_t.h"
 
 /** The error type. */

@@ -5,17 +5,17 @@
 #include <libfirm/be.h>
 #include <libfirm/firm.h>
 
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "adt/util.h"
-#include "ast/dialect.h"
-#include "ast/type_t.h"
-#include "ast/types.h"
+#include "panic.h"
+#include "strutil.h"
+#include "util.h"
+#include "dialect.h"
+#include "type_t.h"
+#include "types.h"
 #include "c_driver.h"
 #include "diagnostic.h"
-#include "firm/ast2firm.h"
-#include "firm/firm_opt.h"
-#include "firm/mangle.h"
+#include "ast2firm.h"
+#include "firm_opt.h"
+#include "mangle.h"
 #include "target.h"
 #include "warning.h"
 

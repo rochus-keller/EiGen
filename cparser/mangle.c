@@ -7,13 +7,13 @@
 #include <libfirm/firm.h>
 #include <string.h>
 
-#include "adt/obst.h"
-#include "adt/panic.h"
-#include "ast/dialect.h"
-#include "ast/entity_t.h"
-#include "ast/symbol_t.h"
-#include "ast/type_t.h"
-#include "driver/target.h"
+#include "obst.h"
+#include "panic.h"
+#include "dialect.h"
+#include "entity_t.h"
+#include "symbol_t.h"
+#include "type_t.h"
+#include "target.h"
 
 static struct obstack obst;
 

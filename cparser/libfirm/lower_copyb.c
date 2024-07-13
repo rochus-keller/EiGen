@@ -8,7 +8,7 @@
  * @brief   Lower small CopyB nodes into a series of Load/Store nodes
  * @author  Michael Beck, Matthias Braun, Manuel Mohr
  */
-#include "adt/list.h"
+#include "list.h"
 #include "ircons.h"
 #include "irgmod.h"
 #include "irgwalk.h"

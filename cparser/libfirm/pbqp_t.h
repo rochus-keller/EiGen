@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "adt/obstack.h"
+#include "obstack.h"
 
 #define KAPS_DUMP 0
 #define KAPS_ENABLE_VECTOR_NAMES 0

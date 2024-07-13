@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 typedef struct gs_matrix_t gs_matrix_t;
 
@@ -44,6 +44,6 @@ FIRM_API unsigned gs_matrix_get_n_entries(const gs_matrix_t *m);
  */
 FIRM_API void gs_matrix_dump(const gs_matrix_t *m, FILE *out);
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

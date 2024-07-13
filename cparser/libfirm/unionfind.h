@@ -13,7 +13,7 @@
 
 #include <assert.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -101,6 +101,6 @@ static inline int uf_find(int *const data, int const e)
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "adt/util.h"
+#include "util.h"
 
 static FILE* out;
 

@@ -5,7 +5,7 @@
 #ifndef FORMAT_CHECK_H
 #define FORMAT_CHECK_H
 
-#include "ast/ast.h"
+#include "ast.h"
 
 typedef enum {
 	FORMAT_PRINTF,   /**< printf style format */

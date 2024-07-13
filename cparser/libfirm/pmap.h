@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -93,6 +93,6 @@ FIRM_API void pmap_break(pmap *map);
  * @}
  */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

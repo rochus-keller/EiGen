@@ -7,7 +7,7 @@
 
 #include <assert.h>
 
-#include "adt/obst.h"
+#include "obst.h"
 
 typedef unsigned int utf32;
 #define UTF32_PRINTF_FORMAT "%u"

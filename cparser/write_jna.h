@@ -5,7 +5,7 @@
 #ifndef WRITE_JNA_H
 #define WRITE_JNA_H
 
-#include "ast/ast.h"
+#include "ast.h"
 
 void jna_limit_output(const char *filename);
 

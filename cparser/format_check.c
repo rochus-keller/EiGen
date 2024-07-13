@@ -6,18 +6,18 @@
 
 #include <ctype.h>
 
-#include "adt/strutil.h"
-#include "adt/util.h"
-#include "ast/ast_t.h"
-#include "ast/attribute_t.h"
-#include "ast/constfold.h"
-#include "ast/dialect.h"
-#include "ast/entity_t.h"
-#include "ast/symbol_t.h"
-#include "ast/type_t.h"
-#include "ast/types.h"
-#include "driver/diagnostic.h"
-#include "driver/warning.h"
+#include "strutil.h"
+#include "util.h"
+#include "ast_t.h"
+#include "attribute_t.h"
+#include "constfold.h"
+#include "dialect.h"
+#include "entity_t.h"
+#include "symbol_t.h"
+#include "type_t.h"
+#include "types.h"
+#include "diagnostic.h"
+#include "warning.h"
 #include "parser.h"
 
 typedef struct format_env_t {

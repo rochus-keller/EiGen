@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include "adt/array.h"
+#include "array.h"
 
 #include "bucket.h"
 #include "heuristical_co_ld.h"

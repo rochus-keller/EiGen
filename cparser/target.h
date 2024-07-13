@@ -9,8 +9,8 @@
 #include <libfirm/irmode.h>
 #include <libfirm/target.h>
 
-#include "adt/util.h"
-#include "firm/firm_opt.h"
+#include "util.h"
+#include "firm_opt.h"
 #include "options.h"
 
 typedef struct target_t {

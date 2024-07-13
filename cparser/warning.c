@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "adt/strutil.h"
-#include "adt/util.h"
+#include "strutil.h"
+#include "util.h"
 #include "diagnostic.h"
 #include "help.h"
 

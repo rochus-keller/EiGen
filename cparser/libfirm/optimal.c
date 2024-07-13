@@ -11,7 +11,7 @@
  */
 #include "kaps.h"
 
-#include "adt/array.h"
+#include "array.h"
 #include "bucket.h"
 #include "matrix.h"
 #include "optimal.h"

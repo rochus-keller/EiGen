@@ -5,7 +5,7 @@
 #ifndef STRING_HASH_H
 #define STRING_HASH_H
 
-#include "adt/obst.h"
+#include "obst.h"
 #include "string_rep.h"
 
 extern struct obstack string_obst;

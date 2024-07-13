@@ -4,15 +4,15 @@
  */
 #include "builtins.h"
 
-#include "adt/strutil.h"
-#include "ast/dialect.h"
-#include "ast/entity_t.h"
-#include "ast/symbol_t.h"
-#include "ast/symbol_table.h"
-#include "ast/type_t.h"
-#include "ast/types.h"
-#include "driver/diagnostic.h"
-#include "driver/warning.h"
+#include "strutil.h"
+#include "dialect.h"
+#include "entity_t.h"
+#include "symbol_t.h"
+#include "symbol_table.h"
+#include "type_t.h"
+#include "types.h"
+#include "diagnostic.h"
+#include "warning.h"
 #include "parser_t.h"
 
 static entity_t *create_builtin_function(builtin_kind_t kind, symbol_t *symbol,

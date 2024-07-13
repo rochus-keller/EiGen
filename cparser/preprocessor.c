@@ -2,7 +2,7 @@
  * This file is part of cparser.
  * Copyright (C) 2012 Matthias Braun <matze@braunis.de>
  */
-#include "driver/enable_posix.h"
+#include "enable_posix.h"
 #include "preprocessor.h"
 
 #include <assert.h>
@@ -15,21 +15,21 @@
 #include <string.h>
 #include <time.h>
 
-#include "adt/array.h"
-#include "adt/panic.h"
-#include "adt/pset_new.h"
-#include "adt/separator_t.h"
-#include "adt/strutil.h"
-#include "adt/unicode.h"
-#include "adt/util.h"
-#include "ast/ast_t.h"
-#include "ast/dialect.h"
-#include "ast/string_hash.h"
-#include "ast/string_rep.h"
-#include "ast/symbol_table_t.h"
-#include "ast/symbol_t.h"
-#include "driver/diagnostic.h"
-#include "driver/c_driver.h"
+#include "array.h"
+#include "panic.h"
+#include "pset_new.h"
+#include "separator_t.h"
+#include "strutil.h"
+#include "unicode.h"
+#include "util.h"
+#include "ast_t.h"
+#include "dialect.h"
+#include "string_hash.h"
+#include "string_rep.h"
+#include "symbol_table_t.h"
+#include "symbol_t.h"
+#include "diagnostic.h"
+#include "c_driver.h"
 #include "input.h"
 
 #define MAX_PUTBACK   3

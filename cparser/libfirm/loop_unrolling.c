@@ -13,7 +13,7 @@
 #include "xmalloc.h"
 #include "debug.h"
 #include <assert.h>
-#include <pset_new.h>
+#include "pset_new.h"
 #include "irnode_t.h"
 
 DEBUG_ONLY(static firm_dbg_module_t *dbg = NULL;)

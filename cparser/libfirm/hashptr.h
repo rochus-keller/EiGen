@@ -13,7 +13,7 @@
 
 #include <stddef.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup algorithms
@@ -86,6 +86,6 @@ static inline unsigned hash_combine(unsigned const x, unsigned const y)
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

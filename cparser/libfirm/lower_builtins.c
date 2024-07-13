@@ -10,7 +10,7 @@
  */
 #include "lower_builtins.h"
 
-#include "adt/pmap.h"
+#include "pmap.h"
 #include "deq.h"
 #include "ircons_t.h"
 #include "irgmod.h"

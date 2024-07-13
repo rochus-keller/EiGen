@@ -6,7 +6,7 @@
 #define DRIVER_H
 
 #include <stdbool.h>
-#include "adt/obst.h"
+#include "obst.h"
 #include "tempfile.h"
 
 typedef enum compilation_unit_type_t {

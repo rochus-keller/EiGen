@@ -5,7 +5,7 @@
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
-#include "ast/entity.h"
+#include "entity.h"
 
 /**
  * Create predefined gnu builtins.

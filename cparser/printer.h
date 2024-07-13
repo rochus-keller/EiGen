@@ -14,7 +14,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "adt/obst.h"
+#include "obst.h"
 
 /** print a string into current output */
 extern void (*print_string)(const char *str);

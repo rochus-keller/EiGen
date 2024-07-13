@@ -7,15 +7,15 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "ast/constfoldbits.h"
-#include "ast/dialect.h"
-#include "ast/type_t.h"
-#include "ast/types.h"
-#include "firm/ast2firm.h"
-#include "firm/firm_opt.h"
-#include "parser/preprocessor.h"
+#include "panic.h"
+#include "strutil.h"
+#include "constfoldbits.h"
+#include "dialect.h"
+#include "type_t.h"
+#include "types.h"
+#include "ast2firm.h"
+#include "firm_opt.h"
+#include "preprocessor.h"
 #include "target.h"
 #include "version.h"
 

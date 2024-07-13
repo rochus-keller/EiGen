@@ -23,6 +23,8 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 	const char *const manufacturer = ir_triple_get_manufacturer(machine);
 	char          const *arch      = NULL;
 	arch_isa_if_t const *isa;
+#if 0
+    // TODO RK
 	if (ir_is_cpu_x86_32(cpu)) {
 		isa  = &ia32_isa_if;
 		arch = cpu;
@@ -39,7 +41,9 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 		isa = &mips_isa_if;
 	} else if (streq(cpu, "riscv32")) {
 		isa = &riscv32_isa_if;
-	} else if (streq(cpu, "TEMPLATE")) {
+    } else
+#endif
+    if (streq(cpu, "TEMPLATE")) {
 		isa = &TEMPLATE_isa_if;
 	} else {
 		return false;

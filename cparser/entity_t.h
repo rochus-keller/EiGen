@@ -7,12 +7,12 @@
 
 #include <libfirm/firm_types.h>
 
-#include "adt/util.h"
-#include "ast/ast.h"
-#include "ast/attribute.h"
-#include "ast/entity.h"
-#include "ast/symbol.h"
-#include "firm/jump_target.h"
+#include "util.h"
+#include "ast.h"
+#include "attribute.h"
+#include "entity.h"
+#include "symbol.h"
+#include "jump_target.h"
 #include "position.h"
 
 typedef enum {

@@ -5,7 +5,7 @@
 #ifndef FIRM_ADT_LIST_H
 #define FIRM_ADT_LIST_H
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -286,6 +286,6 @@ static inline void list_splice_init(struct list_head *list,
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

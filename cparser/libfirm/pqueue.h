@@ -15,7 +15,7 @@
 
 #include <stddef.h>
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -71,6 +71,6 @@ FIRM_API int pqueue_empty(pqueue_t const *q);
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

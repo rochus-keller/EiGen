@@ -11,7 +11,7 @@
  */
 #include "vector.h"
 
-#include "adt/array.h"
+#include "array.h"
 #include <string.h>
 
 num pbqp_add(num x, num y)

@@ -8,4 +8,4 @@
  * @brief   pset implementation
  */
 #define PSET
-#include <set.c>
+#include "set.c"

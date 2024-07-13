@@ -14,10 +14,10 @@
 #include <stdio.h>
 #include <sys/mman.h>
 
-#include "adt/array.h"
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "adt/util.h"
+#include "array.h"
+#include "panic.h"
+#include "strutil.h"
+#include "util.h"
 #include "firm_opt.h"
 
 void jit_compile_execute_main(void)
@@ -130,7 +130,7 @@ void jit_compile_execute_main(void)
 
 #else
 
-#include "adt/panic.h"
+#include "panic.h"
 
 /* We don't know how to allocate executable ememory on this system */
 void jit_compile_execute_main(void)

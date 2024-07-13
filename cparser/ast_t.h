@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <libfirm/firm_types.h>
 
-#include "adt/obst.h"
+#include "obst.h"
 #include "ast.h"
 #include "entity_t.h"
 #include "symbol.h"

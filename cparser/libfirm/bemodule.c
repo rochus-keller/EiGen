@@ -89,12 +89,15 @@ void be_init_modules(void)
 	be_init_state();
 
 	/* in the following groups the first one is the default */
+#if 0
+    // TODO RK
 	be_init_arch_ia32();
 	be_init_arch_arm();
 	be_init_arch_mips();
 	be_init_arch_sparc();
 	be_init_arch_amd64();
 	be_init_arch_riscv32();
+#endif
 	be_init_arch_TEMPLATE();
 
 	be_init_listsched();

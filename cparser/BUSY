@@ -14,6 +14,10 @@ let libfirm : SourceSet {
     .configs += config;
 
     .sources += [
+        ./libfirm/TEMPLATE_transform.c
+        ./libfirm/TEMPLATE_new_nodes.c
+        ./libfirm/TEMPLATE_emitter.c
+        ./libfirm/TEMPLATE_bearch.c
         ./libfirm/analyze_irg_args.c
         ./libfirm/array.c
         ./libfirm/be2addr.c

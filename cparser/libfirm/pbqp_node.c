@@ -11,7 +11,7 @@
  */
 #include "pbqp_node.h"
 
-#include "adt/array.h"
+#include "array.h"
 #include "bucket.h"
 #include "pbqp_edge.h"
 #include "pbqp_edge_t.h"

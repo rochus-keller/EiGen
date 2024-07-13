@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "firm/firm_opt.h"
+#include "firm_opt.h"
 #include "warning.h"
 
 help_sections_t help;

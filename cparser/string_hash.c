@@ -5,8 +5,8 @@
 #include "string_hash.h"
 
 #include <stdbool.h>
-#include "adt/hash_string.h"
-#include "adt/obst.h"
+#include "hash_string.h"
+#include "obst.h"
 
 struct obstack string_obst;
 
@@ -14,7 +14,7 @@ typedef struct string_hash_t string_hash_t;
 #define HashSet                   string_hash_t
 #define HashSetEntry              string_hash_entry_t
 #define ValueType                 string_t*
-#include "adt/hashset.h"
+#include "hashset.h"
 
 static inline bool strings_equal(const string_t *str1, const string_t *str2)
 {
@@ -42,7 +42,7 @@ void string_hash_destroy_(string_hash_t *hash);
 string_t *string_hash_insert_(string_hash_t *hash, string_t *key);
 #define hashset_insert     string_hash_insert_
 
-#include "adt/hashset.c.h"
+#include "hashset.c.h"
 
 static string_hash_t string_table;
 

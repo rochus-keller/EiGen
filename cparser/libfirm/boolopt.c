@@ -8,8 +8,8 @@
  * @brief   boolean condition/control flow optimizations
  * @author  Matthias Braun, Christoph Mallon, Michael Beck
  */
-#include "../adt/array.h"
-#include "adt/obst.h"
+#include "array.h"
+#include "obst.h"
 #include "debug.h"
 #include "ircons.h"
 #include "irgmod.h"

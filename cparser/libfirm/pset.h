@@ -16,7 +16,7 @@
 
 #include "hashptr.h"
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup adt
@@ -254,6 +254,6 @@ FIRM_API void *_pset_search(pset *set, void const *key, unsigned hash,
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

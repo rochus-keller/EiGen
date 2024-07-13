@@ -11,7 +11,7 @@
  */
 #include "html_dumper.h"
 
-#include "adt/array.h"
+#include "array.h"
 #include "kaps.h"
 #include "optimal.h"
 #include "pbqp_edge_t.h"

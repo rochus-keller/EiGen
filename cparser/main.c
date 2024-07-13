@@ -2,33 +2,33 @@
  * This file is part of cparser.
  * Copyright (C) 2012 Matthias Braun <matze@braunis.de>
  */
-#include "driver/enable_posix.h"
+#include "enable_posix.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "adt/panic.h"
-#include "adt/strutil.h"
-#include "ast/ast.h"
-#include "driver/c_driver.h"
-#include "driver/diagnostic.h"
-#include "driver/driver.h"
-#include "driver/driver_t.h"
-#include "driver/help.h"
-#include "driver/options.h"
-#include "driver/target.h"
-#include "driver/tempfile.h"
-#include "driver/timing.h"
-#include "firm/ast2firm.h"
-#include "firm/firm_opt.h"
-#include "firm/jittest.h"
-#include "parser/parser.h"
-#include "parser/preprocessor.h"
-#include "wrappergen/write_compoundsizes.h"
-#include "wrappergen/write_fluffy.h"
-#include "wrappergen/write_jna.h"
+#include "panic.h"
+#include "strutil.h"
+#include "ast.h"
+#include "c_driver.h"
+#include "diagnostic.h"
+#include "driver.h"
+#include "driver_t.h"
+#include "help.h"
+#include "options.h"
+#include "target.h"
+#include "tempfile.h"
+#include "timing.h"
+#include "ast2firm.h"
+#include "firm_opt.h"
+#include "jittest.h"
+#include "parser.h"
+#include "preprocessor.h"
+#include "write_compoundsizes.h"
+#include "write_fluffy.h"
+#include "write_jna.h"
 
 typedef enum compile_mode_t {
 	/* note the following is ordered according to gcc option precedence */

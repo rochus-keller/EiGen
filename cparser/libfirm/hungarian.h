@@ -32,7 +32,7 @@
 #ifndef FIRM_ADT_HUNGARIAN_H
 #define FIRM_ADT_HUNGARIAN_H
 
-#include "../begin.h"
+#include "./begin.h"
 
 /**
  * @ingroup algorithms
@@ -119,6 +119,6 @@ FIRM_API void hungarian_print_cost_matrix(hungarian_problem_t const *p,
 
 /** @} */
 
-#include "../end.h"
+#include "./end.h"
 
 #endif

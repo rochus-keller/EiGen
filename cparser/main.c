@@ -2,33 +2,33 @@
  * This file is part of cparser.
  * Copyright (C) 2012 Matthias Braun <matze@braunis.de>
  */
-#include "enable_posix.h"
+#include "driver/enable_posix.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "panic.h"
-#include "strutil.h"
-#include "ast.h"
-#include "c_driver.h"
-#include "diagnostic.h"
-#include "driver.h"
-#include "driver_t.h"
-#include "help.h"
-#include "options.h"
-#include "target.h"
-#include "tempfile.h"
-#include "timing.h"
-#include "ast2ir.h"
-//#include "firm/firm_opt.h"
-//#include "firm/jittest.h"
-#include "parser.h"
-#include "preprocessor.h"
-#include "write_compoundsizes.h"
-#include "write_fluffy.h"
-#include "write_jna.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "ast/ast.h"
+#include "driver/c_driver.h"
+#include "driver/diagnostic.h"
+#include "driver/driver.h"
+#include "driver/driver_t.h"
+#include "driver/help.h"
+#include "driver/options.h"
+#include "driver/target.h"
+#include "driver/tempfile.h"
+#include "driver/timing.h"
+#include "firm/ast2firm.h"
+#include "firm/firm_opt.h"
+#include "firm/jittest.h"
+#include "parser/parser.h"
+#include "parser/preprocessor.h"
+#include "wrappergen/write_compoundsizes.h"
+#include "wrappergen/write_fluffy.h"
+#include "wrappergen/write_jna.h"
 
 typedef enum compile_mode_t {
 	/* note the following is ordered according to gcc option precedence */
@@ -140,12 +140,9 @@ static void set_unused_after(compile_mode_t mode)
 
 static bool jittest(compilation_env_t *env, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
 	(void)env;
 	(void)unit;
 	jit_compile_execute_main();
-#endif
 	return true;
 }
 
@@ -349,8 +346,8 @@ int main(int argc, char **argv)
 
 	/* Initialize firm now that we know the target machine */
 	init_firm_target();
-//	init_firm_opt();
-    // set_optimization_level(opt_level);
+	init_firm_opt();
+	set_optimization_level(opt_level);
 
 	/* parse rest of options */
 	for (state.i = 1; state.i < argc; ++state.i) {
@@ -381,7 +378,7 @@ int main(int argc, char **argv)
 	assert(state.action != NULL);
 	int ret = state.action(argv[0]);
 
-    // TODO exit_firm_opt();
+	exit_firm_opt();
 	exit_ast2firm();
 	exit_parser();
 	exit_ast();

@@ -4,15 +4,15 @@
  */
 #include "actions.h"
 
-//#include <libfirm/firm_common.h>
-//#include <libfirm/target.h>
+#include <libfirm/firm_common.h>
+#include <libfirm/target.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "driver.h"
 #include "target.h"
 #include "version.h"
-#include "revision.h"
+#include <revision.h>
 
 int action_version(const char *argv0)
 {
@@ -22,7 +22,6 @@ int action_version(const char *argv0)
 	if (cparser_REVISION[0] != '\0') {
 		printf("(%s)", cparser_REVISION);
 	}
-#if 0
 	printf(" using libFirm %u.%u",
 	       ir_get_version_major(), ir_get_version_minor());
 
@@ -30,7 +29,6 @@ int action_version(const char *argv0)
 	if (revision[0] != 0) {
 		printf("(%s)", revision);
 	}
-#endif
 	putchar('\n');
 	return EXIT_SUCCESS;
 }
@@ -45,13 +43,10 @@ int action_version_short(const char *argv0)
 
 int action_dumpmachine(const char *argv0)
 {
-#if 0
-    // TODO RK
 	(void)argv0;
 	ir_machine_triple_t const *const machine = target.machine;
 	printf("%s-%s-%s\n", ir_triple_get_cpu_type(machine),
 	       ir_triple_get_manufacturer(machine),
 	       ir_triple_get_operating_system(machine));
-#endif
 	return EXIT_SUCCESS;
 }

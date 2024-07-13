@@ -31,7 +31,7 @@
 		#endif
 	#endif
 #else
-    #define  FIRM_API extern
+	#define  FIRM_API extern
 #endif
 
 #endif

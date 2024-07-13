@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <libfirm/firm_types.h>
 
-#include "obst.h"
+#include "adt/obst.h"
 #include "ast.h"
 #include "entity_t.h"
 #include "symbol.h"
@@ -242,7 +242,7 @@ struct literal_expression_t {
 	char const       *suffix; /**< Start of the suffix in value. */
 
 	/* ast2firm data */
-    ir_tarval        *target_value;
+	ir_tarval        *target_value;
 };
 
 /**

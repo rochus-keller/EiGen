@@ -7,15 +7,15 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "panic.h"
-#include "strutil.h"
-#include "constfoldbits.h"
-#include "dialect.h"
-#include "type_t.h"
-#include "types.h"
-#include "ast2ir.h"
-#include <libfirm/irmode.h>
-#include "preprocessor.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "ast/constfoldbits.h"
+#include "ast/dialect.h"
+#include "ast/type_t.h"
+#include "ast/types.h"
+#include "firm/ast2firm.h"
+#include "firm/firm_opt.h"
+#include "parser/preprocessor.h"
 #include "target.h"
 #include "version.h"
 
@@ -294,11 +294,8 @@ void add_predefined_macros(void)
 	if (dialect.cpp)
 		add_define("__GNUG__", "4", false);
 
-#if 0
-    // TODO RK
 	if (!firm_is_inlining_enabled())
 		add_define("__NO_INLINE__", "1", false);
-#endif
 	if (dialect.c99) {
 		add_define("__GNUC_STDC_INLINE__", "1", false);
 	} else {
@@ -337,8 +334,6 @@ void add_predefined_macros(void)
 		add_define("__ILP32__", "1", false);
 	}
 
-#if 0
-    // TODO
 	ir_mode *float_mode = ir_target_float_arithmetic_mode();
 	const char *flt_eval_metod
 		= float_mode == NULL ? "0"
@@ -346,7 +341,6 @@ void add_predefined_macros(void)
 		: get_mode_size_bytes(float_mode) == get_ctype_size(type_double) ? "1"
 		: "-1";
 	add_define("__FLT_EVAL_METHOD__", flt_eval_metod, false);
-#endif
 
 	char user_label_prefix_str[] = { target.user_label_prefix, '\0' };
 	add_define("__USER_LABEL_PREFIX__", user_label_prefix_str, false);
@@ -463,8 +457,6 @@ void add_predefined_macros(void)
 	define_pragma_macro();
 
 	/* Add target specific defines */
-#if 0
-    // TODO RK
 	for (ir_platform_define_t const *define = ir_platform_define_first();
 		 define != NULL; define = ir_platform_define_next(define)) {
 		char const *const name = ir_platform_define_name(define);
@@ -473,5 +465,4 @@ void add_predefined_macros(void)
 		char const *const value = ir_platform_define_value(define);
 		add_define(name, value, false);
 	}
-#endif
 }

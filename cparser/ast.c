@@ -24,19 +24,18 @@
 
 #include <ctype.h>
 
-#include "panic.h"
-#include "separator_t.h"
-#include "util.h"
+#include "adt/panic.h"
+#include "adt/separator_t.h"
+#include "adt/util.h"
 #include "constfold.h"
 #include "dialect.h"
-#include "warning.h"
+#include "driver/warning.h"
 #include "printer.h"
 #include "string_hash.h"
 #include "symbol_t.h"
 #include "type_hash.h"
 #include "type_t.h"
 #include "types.h"
-#include <libfirm/tv.h>
 
 struct obstack ast_obstack;
 c_dialect_t    dialect;

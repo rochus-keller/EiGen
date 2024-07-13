@@ -7,14 +7,13 @@
 
 #include <libfirm/tv.h>
 #include <libfirm/irmode.h>
-#include <libfirm/target.h>
 
-#include "panic.h"
-#include "unicode.h"
-#include "util.h"
+#include "adt/panic.h"
+#include "adt/unicode.h"
+#include "adt/util.h"
 #include "ast_t.h"
 #include "dialect.h"
-#include "target.h"
+#include "driver/target.h"
 #include "type_t.h"
 #include "types.h"
 
@@ -564,7 +563,7 @@ static ir_tarval *classify_type_to_tarval(const classify_type_expression_t *cons
 						tc = real_type_class;
 						goto make_const;
 				}
-                panic("Unexpected atomic type.");
+				panic("Unexpected atomic type.");
 			}
 
 			case TYPE_COMPLEX:         tc = complex_type_class; goto make_const;
@@ -589,7 +588,7 @@ static ir_tarval *classify_type_to_tarval(const classify_type_expression_t *cons
 			case TYPE_BUILTIN_TEMPLATE:
 				break;
 		}
-        panic("unexpected type.");
+		panic("unexpected type.");
 	}
 
 make_const:;
@@ -754,10 +753,10 @@ ir_tarval *fold_expression(expression_t const *const expr)
 	case EXPR_VA_ARG:
 	case EXPR_VA_COPY:
 	case EXPR_VA_START:
-        panic("invalid expression kind for constant folding");
-    }
+		panic("invalid expression kind for constant folding");
+	}
 
-    panic("unexpected expression kind for constant folding");
+	panic("unexpected expression kind for constant folding");
 }
 
 ir_mode *get_complex_mode_storage(type_t *type)
@@ -966,12 +965,12 @@ complex_constant fold_complex(const expression_t *expression)
 	case EXPR_UNARY_POSTFIX_INCREMENT:
 	case EXPR_UNARY_PREFIX_DECREMENT:
 	case EXPR_UNARY_PREFIX_INCREMENT:
-        panic("invalid expression kind for constant folding");
+		panic("invalid expression kind for constant folding");
 
 	case NEVER_COMPLEX_CASES:
 		break;
 	}
-    panic("internal error: non-complex expression in fold_complex");
+	panic("internal error: non-complex expression in fold_complex");
 }
 
 bool folded_expression_is_negative(const expression_t *expression)
@@ -984,7 +983,7 @@ long fold_expression_to_int(const expression_t *expression)
 {
 	ir_tarval *tv = fold_expression(expression);
 	if (!tarval_is_long(tv)) {
-        panic("result of constant folding is not integer");
+		panic("result of constant folding is not integer");
 	}
 
 	return get_tarval_long(tv);
@@ -1045,7 +1044,7 @@ void init_constfold(void)
 	tarval_set_wrap_on_overflow(true);
 
 	/* initialize modes for arithmetic types */
-    //mode_float_arithmetic = ir_target_float_arithmetic_mode();
+	mode_float_arithmetic = ir_target_float_arithmetic_mode();
 
 	ir_mode **m = atomic_modes;
 	m[ATOMIC_TYPE_BOOL]      = ir_platform_type_mode(IR_TYPE_BOOL, false);
@@ -1061,9 +1060,12 @@ void init_constfold(void)
 	m[ATOMIC_TYPE_ULONGLONG] = ir_platform_type_mode(IR_TYPE_LONG_LONG, false);
 	m[ATOMIC_TYPE_FLOAT]     = ir_platform_type_mode(IR_TYPE_FLOAT, true);
 	m[ATOMIC_TYPE_DOUBLE]    = ir_platform_type_mode(IR_TYPE_DOUBLE, true);
-    m[ATOMIC_TYPE_LONG_DOUBLE] = ir_platform_type_mode(IR_TYPE_LONG_DOUBLE, true);
-    m[ATOMIC_TYPE_CHAR] = m[get_atomic_type_flags(ATOMIC_TYPE_CHAR) & ATOMIC_TYPE_FLAG_SIGNED
+	m[ATOMIC_TYPE_LONG_DOUBLE]
+		= ir_platform_type_mode(IR_TYPE_LONG_DOUBLE, true);
+	m[ATOMIC_TYPE_CHAR]
+		= m[get_atomic_type_flags(ATOMIC_TYPE_CHAR) & ATOMIC_TYPE_FLAG_SIGNED
 		    ? ATOMIC_TYPE_SCHAR : ATOMIC_TYPE_UCHAR];
-    m[ATOMIC_TYPE_WCHAR_T] = ir_platform_type_mode(ir_platform_wchar_type(),
+	m[ATOMIC_TYPE_WCHAR_T]
+		= ir_platform_type_mode(ir_platform_wchar_type(),
 								ir_platform_wchar_is_signed());
 }

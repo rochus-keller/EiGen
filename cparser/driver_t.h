@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "ast.h"
+#include "ast/ast.h"
 #include "c_driver.h"
 #include "driver.h"
 

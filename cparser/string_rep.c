@@ -4,8 +4,8 @@
  */
 #include "string_rep.h"
 
-#include "panic.h"
-#include "unicode.h"
+#include "adt/panic.h"
+#include "adt/unicode.h"
 
 static inline size_t wstrlen(const string_t *string)
 {

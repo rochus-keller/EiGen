@@ -7,26 +7,26 @@
 
 #include <assert.h>
 #include <errno.h>
-//#include <libfirm/statev.h>
+#include <libfirm/statev.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "array.h"
-#include "panic.h"
-#include "strutil.h"
-#include "util.h"
-#include "dialect.h"
-#include "printer.h"
-#include "types.h"
-#include "type_t.h"
+#include "adt/array.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "adt/util.h"
+#include "ast/dialect.h"
+#include "ast/printer.h"
+#include "ast/types.h"
+#include "ast/type_t.h"
 #include "diagnostic.h"
 #include "driver_t.h"
-#include "ast2ir.h"
-//#include "firm/firm_opt.h"
-#include "parser.h"
-#include "preprocessor.h"
+#include "firm/ast2firm.h"
+#include "firm/firm_opt.h"
+#include "parser/parser.h"
+#include "parser/preprocessor.h"
 #include "predefs.h"
 #include "target.h"
 #include "timing.h"
@@ -726,12 +726,9 @@ bool do_parsing(compilation_env_t *env, compilation_unit_t *unit)
 
 	unit->type = COMPILATION_UNIT_AST;
 	timer_stop(t_parsing);
-#if 0
-    // TODO RK
 	if (stat_ev_enabled) {
 		stat_ev_dbl("time_parsing", ir_timer_elapsed_sec(t_parsing));
 	}
-#endif
 
 	return res && error_count == 0;
 }
@@ -747,14 +744,11 @@ static unsigned long long count_firm_nodes(void)
 {
 	unsigned long long count = 0;
 
-#if 0
-    // TODO RK
 	int n_irgs = get_irp_n_irgs();
 	for (int i = 0; i < n_irgs; ++i) {
 		ir_graph *irg = get_irp_irg(i);
 		irg_walk_graph(irg, node_counter, NULL, &count);
 	}
-#endif
 	return count;
 }
 
@@ -769,17 +763,14 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 	if (already_constructed_firm)
 		panic("compiling multiple files/translation units not yet supported");
 	already_constructed_firm = true;
-    // TODO init_implicit_optimizations();
+	init_implicit_optimizations();
 	translation_unit_to_firm(unit->ast);
 	timer_stop(t_construct);
-#if 0
-    // TODO RK
 	if (stat_ev_enabled) {
 		stat_ev_dbl("time_graph_construction",
 		            ir_timer_elapsed_sec(t_construct));
 		stat_ev_int("size_graph_construction", count_firm_nodes());
 	}
-#endif
 	unit->type = COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION;
 	if (error_count > 0)
 		return false;
@@ -789,8 +780,6 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 
 static bool read_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
 	(void)env;
 	if (!open_input(unit))
 		return false;
@@ -801,7 +790,6 @@ static bool read_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 	}
 	already_constructed_firm = true;
 	unit->type = COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION;
-#endif
 	return true;
 }
 
@@ -824,20 +812,16 @@ bool do_nothing(compilation_env_t *env, compilation_unit_t *unit)
 
 static bool do_generate_code(FILE *asm_out, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
-    ir_timer_t *t_opt_codegen = ir_timer_new();
+	ir_timer_t *t_opt_codegen = ir_timer_new();
 	timer_register(t_opt_codegen, "Optimization and Codegeneration");
 	timer_start(t_opt_codegen);
 	generate_code(asm_out, unit->original_name);
 	timer_stop(t_opt_codegen);
-    // TODO RK
 	if (stat_ev_enabled) {
 		stat_ev_dbl("time_opt_codegen", ir_timer_elapsed_sec(t_opt_codegen));
 	}
 	unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
-#endif
-    return true;
+	return true;
 }
 
 bool generate_code_final(compilation_env_t *env, compilation_unit_t *unit)
@@ -977,8 +961,6 @@ bool link_program(compilation_env_t *env, compilation_unit_t *units)
 
 bool write_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
 	if (!open_output_for_unit(env, unit, ".ir"))
 		return false;
 	ir_export_file(env->out);
@@ -991,7 +973,6 @@ bool write_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 		unlink(env->outname);
 		return false;
 	}
-#endif
 	return true;
 }
 
@@ -999,8 +980,6 @@ bool dump_irg(compilation_env_t *env, compilation_unit_t *units)
 {
 	(void)units;
 	/* find irg */
-#if 0
-    // TODO RK
 	ident    *id     = new_id_from_str(dumpfunction);
 	ir_graph *irg    = NULL;
 	int       n_irgs = get_irp_n_irgs();
@@ -1025,7 +1004,6 @@ bool dump_irg(compilation_env_t *env, compilation_unit_t *units)
 
 	dump_ir_graph_file(env->out, irg);
 	close_output(env);
-#endif
 	return true;
 }
 

@@ -6,11 +6,11 @@
 #define TARGET_H
 
 #include <stdbool.h>
-//#include <libfirm/irmode.h>
-//#include <libfirm/target.h>
+#include <libfirm/irmode.h>
+#include <libfirm/target.h>
 
-#include "util.h"
-//#include "firm/firm_opt.h"
+#include "adt/util.h"
+#include "firm/firm_opt.h"
 #include "options.h"
 
 typedef struct target_t {
@@ -25,7 +25,7 @@ typedef struct target_t {
 	bool use_frame_pointer     : 1;
 	/** parsed machine-triple of target machine. Try not to use this if possible
 	 * but create specific variables for language/target features instead. */
-//	ir_machine_triple_t *machine;
+	ir_machine_triple_t *machine;
 	/** target triple as a string */
 	const char *triple;
 } target_t;
@@ -45,7 +45,7 @@ struct codegen_option_t {
 	char              option[];
 };
 
-//extern optimization_level_t opt_level;
+extern optimization_level_t opt_level;
 extern codegen_option_t    *codegen_options;
 extern codegen_option_t   **codegen_options_anchor;
 extern bool                 profile_generate;

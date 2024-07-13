@@ -5,8 +5,8 @@
 #ifndef ADT_OBST_H
 #define ADT_OBST_H
 
-#include "xmalloc.h"
-#include <libfirm/obstack.h>
+#include "adt/xmalloc.h"
+#include <libfirm/adt/obstack.h>
 
 #define obstack_chunk_alloc xmalloc
 #define obstack_chunk_free  free

@@ -18,7 +18,7 @@ symbol_t* symbol_table_iterator_next(symbol_table_iterator_t *iterator);
 #define HashSetIterator  symbol_table_iterator_t
 #define HashSetEntry     symbol_table_hash_entry_t
 #define ValueType        symbol_t*
-#include "hashset.h"
+#include "adt/hashset.h"
 #undef ValueType
 #undef HashSetEntry
 #undef HashSet

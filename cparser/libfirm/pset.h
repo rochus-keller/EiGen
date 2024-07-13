@@ -16,7 +16,7 @@
 
 #include "hashptr.h"
 
-#include "begin.h"
+#include "../begin.h"
 
 /**
  * @ingroup adt
@@ -83,7 +83,7 @@ typedef int (*pset_cmp_fun) (void const *elt, void const *key);
  *                different keys can be hashed without collisions.
  * @returns created pset
  */
-FIRM_API struct pset *new_pset(pset_cmp_fun func, size_t slots_);
+FIRM_API pset *new_pset(pset_cmp_fun func, size_t slots);
 
 /**
  * Deletes a pset.
@@ -237,7 +237,7 @@ FIRM_API void pset_insert_pset_ptr(pset *target, pset *src);
 
 /** @cond PRIVATE */
 
-//#define new_pset(cmp, slots) ((new_pset) ((cmp), (slots)))
+#define new_pset(cmp, slots) ((new_pset) ((cmp), (slots)))
 #define pset_find(pset, key, hash) \
   _pset_search ((pset), (key), (hash), _pset_find)
 #define pset_insert(pset, key, hash) \
@@ -254,6 +254,6 @@ FIRM_API void *_pset_search(pset *set, void const *key, unsigned hash,
 
 /** @} */
 
-#include "end.h"
+#include "../end.h"
 
 #endif

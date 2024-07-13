@@ -12,21 +12,450 @@ let config : Config {
 
 let libfirm : SourceSet {
     .configs += config;
+
     .sources += [
-    ./libfirm/xmalloc.c
-    ./libfirm/array.c
-    ./libfirm/tv.c
-    ./libfirm/irmode.c
-    ./libfirm/pset.c
-    ./libfirm/timing.c
+        ./libfirm/analyze_irg_args.c
+        ./libfirm/array.c
+        ./libfirm/be2addr.c
+        ./libfirm/bearch.c
+        ./libfirm/beasm.c
+        ./libfirm/beblocksched.c
+        ./libfirm/bechordal.c
+        ./libfirm/bechordal_common.c
+        ./libfirm/bechordal_main.c
+        ./libfirm/becopyheur4.c
+        ./libfirm/becopyilp2.c
+        ./libfirm/becopyilp.c
+        ./libfirm/becopyopt.c
+        ./libfirm/bediagnostic.c
+        ./libfirm/bedump.c
+        ./libfirm/bedwarf.c
+        ./libfirm/beemithlp.c
+        ./libfirm/beemitter.c
+        ./libfirm/beflags.c
+        ./libfirm/begnuas.c
+        ./libfirm/beifg.c
+        ./libfirm/beinfo.c
+        ./libfirm/beinsn.c
+        ./libfirm/beirg.c
+        ./libfirm/bejit.c
+        ./libfirm/belistsched.c
+        ./libfirm/belive.c
+        ./libfirm/beloopana.c
+        ./libfirm/belower.c
+        ./libfirm/bemain.c
+        ./libfirm/bemodule.c
+        ./libfirm/benode.c
+        ./libfirm/bepbqpcoloring.c
+        ./libfirm/bepeephole.c
+        ./libfirm/beprefalloc.c
+        ./libfirm/bera.c
+        ./libfirm/besched.c
+        ./libfirm/beschednormal.c
+        ./libfirm/beschedrand.c
+        ./libfirm/beschedtrivial.c
+        ./libfirm/bespillbelady.c
+        ./libfirm/bespill.c
+        ./libfirm/bespilldaemel.c
+        ./libfirm/bespillslots.c
+        ./libfirm/bespillutil.c
+        ./libfirm/bessaconstr.c
+        ./libfirm/bessadestr.c
+        ./libfirm/bestack.c
+        ./libfirm/bestat.c
+        ./libfirm/bestate.c
+        ./libfirm/betranshlp.c
+        ./libfirm/beuses.c
+        ./libfirm/beutil.c
+        ./libfirm/bevarargs.c
+        ./libfirm/beverify.c
+        ./libfirm/bipartite.c
+        ./libfirm/bitset.c
+        ./libfirm/boolopt.c
+        ./libfirm/brute_force.c
+        ./libfirm/bucket.c
+        ./libfirm/callgraph.c
+        ./libfirm/cdep.c
+        ./libfirm/cfopt.c
+        ./libfirm/cgana.c
+        ./libfirm/code_placement.c
+        ./libfirm/combo.c
+        ./libfirm/constbits.c
+        ./libfirm/convopt.c
+        ./libfirm/cpset.c
+        ./libfirm/critical_edges.c
+        ./libfirm/dbginfo.c
+        ./libfirm/dca.c
+        ./libfirm/dead_code_elimination.c
+        ./libfirm/debug.c
+        ./libfirm/debugger.c
+        ./libfirm/deq.c
+        ./libfirm/dfs.c
+        ./libfirm/domfront.c
+        ./libfirm/entity.c
+        ./libfirm/execfreq.c
+        ./libfirm/firm.c
+        ./libfirm/firm_common.c
+        ./libfirm/fltcalc.c
+        ./libfirm/funccall.c
+        ./libfirm/garbage_collect.c
+        ./libfirm/gaussjordan.c
+        ./libfirm/gaussseidel.c
+        ./libfirm/gen_irio.c
+        ./libfirm/gen_irnode.c
+        ./libfirm/gen_TEMPLATE_emitter.c
+        ./libfirm/gen_TEMPLATE_new_nodes.c
+        ./libfirm/gen_TEMPLATE_regalloc_if.c
+        ./libfirm/gvn_pre.c
+        ./libfirm/heights.c
+        ./libfirm/heuristical.c
+        ./libfirm/heuristical_co.c
+        ./libfirm/heuristical_co_ld.c
+        ./libfirm/html_dumper.c
+        ./libfirm/hungarian.c
+        ./libfirm/ident.c
+        ./libfirm/ifconv.c
+        ./libfirm/instrument.c
+        ./libfirm/irarch.c
+        ./libfirm/irargs.c
+        ./libfirm/irbackedge.c
+        ./libfirm/ircfscc.c
+        ./libfirm/ircgopt.c
+        ./libfirm/ircomplib.c
+        ./libfirm/ircons.c
+        ./libfirm/irconsconfirm.c
+        ./libfirm/irdom.c
+        ./libfirm/irdump.c
+        ./libfirm/irdumptxt.c
+        ./libfirm/iredges.c
+        ./libfirm/irflag.c
+        ./libfirm/irgmod.c
+        ./libfirm/irgopt.c
+        ./libfirm/irgraph.c
+        ./libfirm/irgwalk_blk.c
+        ./libfirm/irgwalk.c
+        ./libfirm/irhooks.c
+        ./libfirm/irio.c
+        ./libfirm/irlivechk.c
+        ./libfirm/irloop.c
+        ./libfirm/irmemory.c
+        ./libfirm/irmode.c
+        ./libfirm/irnode.c
+        ./libfirm/irnodehashmap.c
+        ./libfirm/irnodeset.c
+        ./libfirm/irop.c
+        ./libfirm/iropt.c
+        ./libfirm/irouts.c
+        ./libfirm/irprintf.c
+        ./libfirm/irprofile.c
+        ./libfirm/irprog.c
+        ./libfirm/irssacons.c
+        ./libfirm/irtools.c
+        ./libfirm/irverify.c
+        ./libfirm/jumpthreading.c
+        ./libfirm/kaps.c
+        ./libfirm/lc_appendable.c
+        ./libfirm/lc_opts.c
+        ./libfirm/lc_opts_enum.c
+        ./libfirm/lc_printf.c
+        ./libfirm/lcssa.c
+        ./libfirm/ldstopt.c
+        ./libfirm/loop.c
+        ./libfirm/loop_unrolling.c
+        ./libfirm/lower_alloc.c
+        ./libfirm/lower_builtins.c
+        ./libfirm/lower_calls.c
+        ./libfirm/lower_copyb.c
+        ./libfirm/lower_dw.c
+        ./libfirm/lower_hl.c
+        ./libfirm/lower_intrinsics.c
+        ./libfirm/lower_mode_b.c
+        ./libfirm/lower_mux.c
+        ./libfirm/lower_softfloat.c
+        ./libfirm/lower_switch.c
+        ./libfirm/lpp.c
+        ./libfirm/lpp_cplex.c
+        ./libfirm/lpp_gurobi.c
+        ./libfirm/lpp_solvers.c
+        ./libfirm/machine_triple.c
+        ./libfirm/matrix.c
+        ./libfirm/mps.c
+        ./libfirm/obstack.c
+        ./libfirm/obstack_printf.c
+        ./libfirm/occult_const.c
+        ./libfirm/opt_blocks.c
+        ./libfirm/opt_confirms.c
+        ./libfirm/opt_frame.c
+        ./libfirm/optimal.c
+        ./libfirm/opt_inline.c
+        ./libfirm/opt_ldst.c
+        ./libfirm/opt_osr.c
+        ./libfirm/panic.c
+        ./libfirm/parallelize_mem.c
+        ./libfirm/pbqp_edge.c
+        ./libfirm/pbqp_node.c
+        ./libfirm/platform.c
+        ./libfirm/pmap.c
+        ./libfirm/pqueue.c
+        ./libfirm/proc_cloning.c
+        ./libfirm/pset.c
+        ./libfirm/pset_new.c
+        ./libfirm/reassoc.c
+        ./libfirm/return.c
+        ./libfirm/rm_bads.c
+        ./libfirm/rm_tuples.c
+        ./libfirm/scalar_replace.c
+        ./libfirm/set.c
+        ./libfirm/sp_matrix.c
+        ./libfirm/statev.c
+        ./libfirm/stat_timing.c
+        ./libfirm/strcalc.c
+        ./libfirm/tailrec.c
+        ./libfirm/target.c
+        ./libfirm/timing.c
+        ./libfirm/tr_inheritance.c
+        ./libfirm/trverify.c
+        ./libfirm/tv.c
+        ./libfirm/type.c
+        ./libfirm/typewalk.c
+        ./libfirm/unreachable.c
+        ./libfirm/valueset.c
+        ./libfirm/vector.c
+        ./libfirm/vrp.c
+        ./libfirm/xmalloc.c
+        ./libfirm/analyze_irg_args.h
+        ./libfirm/array.h
+        ./libfirm/be2addr.h
+        ./libfirm/bearch.h
+        ./libfirm/beasm.h
+        ./libfirm/beblocksched.h
+        ./libfirm/becconv.h
+        ./libfirm/bechordal_common.h
+        ./libfirm/bechordal.h
+        ./libfirm/bechordal_t.h
+        ./libfirm/becopyilp_t.h
+        ./libfirm/becopyopt.h
+        ./libfirm/becopyopt_t.h
+        ./libfirm/bediagnostic.h
+        ./libfirm/bedump.h
+        ./libfirm/bedwarf.h
+        ./libfirm/bedwarf_t.h
+        ./libfirm/beemithlp.h
+        ./libfirm/beemitter.h
+        ./libfirm/beflags.h
+        ./libfirm/begin.h
+        ./libfirm/begnuas.h
+        ./libfirm/be.h
+        ./libfirm/beifg.h
+        ./libfirm/beinfo.h
+        ./libfirm/beinsn_t.h
+        ./libfirm/beirg.h
+        ./libfirm/bejit.h
+        ./libfirm/belistsched.h
+        ./libfirm/belive.h
+        ./libfirm/beloopana.h
+        ./libfirm/belower.h
+        ./libfirm/bemodule.h
+        ./libfirm/benode.h
+        ./libfirm/bepeephole.h
+        ./libfirm/bera.h
+        ./libfirm/besched.h
+        ./libfirm/bespill.h
+        ./libfirm/bespillslots.h
+        ./libfirm/bespillutil.h
+        ./libfirm/bessaconstr.h
+        ./libfirm/bessadestr.h
+        ./libfirm/bestack.h
+        ./libfirm/bestate.h
+        ./libfirm/bestat.h
+        ./libfirm/be_t.h
+        ./libfirm/betranshlp.h
+        ./libfirm/be_types.h
+        ./libfirm/beuses.h
+        ./libfirm/beutil.h
+        ./libfirm/bevarargs.h
+        ./libfirm/beverify.h
+        ./libfirm/bipartite.h
+        ./libfirm/bitfiddle.h
+        ./libfirm/bitset.h
+        ./libfirm/brute_force.h
+        ./libfirm/bucket.h
+        ./libfirm/bucket_t.h
+        ./libfirm/callgraph.h
+        ./libfirm/cdep.h
+        ./libfirm/cdep_t.h
+        ./libfirm/cgana.h
+        ./libfirm/compiler.h
+        ./libfirm/constbits.h
+        ./libfirm/cpset.h
+        ./libfirm/dbginfo.h
+        ./libfirm/dbginfo_t.h
+        ./libfirm/dca.h
+        ./libfirm/debugger.h
+        ./libfirm/debug.h
+        ./libfirm/deq.h
+        ./libfirm/dfs.h
+        ./libfirm/dfs_t.h
+        ./libfirm/end.h
+        ./libfirm/entity_t.h
+        ./libfirm/execfreq.h
+        ./libfirm/execfreq_t.h
+        ./libfirm/firm_common.h
+        ./libfirm/firm.h
+        ./libfirm/firm_revision.h
+        ./libfirm/firm_types.h
+        ./libfirm/fltcalc.h
+        ./libfirm/fourcc.h
+        ./libfirm/funcattr.h
+        ./libfirm/gaussjordan.h
+        ./libfirm/gaussseidel.h
+        ./libfirm/gen_irnode.h
+        ./libfirm/gen_proj_names.h
+        ./libfirm/gen_TEMPLATE_emitter.h
+        ./libfirm/gen_TEMPLATE_new_nodes.h
+        ./libfirm/gen_TEMPLATE_regalloc_if.h
+        ./libfirm/hashptr.h
+        ./libfirm/hashset.c.h
+        ./libfirm/hashset.h
+        ./libfirm/heights.h
+        ./libfirm/heuristical_co.h
+        ./libfirm/heuristical_co_ld.h
+        ./libfirm/heuristical.h
+        ./libfirm/html_dumper.h
+        ./libfirm/hungarian.h
+        ./libfirm/ident.h
+        ./libfirm/ident_t.h
+        ./libfirm/instrument.h
+        ./libfirm/irarch.h
+        ./libfirm/irargs_t.h
+        ./libfirm/irbackedge_t.h
+        ./libfirm/ircgopt.h
+        ./libfirm/irconsconfirm.h
+        ./libfirm/ircons.h
+        ./libfirm/ircons_t.h
+        ./libfirm/irdom.h
+        ./libfirm/irdom_t.h
+        ./libfirm/irdump.h
+        ./libfirm/irdump_t.h
+        ./libfirm/iredgekinds.h
+        ./libfirm/iredgeset.h
+        ./libfirm/iredges.h
+        ./libfirm/iredges_t.h
+        ./libfirm/irflag.h
+        ./libfirm/irflag_t.h
+        ./libfirm/irgmod.h
+        ./libfirm/irgopt.h
+        ./libfirm/irgraph.h
+        ./libfirm/irgraph_t.h
+        ./libfirm/irgwalk.h
+        ./libfirm/irhooks.h
+        ./libfirm/irio.h
+        ./libfirm/irio_t.h
+        ./libfirm/irlivechk.h
+        ./libfirm/irloop.h
+        ./libfirm/irloop_t.h
+        ./libfirm/irmemory.h
+        ./libfirm/irmemory_t.h
+        ./libfirm/irmode.h
+        ./libfirm/irmode_t.h
+        ./libfirm/irnode.h
+        ./libfirm/irnodehashmap.h
+        ./libfirm/irnodemap.h
+        ./libfirm/irnodemap_t.h
+        ./libfirm/irnodeset.h
+        ./libfirm/irnode_t.h
+        ./libfirm/irop.h
+        ./libfirm/iropt_dbg.h
+        ./libfirm/irop_t.h
+        ./libfirm/iropt.h
+        ./libfirm/iroptimize.h
+        ./libfirm/iropt_t.h
+        ./libfirm/irouts.h
+        ./libfirm/irouts_t.h
+        ./libfirm/irprintf.h
+        ./libfirm/irprofile.h
+        ./libfirm/irprog.h
+        ./libfirm/irprog_t.h
+        ./libfirm/irtools.h
+        ./libfirm/irverify.h
+        ./libfirm/irverify_t.h
+        ./libfirm/isas.h
+        ./libfirm/jit.h
+        ./libfirm/kaps.h
+        ./libfirm/lc_appendable.h
+        ./libfirm/lc_opts_enum.h
+        ./libfirm/lc_opts.h
+        ./libfirm/lc_opts_t.h
+        ./libfirm/lc_printf.h
+        ./libfirm/lcssa_t.h
+        ./libfirm/list.h
+        ./libfirm/lower_alloc.h
+        ./libfirm/lower_builtins.h
+        ./libfirm/lower_calls.h
+        ./libfirm/lower_dw.h
+        ./libfirm/lowering.h
+        ./libfirm/lower_mode_b.h
+        ./libfirm/lower_softfloat.h
+        ./libfirm/lpp_cplex.h
+        ./libfirm/lpp_gurobi.h
+        ./libfirm/lpp.h
+        ./libfirm/lpp_solvers.h
+        ./libfirm/matrix.h
+        ./libfirm/matrix_t.h
+        ./libfirm/mps.h
+        ./libfirm/nodes.h
+        ./libfirm/obstack.h
+        ./libfirm/obst.h
+        ./libfirm/optimal.h
+        ./libfirm/opt_init.h
+        ./libfirm/panic.h
+        ./libfirm/pbqp_edge.h
+        ./libfirm/pbqp_edge_t.h
+        ./libfirm/pbqp_node.h
+        ./libfirm/pbqp_node_t.h
+        ./libfirm/pbqp_t.h
+        ./libfirm/pdeq.h
+        ./libfirm/platform_t.h
+        ./libfirm/pmap.h
+        ./libfirm/pqueue.h
+        ./libfirm/pset.h
+        ./libfirm/pset_new.h
+        ./libfirm/raw_bitset.h
+        ./libfirm/reassoc_t.h
+        ./libfirm/scalar_replace.h
+        ./libfirm/set.h
+        ./libfirm/sp_matrix.h
+        ./libfirm/statev.h
+        ./libfirm/statev_t.h
+        ./libfirm/stat_timing.h
+        ./libfirm/strcalc.h
+        ./libfirm/target.h
+        ./libfirm/target_t.h
+        ./libfirm/timing.h
+        ./libfirm/tv.h
+        ./libfirm/tv_t.h
+        ./libfirm/typerep.h
+        ./libfirm/type_t.h
+        ./libfirm/unionfind.h
+        ./libfirm/util.h
+        ./libfirm/valueset.h
+        ./libfirm/vector.h
+        ./libfirm/vector_t.h
+        ./libfirm/version.h
+        ./libfirm/vrp.h
+        ./libfirm/xmalloc.h
     ]
 }
 
 let cparser ! : Executable {
     .configs += config;
     .deps += [ libfirm ]
+
+    .include_dirs += .
     .sources += [
+        ./main.c
         ./actions.c
+        ./ast2firm.c
         ./ast.c
         ./attribute.c
         ./builtins.c
@@ -35,10 +464,13 @@ let cparser ! : Executable {
         ./diagnostic.c
         ./driver.c
         ./entity.c
+        ./firm_opt.c
         ./format_check.c
         ./help.c
         ./input.c
-        ./main.c
+        ./jittest.c
+        ./jump_target.c
+        ./mangle.c
         ./options.c
         ./panic.c
         ./parser.c
@@ -59,10 +491,12 @@ let cparser ! : Executable {
         ./types.c
         ./walk.c
         ./warning.c
+        ./write_compoundsizes.c
+        ./write_fluffy.c
+        ./write_jna.c
         ./actions.h
         ./array.h
-        ./ast2ir.c
-        ./ast2ir.h
+        ./ast2firm.h
         ./ast.h
         ./ast_t.h
         ./attribute.h
@@ -79,12 +513,16 @@ let cparser ! : Executable {
         ./enable_posix.h
         ./entity.h
         ./entity_t.h
+        ./firm_opt.h
         ./format_check.h
         ./hashset.c.h
         ./hashset.h
         ./hash_string.h
         ./help.h
         ./input.h
+        ./jittest.h
+        ./jump_target.h
+        ./mangle.h
         ./obst.h
         ./options.h
         ./panic.h
@@ -118,14 +556,9 @@ let cparser ! : Executable {
         ./version.h
         ./walk.h
         ./warning.h
-        ./xmalloc.h
-
-        ./write_compoundsizes.c
         ./write_compoundsizes.h
-        ./write_fluffy.c
         ./write_fluffy.h
-        ./write_jna.c
         ./write_jna.h
+        ./xmalloc.h
     ]
-    .include_dirs += .
 }

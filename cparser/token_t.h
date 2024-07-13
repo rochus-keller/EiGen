@@ -8,10 +8,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "util.h"
-#include "position.h"
-#include "string_rep.h"
-#include "symbol.h"
+#include "adt/util.h"
+#include "ast/position.h"
+#include "ast/string_rep.h"
+#include "ast/symbol.h"
 
 typedef enum token_kind_t {
 	T_NULL  =  0,

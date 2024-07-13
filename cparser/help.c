@@ -5,11 +5,11 @@
 #include "help.h"
 
 #include <assert.h>
-//#include <libfirm/target.h>
+#include <libfirm/target.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-//#include "firm/firm_opt.h"
+#include "firm/firm_opt.h"
 #include "warning.h"
 
 help_sections_t help;
@@ -200,7 +200,7 @@ static void print_help_optimization(void)
 	put_choice("g",                          "Optimize without degrading the ability to debug");
 	put_choice("s",                          "Optimize for code size");
 	put_choice("z",                          "Aggressively optimize for code size");
-    // TODO RK firm_option_help(help_simple);
+	firm_option_help(help_simple);
 	help_simple("-fexpensive-optimizations", "Ignored (gcc compatibility)");
 	/* Undocumented:
 	 * help_simple("-fhelp", "");
@@ -298,14 +298,11 @@ static void print_help_language_tools(void)
 
 static void print_help_firm(void)
 {
-#if 0
-    // TODO RK
 	puts("libFirm backend options:");
 	puts("");
 	int res = ir_target_option("help");
 	(void) res;
 	assert(res);
-#endif
 }
 
 int action_help(const char *argv0)

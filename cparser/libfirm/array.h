@@ -16,7 +16,7 @@
 
 #include "obst.h"
 
-#include "begin.h"
+#include "../begin.h"
 
 /**
  * @ingroup adt
@@ -278,6 +278,6 @@ static inline size_t ARR_LEN(void const *const arr)
 
 /** @} */
 
-#include "end.h"
+#include "../end.h"
 
 #endif

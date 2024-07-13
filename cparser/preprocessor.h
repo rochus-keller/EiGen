@@ -7,7 +7,7 @@
 
 #include "input.h"
 #include "token_t.h"
-#include "position.h"
+#include "ast/position.h"
 
 /**
  * Initialize just enough so we can use add_define(),add_define_string(),

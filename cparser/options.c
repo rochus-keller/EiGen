@@ -5,31 +5,31 @@
 #include "options.h"
 
 #include <assert.h>
-//#include <libfirm/be.h>
+#include <libfirm/be.h>
 #include <string.h>
 
 #include "actions.h"
-#include "panic.h"
-#include "strutil.h"
-#include "util.h"
-#include "ast_t.h"
-#include "dialect.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "adt/util.h"
+#include "ast/ast_t.h"
+#include "ast/dialect.h"
 #include "c_driver.h"
 #include "diagnostic.h"
 #include "driver.h"
-//#include "firm/ast2firm.h"
-//#include "firm/firm_opt.h"
-//#include "firm/mangle.h"
+#include "firm/ast2firm.h"
+#include "firm/firm_opt.h"
+#include "firm/mangle.h"
 #include "help.h"
-#include "parser.h"
-#include "preprocessor.h"
+#include "parser/parser.h"
+#include "parser/preprocessor.h"
 #include "predefs.h"
 #include "target.h"
-#include "write_jna.h"
+#include "wrappergen/write_jna.h"
 
 codegen_option_t    *codegen_options        = NULL;
 codegen_option_t   **codegen_options_anchor = &codegen_options;
-//optimization_level_t opt_level              = OPT_1;
+optimization_level_t opt_level              = OPT_1;
 bool                 profile_generate;
 bool                 profile_use;
 
@@ -465,7 +465,7 @@ bool options_parse_codegen(options_state_t *s)
 		const char *fopt;
 		if ((fopt = f_no_arg(&truth_value, s)) != NULL) {
 			if (f_yesno_arg("-ffast-math", s)) {
-                // TODO ir_allow_imprecise_float_transforms(truth_value);
+				ir_allow_imprecise_float_transforms(truth_value);
 			} else if (f_yesno_arg("-fomit-frame-pointer", s)) {
 				target.set_use_frame_pointer = true;
 				target.use_frame_pointer     = !truth_value;
@@ -508,10 +508,8 @@ bool options_parse_codegen(options_state_t *s)
 				 * that something happens */
 				warningf(WARN_COMPAT_OPTION, NULL,
 				         "ignoring gcc option '-f%s'", fopt);
-#if 0
 			} else if (firm_option(&option[1])) {
 				/* parsed a firm option */
-#endif
 			} else {
 				return false;
 			}
@@ -660,16 +658,13 @@ bool options_parse_help(options_state_t *s)
 
 bool parse_target_triple(char const *const arg)
 {
-#if 0
-    // TODO RK
 	ir_machine_triple_t *triple = ir_parse_machine_triple(arg);
 	if (triple == NULL) {
 		errorf(NULL, "target-triple '%s' is not in the form 'cpu_type-manufacturer-operating_system'", arg);
 		return false;
 	}
-    target.machine = triple;
+	target.machine = triple;
 	target.triple  = arg;
-#endif
 	return true;
 }
 
@@ -732,7 +727,6 @@ bool options_parse_early_codegen(options_state_t *s)
 	if (full_option[0] != '-')
 		return false;
 
-#if 0
 	const char *arg;
 	if (accept_prefix(s, "-O", false, &arg)) {
 		if (arg[0] == '\0') {
@@ -759,7 +753,6 @@ bool options_parse_early_codegen(options_state_t *s)
 		}
 	} else
 		return false;
-#endif
 	/* Remove argument so we do not parse it again in later phases */
 	return true;
 }

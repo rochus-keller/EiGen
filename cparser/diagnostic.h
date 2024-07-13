@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 
-#include "position.h"
+#include "ast/position.h"
 #include "warning.h"
 
 /**

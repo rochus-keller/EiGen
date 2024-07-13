@@ -7,14 +7,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "panic.h"
-#include "separator_t.h"
-#include "strutil.h"
-#include "unicode.h"
-#include "ast.h"
-#include "entity_t.h"
-#include "symbol_t.h"
-#include "type.h"
+#include "adt/panic.h"
+#include "adt/separator_t.h"
+#include "adt/strutil.h"
+#include "adt/unicode.h"
+#include "ast/ast.h"
+#include "ast/entity_t.h"
+#include "ast/symbol_t.h"
+#include "ast/type.h"
 
 typedef struct colorscheme_t {
 	const char *fatal;

@@ -9,30 +9,29 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "array.h"
-#include "panic.h"
-#include "strutil.h"
-#include "util.h"
-#include "ast_t.h"
-#include "attribute_t.h"
-#include "constfoldbits.h"
-#include "constfold.h"
-#include "dialect.h"
-#include "printer.h"
-#include "string_hash.h"
-#include "symbol_table.h"
-#include "symbol_t.h"
-#include "type_hash.h"
-#include "types.h"
-#include "type_t.h"
-#include "walk.h"
+#include "adt/array.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "adt/util.h"
+#include "ast/ast_t.h"
+#include "ast/attribute_t.h"
+#include "ast/constfoldbits.h"
+#include "ast/constfold.h"
+#include "ast/dialect.h"
+#include "ast/printer.h"
+#include "ast/string_hash.h"
+#include "ast/symbol_table.h"
+#include "ast/symbol_t.h"
+#include "ast/type_hash.h"
+#include "ast/types.h"
+#include "ast/type_t.h"
+#include "ast/walk.h"
 #include "builtins.h"
-#include "diagnostic.h"
-#include "warning.h"
+#include "driver/diagnostic.h"
+#include "driver/warning.h"
 #include "format_check.h"
 #include "preprocessor.h"
 #include "token_t.h"
-#include <libfirm/tv.h>
 
 #define MAX_LOOKAHEAD 1
 
@@ -8997,8 +8996,6 @@ static void semantic_asm_argument(asm_argument_t *argument, bool is_out)
 	if (!is_type_valid(type))
 		return;
 
-#if 0
-    // TODO RK
 	const char *constraints = argument->constraints->begin;
 	asm_constraint_flags_t asm_flags = be_parse_asm_constraints(constraints);
 	if (asm_flags & ASM_CONSTRAINT_FLAG_INVALID) {
@@ -9098,7 +9095,6 @@ static void semantic_asm_argument(asm_argument_t *argument, bool is_out)
 	if (asm_flags & ASM_CONSTRAINT_FLAG_SUPPORTS_MEMOP
 	 && (argument->direct_write | argument->direct_read) == 0)
 		set_address_taken(expression, true);
-#endif
 }
 
 /**
@@ -9162,12 +9158,9 @@ static void parse_asm_clobbers(asm_clobber_t **anchor)
 			clobber->clobber         = parse_string_literals(NULL);
 
 			const char *const clobber_string = clobber->clobber->begin;
-#if 0
-            // TODO RK
 			if (!be_is_valid_clobber(clobber_string))
 				errorf(&pos, "invalid register '%s' specified in clobbers",
 				       clobber_string);
-#endif
 
 			*anchor = clobber;
 			anchor  = &clobber->next;

@@ -4,9 +4,9 @@
  */
 #include "walk.h"
 
-#include <libfirm/pset.h>
+#include <libfirm/adt/pset.h>
 
-#include "panic.h"
+#include "adt/panic.h"
 #include "ast_t.h"
 #include "entity_t.h"
 #include "type_t.h"

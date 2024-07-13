@@ -4,16 +4,16 @@
  */
 #include <assert.h>
 
-#include "array.h"
-#include "bitfiddle.h"
-#include "panic.h"
-#include "strutil.h"
+#include "adt/array.h"
+#include "adt/bitfiddle.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
 #include "ast_t.h"
 #include "attribute_t.h"
 #include "constfold.h"
 #include "dialect.h"
-#include "diagnostic.h"
-#include "warning.h"
+#include "driver/diagnostic.h"
+#include "driver/warning.h"
 #include "entity_t.h"
 #include "symbol_t.h"
 #include "symbol_table.h"

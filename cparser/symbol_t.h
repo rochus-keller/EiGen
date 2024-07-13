@@ -6,7 +6,7 @@
 #define SYMBOL_T_H
 
 #include "entity.h"
-#include "token_t.h"
+#include "parser/token_t.h"
 #include "position.h"
 #include "symbol.h"
 

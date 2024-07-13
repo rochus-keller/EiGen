@@ -7,12 +7,12 @@
 
 #include <libfirm/firm_types.h>
 
-#include "util.h"
-#include "ast.h"
-#include "attribute.h"
-#include "entity.h"
-#include "symbol.h"
-//#include "firm/jump_target.h"
+#include "adt/util.h"
+#include "ast/ast.h"
+#include "ast/attribute.h"
+#include "ast/entity.h"
+#include "ast/symbol.h"
+#include "firm/jump_target.h"
 #include "position.h"
 
 typedef enum {
@@ -133,7 +133,7 @@ struct enum_value_t {
 	enum_t        *enume;
 
 	/* ast2firm info */
-    ir_tarval     *tv;
+	ir_tarval     *tv;
 };
 
 struct label_t {
@@ -146,8 +146,8 @@ struct label_t {
 	label_t       *next; /**< Links all labels of a function. */
 
 	/* ast2firm info */
-    //jump_target    target;
-    //ir_node       *indirect_block;
+	jump_target    target;
+	ir_node       *indirect_block;
 };
 
 struct namespace_t {
@@ -181,7 +181,7 @@ struct compound_member_t {
 	bool           bitfield : 1;  /**< member is (part of) a bitfield */
 
 	/* ast2firm info */
-    //ir_entity *entity;
+	ir_entity *entity;
 };
 
 struct variable_t {
@@ -201,8 +201,8 @@ struct variable_t {
 	/* ast2firm info */
 	union {
 		unsigned int  value_number;
-        //ir_entity    *entity;
-        //ir_node      *vla_base;
+		ir_entity    *entity;
+		ir_node      *vla_base;
 	} v;
 };
 
@@ -230,10 +230,10 @@ struct function_t {
 
 	/* ast2firm info */
 	union {
-        ir_builtin_kind firm_builtin_kind;
+		ir_builtin_kind firm_builtin_kind;
 		unsigned        chk_arg_pos;
 	} b;
-    //ir_entity *irentity;
+	ir_entity *irentity;
 };
 
 struct asm_operand_t {

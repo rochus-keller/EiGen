@@ -2,20 +2,20 @@
  * This file is part of cparser.
  * Copyright (C) 2014 Matthias Braun <matze@braunis.de>
  */
-//#include <libfirm/be.h>
-//#include <libfirm/firm.h>
+#include <libfirm/be.h>
+#include <libfirm/firm.h>
 
-#include "panic.h"
-#include "strutil.h"
-#include "util.h"
-#include "dialect.h"
-#include "type_t.h"
-#include "types.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "adt/util.h"
+#include "ast/dialect.h"
+#include "ast/type_t.h"
+#include "ast/types.h"
 #include "c_driver.h"
 #include "diagnostic.h"
-#include "ast2ir.h"
-//#include "firm/firm_opt.h"
-//#include "firm/mangle.h"
+#include "firm/ast2firm.h"
+#include "firm/firm_opt.h"
+#include "firm/mangle.h"
 #include "target.h"
 #include "warning.h"
 
@@ -27,8 +27,6 @@ bool set_wchar;
 bool short_wchar;
 bool unsigned_char;
 
-#if 0
-// TODO RK
 static atomic_type_kind_t ir_platform_to_ast(ir_platform_type_t type,
                                              bool get_signed)
 {
@@ -236,48 +234,22 @@ static void set_options_from_be(void)
 			dialect.support_fastcall_stdcall = true;
 	}
 }
-#else
-void set_target_option(char const *const arg)
-{
-}
-
-void target_adjust_types_and_dialect(void)
-{
-    // TODO RK
-    unsigned int_size     = 4;
-    unsigned long_size    = 4;
-    unsigned pointer_size = 4;
-    atomic_type_kind_t pointer_sized_int = ATOMIC_TYPE_INT;
-    atomic_type_kind_t pointer_sized_uint = ATOMIC_TYPE_UINT;
-    atomic_type_kind_t wchar_atomic_kind = ATOMIC_TYPE_USHORT;
-
-    init_types(int_size, long_size, pointer_size, wchar_atomic_kind,
-               pointer_sized_int, pointer_sized_uint);
-
-}
-
-#endif
 
 void init_firm_target(void)
 {
-#if 0
-    // TODO RK
-    ir_init_library();
+	ir_init_library();
 	determine_target_machine();
 
-    bool initialized = ir_target_set_triple(target.machine);
+	bool initialized = ir_target_set_triple(target.machine);
 	if (!initialized) {
 		errorf(NULL, "Failed to initialize libfirm code generation\n");
 		exit(EXIT_FAILURE);
 	}
-#endif
 }
 
 bool target_setup(void)
 {
-#if 0
-    // TODO RK
-    bool res = pass_options_to_firm_be();
+	bool res = pass_options_to_firm_be();
 	if (!res)
 		return false;
 
@@ -298,13 +270,4 @@ bool target_setup(void)
 	set_options_from_be();
 
 	return res;
-#else
-
-    memset(&target,0,sizeof(target));
-    target.biggest_alignment     = 8;
-    target.user_label_prefix     = '.';
-    target.byte_order_big_endian = 1;
-    target.triple = "this is a nice triple";
-    return 1;
-#endif
 }

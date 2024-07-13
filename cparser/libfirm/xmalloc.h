@@ -28,7 +28,7 @@
 #	endif
 #endif
 
-#include "begin.h"
+#include "../begin.h"
 
 /**
  * @ingroup adt
@@ -140,6 +140,6 @@ FIRM_API char *xstrdup(const char *str);
 
 /** @} */
 
-#include "end.h"
+#include "../end.h"
 
 #endif

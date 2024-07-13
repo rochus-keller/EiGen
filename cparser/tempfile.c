@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "array.h"
-#include "panic.h"
-#include "obst.h"
+#include "adt/array.h"
+#include "adt/panic.h"
+#include "adt/obst.h"
 #include "diagnostic.h"
 
 static char         **temp_files;

@@ -4,13 +4,13 @@
  */
 #include "types.h"
 
-//#include <libfirm/be.h>
+#include <libfirm/be.h>
 
-#include "entity_t.h"
-#include "position.h"
-#include "symbol.h"
+#include "ast/entity_t.h"
+#include "ast/position.h"
+#include "ast/symbol.h"
 #include "dialect.h"
-#include "parser.h"
+#include "parser/parser.h"
 #include "type_t.h"
 
 /** The error type. */
@@ -198,8 +198,6 @@ void init_predefined_types(void)
 
 	type_builtin_template_ptr    = make_pointer_type(type_builtin_template,  TYPE_QUALIFIER_NONE);
 
-#if 0
-    // TODO RK
 	ir_type *va_list_type = ir_platform_va_list_type();
 	if (!va_list_type) {
 		/* Backend has no vararg support. Just hope the the program will not be
@@ -227,10 +225,6 @@ void init_predefined_types(void)
 		type_valist     = make_array_type(type_valist_struct, 1, TYPE_QUALIFIER_NONE);
 		type_valist_arg = automatic_type_conversion(type_valist);
 	}
-#else
-    type_valist     = type_void_ptr;
-    type_valist_arg = type_void_ptr;
-#endif
 
 	/* const character types */
 	type_const_char         = make_atomic_type(ATOMIC_TYPE_CHAR,        TYPE_QUALIFIER_CONST);

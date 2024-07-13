@@ -7,14 +7,14 @@
 
 #include <assert.h>
 #include <errno.h>
-//#include <libfirm/statev.h>
+#include <libfirm/statev.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "panic.h"
-#include "strutil.h"
-#include "util.h"
+#include "adt/panic.h"
+#include "adt/strutil.h"
+#include "adt/util.h"
 #include "c_driver.h"
 #include "diagnostic.h"
 #include "timing.h"
@@ -250,9 +250,9 @@ bool process_all_units(compilation_env_t *env)
 			return false;
 		}
 
-        // TODO RK stat_ev_ctx_push_str("compilation_unit", unit->name);
+		stat_ev_ctx_push_str("compilation_unit", unit->name);
 		bool ok = process_unit(env, unit);
-        // TODO RK stat_ev_ctx_pop("compilation_unit");
+		stat_ev_ctx_pop("compilation_unit");
 		if (!ok) {
 			return false;
 		}
@@ -272,18 +272,15 @@ void begin_statistics(void)
 			memcpy(buf, first_cup, len);
 			buf[len] = '\0';
 
-            // TODO RK stat_ev_begin(buf, filtev);
+			stat_ev_begin(buf, filtev);
 		}
 	}
 }
 
 void end_statistics(void)
 {
-#if 0
-    // TODO RK
 	if (stat_ev_enabled)
 		stat_ev_end();
-#endif
 }
 
 void driver_add_input(const char *filename, compilation_unit_type_t type)

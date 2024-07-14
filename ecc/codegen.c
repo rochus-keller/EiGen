@@ -578,6 +578,9 @@ static void gen_expr(Node *node) {
         println("  neg %s $0, %s $0", type, type );
         return;
     }
+    case ND_PLUS:
+        gen_expr(node->lhs);
+        return;
     case ND_VAR:
         // ok
         gen_addr(node);

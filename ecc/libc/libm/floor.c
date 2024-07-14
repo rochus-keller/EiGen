@@ -68,3 +68,8 @@ double floor(double x)
 	return x;
 }
 
+float floorf(float x)
+{
+    return floor(x);
+}
+

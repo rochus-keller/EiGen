@@ -22,7 +22,7 @@ typedef _PDCLIB_size_t size_t;
 #endif
 
 #ifndef __cplusplus
-//typedef _PDCLIB_wchar_t   wchar_t;
+typedef _PDCLIB_wchar_t   wchar_t;
 #endif
 
 #ifndef _PDCLIB_NULL_DEFINED

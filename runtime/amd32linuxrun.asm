@@ -213,9 +213,8 @@ base:	.equals	0x08048000
 	system_call	sys_waitid, 284, 5
 	system_call	sys_write, 4, 3
 	; added by RK
-	system_call sys_gettimeofday, 96, 2
-	system_call sys_renameat, 264, 4
-	system_call sys_getcwd, 79, 2
+	system_call sys_gettimeofday, 78, 2
+	system_call sys_getcwd, 183, 2
 
 #undef system_call
 

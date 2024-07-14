@@ -9,7 +9,8 @@
 
 struct timeval
 {
-    long tv_sec;		/* Seconds.  */
+    long tv_sec;	/* Seconds.  */
+    long tv_usec;	/* Microseconds.  */
 };
 
 struct tms
@@ -24,8 +25,7 @@ struct tms
 // defined in ECS runtime
 extern int sys_close(int fd);
 extern int sys_open(const char *pathname, int flags, ... /* mode_t mode */ );
-extern int sys_renameat(int olddirfd, const char *oldpath,
-                    int newdirfd, const char *newpath);
+extern int sys_rename(const char *oldpath, const char *newpath);
 extern int sys_gettimeofday(struct timeval *restrict tv, void * restrict tz);
 extern int sys_unlink(const char *pathname);
 extern char *sys_getcwd(char* buf, size_t size);
@@ -261,14 +261,12 @@ _PDCLIB_LOCAL int _PDCLIB_remove( const char * pathname )
     return sys_unlink( pathname );
 }
 
-# define AT_FDCWD		-100
-
 _PDCLIB_LOCAL int _PDCLIB_rename( const char * oldpath, const char * newpath )
 {
     /* Whether existing newpath is overwritten is implementation-
        defined. This system call *does* overwrite.
     */
-    if ( sys_renameat( AT_FDCWD, oldpath, AT_FDCWD, newpath ) != 0 )
+    if ( sys_rename( oldpath, newpath ) != 0 )
     {
         /* The 1:1 mapping in _PDCLIB_config.h ensures this works. */
         *_PDCLIB_errno_func() = errno;
@@ -537,6 +535,9 @@ time_t time( time_t * timer )
 {
     struct timeval tv;
 
+    if ( timer != NULL )
+        *timer = 0;
+
     if ( sys_gettimeofday( &tv, NULL ) == 0 )
     {
         if ( timer != NULL )
@@ -545,6 +546,31 @@ time_t time( time_t * timer )
         }
 
         return tv.tv_sec;
+    }
+
+    return -1;
+}
+
+int timespec_get( struct timespec * ts, int base )
+{
+    struct timeval tv;
+
+    if ( ts != NULL )
+    {
+        ts->tv_sec = 0;
+        ts->tv_nsec = 0;
+    }
+
+    const int res = sys_gettimeofday( &tv, NULL );
+    if ( res == 0 )
+    {
+        if ( ts != NULL )
+        {
+            ts->tv_sec = tv.tv_sec;
+            ts->tv_nsec = tv.tv_usec * 1000;
+        }
+
+        return base;
     }
 
     return -1;

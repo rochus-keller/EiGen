@@ -10,7 +10,7 @@ int foo() {
 int c;
 
 int main(void) {
-    extern int a;
+    // extern int a; // original gives a linker error in ecc: unresolved variable a, which is ok
     static int b;
     {
     	static int a = 2;

@@ -112,3 +112,8 @@ double atan(double x)
 	}
 }
 
+float atanf(float x)
+{
+    return atan(x);
+}
+

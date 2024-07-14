@@ -3555,7 +3555,7 @@ static type_t *construct_declarator_type(construct_type_t *construct_list,
 							errorf(&size_expression->base.pos, "size of array must be greater than zero (zero length arrays are a GCC extension)");
 						}
 					} else {
-						errorf(&size_expression->base.pos, "array is too large");
+                        errorf(&size_expression->base.pos, "array is too large");
 					}
 					break;
 				}

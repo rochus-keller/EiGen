@@ -69,7 +69,7 @@ struct obstack  ldflags_obst;
 struct obstack  asflags_obst;
 struct obstack  codegenflags_obst;
 bool            construct_dep_target;
-int             driver_use_integrated_preprocessor = -1;
+int             driver_use_integrated_preprocessor = true; // RK original was -1;
 bool            driver_no_stdinc;
 bool            driver_verbose;
 bool            dump_defines;

@@ -383,7 +383,7 @@ void add_predefined_macros(void)
 	define_type_max("LONG",      ATOMIC_TYPE_LONG);
 	define_type_max("LONG_LONG", ATOMIC_TYPE_LONGLONG);
 
-	define_type_type_max("WCHAR",   type_wchar_t->atomic.akind);
+    define_type_type_max("WCHAR",   type_wchar_t->atomic.akind);
 	define_type_min(     "WCHAR",   type_wchar_t->atomic.akind);
 	define_type_type_max("SIZE",    type_size_t->atomic.akind);
 	define_type_type_max("WINT",    type_wint_t->atomic.akind);
@@ -461,6 +461,9 @@ void add_predefined_macros(void)
 	/* TODO: __CHAR16_TYPE__, __CHAR32_TYPE__ */
 
 	define_pragma_macro();
+
+    add_define("__ECS2_C__", "1", false);
+    add_define("__STACK_ALIGNMENT__", "4", false); // TODO
 
 	/* Add target specific defines */
 #if 0

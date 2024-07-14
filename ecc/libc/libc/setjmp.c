@@ -1,7 +1,7 @@
 #include <setjmp.h>
 #include <stdlib.h>
 
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
 
 asm(R"(

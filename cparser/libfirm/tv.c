@@ -36,11 +36,6 @@ int tarval_is_constant(const ir_tarval *tv)
     return 1;
 }
 
-ir_relation tarval_cmp(const ir_tarval *a, const ir_tarval *b)
-{
-    return ir_relation_false;
-}
-
 static ir_tarval bad = { 0, 0 };
 ir_tarval *const tarval_bad = &bad;
 
@@ -50,21 +45,21 @@ int tarval_get_wrap_on_overflow()
 }
 
 static ir_tarval* new_float(double d, ir_mode* m) {
-    ir_tarval* res = alloca(sizeof(ir_tarval));
+    ir_tarval* res = malloc(sizeof(ir_tarval)); // RISK
     res->mode = m;
     res->d = d;
     return res;
 }
 
 static ir_tarval* new_signed(int64_t l, ir_mode* m) {
-    ir_tarval* res = alloca(sizeof(ir_tarval));
+    ir_tarval* res = malloc(sizeof(ir_tarval)); // RISK
     res->mode = m;
     res->l = l;
     return res;
 }
 
 static ir_tarval* new_unsigned(uint64_t u, ir_mode* m) {
-    ir_tarval* res = alloca(sizeof(ir_tarval));
+    ir_tarval* res = malloc(sizeof(ir_tarval)); // RISK
     res->mode = m;
     res->u = u;
     return res;
@@ -108,7 +103,37 @@ int get_tarval_highest_bit(const ir_tarval *tv)
 {
     if( mode_is_float(tv->mode) )
         return tarval_bad;
-    return get_mode_size_bytes(tv->mode) * 8 - 1;
+    if( tv->u > 0xfffffffffffffff )
+        return 63;
+    if( tv->u > 0xffffffffffffff )
+        return 59;
+    if( tv->u > 0xfffffffffffff )
+        return 55;
+    if( tv->u > 0xffffffffffff )
+        return 51;
+    if( tv->u > 0xfffffffffff )
+        return 47;
+    if( tv->u > 0xffffffffff )
+        return 43;
+    if( tv->u > 0xfffffffff )
+        return 39;
+    if( tv->u > 0xffffffff )
+        return 35;
+    if( tv->u > 0xfffffff )
+        return 31;
+    if( tv->u > 0xffffff )
+        return 27;
+    if( tv->u > 0xfffff )
+        return 23;
+    if( tv->u > 0xffff )
+        return 19;
+    if( tv->u > 0xfff )
+        return 15;
+    if( tv->u > 0xff )
+        return 11;
+    if( tv->u > 0xf )
+        return 7;
+    return 3;
 }
 
 ir_tarval *new_tarval_from_str(const char *str, size_t len, ir_mode *mode)
@@ -251,6 +276,44 @@ ir_tarval *get_mode_all_one(const ir_mode *mode)
         return tarval_bad;
     else
         return new_unsigned(maxValueOfUnsigned(get_mode_size_bits(mode)),mode);
+}
+
+ir_relation tarval_cmp(const ir_tarval *a, const ir_tarval *b)
+{
+    ir_mode* t = ir_common_mode(a->mode,b->mode);
+    if( t == 0 )
+        return ir_relation_false;
+    if (a == tarval_bad || b == tarval_bad || a->mode != b->mode)
+        return ir_relation_false;
+
+    if( mode_is_float(t) )
+    {
+        if( a->d == b->d )
+            return ir_relation_equal;
+        if( a->d < b->d )
+            return ir_relation_less;
+        else
+            return ir_relation_greater;
+    }
+    if( mode_is_signed(t) )
+    {
+        if( a->l == b->l )
+            return ir_relation_equal;
+        if( a->l < b->l )
+            return ir_relation_less;
+        else
+            return ir_relation_greater;
+    }
+    if( mode_is_int(t) )
+    {
+        if( a->u == b->u )
+            return ir_relation_equal;
+        if( a->u < b->u )
+            return ir_relation_less;
+        else
+            return ir_relation_greater;
+    }
+    panic("cannot compare");
 }
 
 ir_tarval *tarval_add(const ir_tarval *a, const ir_tarval *b)

@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 /* this code is ECS chibicc specific! */
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
 
 #define __va_size(type) (sizeof(type) < __STACK_ALIGNMENT__ ? __STACK_ALIGNMENT__ : sizeof(type))
 

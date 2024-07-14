@@ -540,7 +540,7 @@ struct _PDCLIB_imaxdiv_t
 /* conventions used, and you probably have to replace them with builtins of   */
 /* your compiler.                                                             */
 
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
 typedef unsigned char * _PDCLIB_va_list;
 
 #elif defined( __i386 )

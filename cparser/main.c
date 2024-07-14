@@ -310,7 +310,7 @@ int action_compile(const char *argv0)
 
 int main(int argc, char **argv)
 {
-	init_temp_files();
+    init_temp_files();
 	init_driver();
 	init_default_driver();
 	init_preprocessor();

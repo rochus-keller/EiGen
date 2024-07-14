@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sys/times.h>
 
-#ifndef __ECS_C__
+#if !defined __ECS_C__ && !defined __ECS2_C__
 
 void sys_exit(int status)
 {

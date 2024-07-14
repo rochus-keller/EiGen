@@ -16,7 +16,7 @@ void * sbrk (ptrdiff_t increment)
      the kernel.  */
     int update_brk = __curbrk == NULL;
     if (update_brk)
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
         __curbrk = sys_brk(0);
 #else
         __curbrk = syscall(45,0); // call brk(0)
@@ -31,7 +31,7 @@ void * sbrk (ptrdiff_t increment)
         *_PDCLIB_errno_func() = ENOMEM;
         return (void *) -1;
     }
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
         __curbrk = sys_brk(oldbrk + increment);
 #else
     __curbrk = syscall(45,oldbrk + increment);

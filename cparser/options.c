@@ -758,8 +758,8 @@ bool options_parse_early_codegen(options_state_t *s)
 			return true;
 		}
 	} else
-		return false;
 #endif
+        return false;
 	/* Remove argument so we do not parse it again in later phases */
 	return true;
 }

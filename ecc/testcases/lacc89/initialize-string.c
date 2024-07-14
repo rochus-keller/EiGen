@@ -11,9 +11,9 @@ void check(void) {
 }
 
 void func(void) {
-	char a[7] = ("wat");
+	char a[7] = "wat"; // original is ("wat"), gives compiler error
 	char b[3] = {"Hello"[1], 46};
-	char c[] = {"World" "hello"};
+	char c[] = "World" "hello"; // original is {"World" "hello"}, gives compiler error
 
 	printf("b = {%c, %c, %c}, size = %lu\n", b[0], b[1], b[2], sizeof(b));
 	printf("a = %s, size = %lu\n", a, sizeof(a));

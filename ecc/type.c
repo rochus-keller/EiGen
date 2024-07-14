@@ -115,6 +115,8 @@ bool is_numeric(Type *ty) {
 }
 
 bool is_compatible(Type *t1, Type *t2) {
+  if( t1 == 0 || t2 == 0 )
+      return false;
   if (t1 == t2)
     return true;
 
@@ -280,7 +282,8 @@ void add_type(Node *node) {
     usual_arith_conv(&node->lhs, &node->rhs);
     node->ty = node->lhs->ty;
     return;
-  case ND_NEG: {
+  case ND_NEG:
+  case ND_PLUS: { // we need an explicit unary plus for exactly this line
     Type *ty = get_common_type(basic_type(TY_INT), node->lhs->ty);
     node->lhs = new_cast(node->lhs, ty);
     node->ty = ty;
@@ -308,9 +311,18 @@ void add_type(Node *node) {
   case ND_LOGAND:
     node->ty = basic_type(TY_INT);
     return;
-  case ND_BITNOT:
   case ND_SHL:
   case ND_SHR:
+      // RK: lhs must at least be int according to standard
+      if( node->lhs->ty->kind < TY_INT ){
+          if( node->lhs->ty->is_unsigned )
+            node->lhs = new_cast(node->lhs, basic_utype(TY_INT));
+          else
+            node->lhs = new_cast(node->lhs, basic_type(TY_INT));
+      }
+      node->ty = node->lhs->ty;
+      break;
+  case ND_BITNOT:
     node->ty = node->lhs->ty;
     return;
   case ND_VAR:

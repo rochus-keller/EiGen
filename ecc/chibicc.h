@@ -201,6 +201,7 @@ typedef enum {
   ND_MUL,       // *
   ND_DIV,       // /
   ND_NEG,       // unary -
+  ND_PLUS,      // unary +
   ND_MOD,       // %
   ND_BITAND,    // &
   ND_BITOR,     // |

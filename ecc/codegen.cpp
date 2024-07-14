@@ -669,6 +669,8 @@ static Smop gen_expr(Node *node) {
         const Code::Type type = getCodeType(node->ty);
         return e->Negate(e->Convert(type,tmp)); // neg %s $0, %s $0
     }
+    case ND_PLUS:
+        return gen_expr(node->lhs);
     case ND_VAR: {
 
         Smop tmp = gen_addr(node);
@@ -930,21 +932,22 @@ static Smop gen_expr(Node *node) {
         cast(node->rhs->ty, node->lhs->ty, rhs);
         rhsT = lhsT;
     }
+    lhs = e->Convert(lhsT,lhs);
 
     switch (node->kind) {
     case ND_ADD:
         if( targets[target].architecture == Amd32 ) // TODO: work-around add issue with 64 bit numbers on 32 bit systems
         {
-            Smop tmp = e->Move(e->Convert(lhsT,lhs));
+            Smop tmp = e->Move(lhs);
             return e->Add(tmp,rhs);
         }else
-            return e->Add(e->Convert(lhsT,lhs),rhs);
+            return e->Add(lhs,rhs);
         // add %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_SUB:
-        return e->Subtract(e->Convert(lhsT,lhs),rhs);
+        return e->Subtract(lhs,rhs);
         // sub %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_MUL:
-        return e->Multiply(e->Convert(lhsT,lhs),rhs);
+        return e->Multiply(lhs,rhs);
         // mul %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_DIV:
         if( rhs.model == Code::Operand::Immediate && rhs.type.model == Code::Type::Float && rhs.fimm == 0.0 ) {
@@ -954,19 +957,19 @@ static Smop gen_expr(Node *node) {
                 return Code::FImm(lhsT,HUGE_VALF);
         }
         else
-            return e->Divide(e->Convert(lhsT,lhs),rhs);
+            return e->Divide(lhs,rhs);
         // div %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_MOD:
-        return e->Modulo(e->Convert(lhsT,lhs),rhs);
+        return e->Modulo(lhs,rhs);
         // mod %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_BITAND:
-        return e->And(e->Convert(lhsT,lhs),rhs);
+        return e->And(lhs,rhs);
         // and %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_BITOR:
-        return e->Or(e->Convert(lhsT,lhs),rhs);
+        return e->Or(lhs,rhs);
         // or %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_BITXOR:
-        return e->ExclusiveOr(e->Convert(lhsT,lhs),rhs);
+        return e->ExclusiveOr(lhs,rhs);
         // xor %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_EQ:
     case ND_NE:
@@ -975,26 +978,26 @@ static Smop gen_expr(Node *node) {
     {
         Label ltrue = e->CreateLabel();
         if (node->kind == ND_EQ) {
-            e->BranchEqual(ltrue,e->Convert(lhsT,lhs),rhs);
+            e->BranchEqual(ltrue,lhs,rhs);
             // breq +2, %s $0, %s %s", lhsT, rhsT, tmpname
         } else if (node->kind == ND_NE) {
-            e->BranchNotEqual(ltrue,e->Convert(lhsT,lhs),rhs);
+            e->BranchNotEqual(ltrue,lhs,rhs);
             // brne +2, %s $0, %s %s", lhsT, rhsT, tmpname
         } else if (node->kind == ND_LT) {
-            e->BranchLessThan(ltrue,e->Convert(lhsT,lhs),rhs);
+            e->BranchLessThan(ltrue,lhs,rhs);
             // brlt +2, %s $0, %s %s", lhsT, rhsT, tmpname
         } else if (node->kind == ND_LE) {
-            e->BranchGreaterEqual(ltrue,rhs,e->Convert(lhsT,lhs));
+            e->BranchGreaterEqual(ltrue,rhs,lhs);
             // brge +2, %s %s, %s $0", rhsT, tmpname, lhsT
         }
 
         return e->Set(ltrue,Code::Imm(types[s4],0),Code::Imm(types[s4],1));
     } break;
     case ND_SHL:
-        return e->ShiftLeft(e->Convert(lhsT,lhs),rhs);
+        return e->ShiftLeft(lhs,rhs);
         // lsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     case ND_SHR:
-        return e->ShiftRight(e->Convert(lhsT,lhs),rhs);
+        return e->ShiftRight(lhs,rhs);
         // rsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname
     default:
         error_tok(node->tok, "invalid expression");

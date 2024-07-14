@@ -65,3 +65,7 @@ double tan(double x)
 	}
 }
 
+float tanf(float x)
+{
+    return tan(x);
+}

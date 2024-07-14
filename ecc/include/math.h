@@ -36,44 +36,64 @@ __BEGIN_DECLS
 double sin(double d) __THROW __attribute__((__const__));
 double cos(double d) __THROW __attribute__((__const__));
 double tan(double d) __THROW __attribute__((__const__));
+float tanf(float d);
 
 float sinf(float d) __THROW __attribute__((__const__));
 float cosf(float d) __THROW __attribute__((__const__));
 
 double sinh(double d) __THROW __attribute__((__const__));
+float sinhf (float x);
 double cosh(double d) __THROW __attribute__((__const__));
+float coshf (float x);
 double tanh(double d) __THROW __attribute__((__const__));
+float tanhf(float x);
 
 double asin(double d) __THROW __attribute__((__const__));
+float asinf (float x);
 double acos(double d) __THROW __attribute__((__const__));
+float acosf (float x);
 double atan(double d) __THROW __attribute__((__const__));
+float atanf(float d);
 
 double asinh(double d) __THROW __attribute__((__const__));
+float asinhf(float x);
 double acosh(double d) __THROW __attribute__((__const__));
+float acoshf(float d);
 double atanh(double d) __THROW __attribute__((__const__));
+float atanhf(float d);
 
 double exp(double d) __THROW __attribute__((__const__));
 double exp10(double d) __THROW __attribute__((__const__));
 double log(double d) __THROW __attribute__((__const__));
+float logf(float);
 double log10(double d) __THROW __attribute__((__const__));
+float log10f (float x);
+float expf (float x);
 
 double exp2(double d) __THROW __attribute__((__const__));
 double log2(double d) __THROW __attribute__((__const__));
 
 double pow(double x, double y) __THROW __attribute__((__const__));
+float powf (float x, float y);
 
 double sqrt(double x) __THROW __attribute__((__const__));
 double fabs(double x) __THROW __attribute__((__const__));
 double fmod(double x, double y) __THROW __attribute__((__const__));
+float sqrtf (float x);
 
 double floor(double x) __attribute__((__const__));
 double ceil(double x) __attribute__((__const__));
+float floorf(float x);
 
 double expm1(double x) __THROW __attribute__((__const__));
 double hypot(double x, double y) __THROW __attribute__((__const__));
 double atan2(double x, double y) __THROW __attribute__((__const__));
+float atan2f (float y, float x);
 
 double copysign(double value, double sign) __attribute__((__const__));
+
+double round(double x);
+float roundf(float x);
 
 #define HUGE_VAL _PDCLIB_DBL_MAX 
 #define HUGE_VALF _PDCLIB_DBL_MAX 

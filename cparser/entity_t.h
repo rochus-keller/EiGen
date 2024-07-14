@@ -181,7 +181,7 @@ struct compound_member_t {
 	bool           bitfield : 1;  /**< member is (part of) a bitfield */
 
 	/* ast2firm info */
-    //ir_entity *entity;
+    ir_entity *entity;
 };
 
 struct variable_t {
@@ -201,8 +201,8 @@ struct variable_t {
 	/* ast2firm info */
 	union {
 		unsigned int  value_number;
-        //ir_entity    *entity;
-        //ir_node      *vla_base;
+        ir_entity    *entity;
+        ir_node      *vla_base;
 	} v;
 };
 
@@ -233,7 +233,7 @@ struct function_t {
         ir_builtin_kind firm_builtin_kind;
 		unsigned        chk_arg_pos;
 	} b;
-    //ir_entity *irentity;
+    ir_entity *irentity;
 };
 
 struct asm_operand_t {

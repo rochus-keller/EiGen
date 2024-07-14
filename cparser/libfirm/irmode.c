@@ -40,6 +40,8 @@ ir_mode *mode_Lu = &ir_umodes[IR_TYPE_LONG];
 
 ir_mode *mode_P = &ir_umodes[IR_TYPE_LONG];
 
+ir_mode *mode_ANY = 0;/**< undefined mode */
+
 unsigned get_mode_size_bytes(const ir_mode *mode)
 {
     return mode->size;

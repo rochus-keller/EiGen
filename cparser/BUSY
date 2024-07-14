@@ -19,6 +19,7 @@ let libfirm : SourceSet {
     ./libfirm/irmode.c
     ./libfirm/pset.c
     ./libfirm/timing.c
+    ./libfirm/typerep.h
     ]
 }
 
@@ -26,6 +27,7 @@ let cparser ! : Executable {
     .configs += config;
     .deps += [ libfirm ]
     .sources += [
+        ./ir_opt.h
         ./actions.c
         ./ast.c
         ./attribute.c

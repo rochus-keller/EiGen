@@ -33,6 +33,6 @@
 #define hashset_remove_iterator pset_new_remove_iterator
 
 #if 0
-// TODO RK
+// RK
 #include "hashset.c.h"
 #endif

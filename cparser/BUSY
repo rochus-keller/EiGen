@@ -1,3 +1,5 @@
+param HAVE_IA32_BACKEND = false
+
 let config : Config {
     if target_toolchain == `gcc {
         .lib_names += [ "m" "stdc++" ]
@@ -10,8 +12,58 @@ let config : Config {
     }
 }
 
+let ia32 : SourceSet {
+    .configs += config;
+    .include_dirs += ./libfirm
+    .sources += [
+        ./libfirm/ia32/gen_ia32_emitter.c
+        ./libfirm/ia32/gen_ia32_new_nodes.c
+        ./libfirm/ia32/gen_ia32_regalloc_if.c
+        ./libfirm/ia32/ia32_architecture.c
+        ./libfirm/ia32/ia32_bearch.c
+        ./libfirm/ia32/ia32_cconv.c
+        ./libfirm/ia32/ia32_emitter.c
+        ./libfirm/ia32/ia32_encode.c
+        ./libfirm/ia32/ia32_finish.c
+        ./libfirm/ia32/ia32_fpu.c
+        ./libfirm/ia32/ia32_intrinsics.c
+        ./libfirm/ia32/ia32_new_nodes.c
+        ./libfirm/ia32/ia32_optimize.c
+        ./libfirm/ia32/ia32_pic.c
+        ./libfirm/ia32/ia32_transform.c
+        ./libfirm/ia32/x86_address_mode.c
+        ./libfirm/ia32/x86_architecture.c
+        ./libfirm/ia32/x86_asm.c
+        ./libfirm/ia32/x86_cconv.c
+        ./libfirm/ia32/x86_node.c
+        ./libfirm/ia32/x86_x87.c
+        ./libfirm/ia32/gen_ia32_emitter.h
+        ./libfirm/ia32/gen_ia32_new_nodes.h
+        ./libfirm/ia32/gen_ia32_regalloc_if.h
+        ./libfirm/ia32/ia32_architecture.h
+        ./libfirm/ia32/ia32_bearch_t.h
+        ./libfirm/ia32/ia32_emitter.h
+        ./libfirm/ia32/ia32_encode.h
+        ./libfirm/ia32/ia32_new_nodes.h
+        ./libfirm/ia32/ia32_new_nodes_t.h
+        ./libfirm/ia32/ia32_nodes_attr.h
+        ./libfirm/ia32/ia32_optimize.h
+        ./libfirm/ia32/ia32_transform.h
+        ./libfirm/ia32/x86_address_mode.h
+        ./libfirm/ia32/x86_architecture.h
+        ./libfirm/ia32/x86_asm.h
+        ./libfirm/ia32/x86_cconv.h
+        ./libfirm/ia32/x86_node.h
+        ./libfirm/ia32/x86_x87.h
+    ]
+}
+
 let libfirm : SourceSet {
     .configs += config;
+    if HAVE_IA32_BACKEND {
+        .deps += [ ia32 ]
+        .defines += "HAVE_IA32_BACKEND"
+    }
 
     .sources += [
         ./libfirm/TEMPLATE_transform.c

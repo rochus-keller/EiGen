@@ -89,9 +89,11 @@ void be_init_modules(void)
 	be_init_state();
 
 	/* in the following groups the first one is the default */
+#ifdef HAVE_IA32_BACKEND
+    be_init_arch_ia32();
+#endif
 #if 0
     // TODO RK
-	be_init_arch_ia32();
 	be_init_arch_arm();
 	be_init_arch_mips();
 	be_init_arch_sparc();

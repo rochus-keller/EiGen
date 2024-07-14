@@ -583,7 +583,7 @@ static bool start_preprocessing(compilation_env_t *env,
 
 static bool preprocess(compilation_env_t *env, compilation_unit_t *unit)
 {
-	if (driver_use_integrated_preprocessor == -1) {
+    if (driver_use_integrated_preprocessor == -1) { // TODO RK: reconsider this
 		/* don't use the integrated preprocessor when crosscompiling
 		 * since we probably don't have the correct location of the
 		 * system headers compiled in. */

@@ -23,12 +23,16 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 	const char *const manufacturer = ir_triple_get_manufacturer(machine);
 	char          const *arch      = NULL;
 	arch_isa_if_t const *isa;
+
+#ifdef HAVE_IA32_BACKEND
+    if (ir_is_cpu_x86_32(cpu)) {
+        isa  = &ia32_isa_if;
+        arch = cpu;
+    } else
+#endif
 #if 0
     // TODO RK
-	if (ir_is_cpu_x86_32(cpu)) {
-		isa  = &ia32_isa_if;
-		arch = cpu;
-	} else if (streq(cpu, "arm")) {
+    if (streq(cpu, "arm")) {
 		isa = &arm_isa_if;
 	} else if (streq(cpu, "sparc")) {
 		isa = &sparc_isa_if;

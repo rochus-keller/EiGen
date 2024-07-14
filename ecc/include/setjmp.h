@@ -10,10 +10,9 @@ extern "C" {
 #define _SETJMP_H_
 
 #ifdef __ECS_C__
-// ECS specific, implementation in setjmp.cod
+// ECS specific, implementation in setjmp.c
 typedef struct jmp_buf {void *sp, *fp, (*pc) ();} jmp_buf[1];
-#endif 
-#ifdef __GNUC__
+#elif defined  __GNUC__
 typedef int __jmp_buf[6];
 # define _SIGSET_NWORDS	(1024 / (8 * sizeof (unsigned long int)))
 typedef struct

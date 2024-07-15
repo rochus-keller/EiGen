@@ -766,8 +766,13 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 	ir_timer_t *t_construct = ir_timer_new();
 	timer_register(t_construct, "Frontend: Graph construction");
 	timer_start(t_construct);
-	if (already_constructed_firm)
-		panic("compiling multiple files/translation units not yet supported");
+
+    // TODO RK if (already_constructed_firm)
+    //	panic("compiling multiple files/translation units not yet supported");
+    // NOTE: if we process awfy/*.c, then it loses type information an e.g. reports
+    // Havlak.c:736:194: error: request for member 'class$' in incomplete type 'struct som$Vector$04445da84e$Vector'
+    // even if the file is included and the type known; doesn't happen if each awfy file is compiled by itself!
+
 	already_constructed_firm = true;
     // TODO init_implicit_optimizations();
 	translation_unit_to_firm(unit->ast);
@@ -831,12 +836,11 @@ static bool do_generate_code(FILE *asm_out, compilation_unit_t *unit)
 	timer_start(t_opt_codegen);
 	generate_code(asm_out, unit->original_name);
 	timer_stop(t_opt_codegen);
-    // TODO RK
 	if (stat_ev_enabled) {
 		stat_ev_dbl("time_opt_codegen", ir_timer_elapsed_sec(t_opt_codegen));
 	}
-	unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
 #endif
+    unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
     return true;
 }
 

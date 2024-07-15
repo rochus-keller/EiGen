@@ -5350,7 +5350,7 @@ void translation_unit_to_firm(translation_unit_t *unit)
 #endif
 
     //print_ast(unit);
-    scope_to_firm(&unit->scope);
+    //scope_to_firm(&unit->scope);
     //global_asm_to_firm(unit->global_asm);
 
 //	current_ir_graph         = NULL;

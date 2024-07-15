@@ -64,7 +64,7 @@ static struct timespec start;
 
 int32_t Input$Time()
 {
-#ifndef __ECS_C__
+#if !defined __ECS_C__ && !defined __ECS2_C__
     static struct timeval now;
     gettimeofday(&now, 0);
     const long seconds = now.tv_sec - start.tv_sec;
@@ -112,7 +112,7 @@ void Input$Mouse( int32_t* keys, int32_t* x, int32_t* y)
 
 void Input$init$()
 {
-#ifndef __ECS_C__
+#if !defined __ECS_C__ && !defined __ECS2_C__
     gettimeofday(&start, 0);
 #else
     timespec_get(&start,0);

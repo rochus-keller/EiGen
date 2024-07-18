@@ -1,4 +1,6 @@
 param HAVE_IA32_BACKEND = false
+param HAVE_ARM_BACKEND = false
+param HAVE_TEMPLATE_BACKEND = false
 
 let config : Config {
     if target_toolchain == `gcc {
@@ -10,6 +12,35 @@ let config : Config {
     }else {
         error("target toolchain not supported")
     }
+}
+
+let arm : SourceSet {
+    .configs += config;
+    .include_dirs += ./libfirm
+    .sources += [
+        ./libfirm/arm/arm_bearch.c
+        ./libfirm/arm/arm_cconv.c
+        ./libfirm/arm/arm_emitter.c
+        ./libfirm/arm/arm_finish.c
+        ./libfirm/arm/arm_lower64.c
+        ./libfirm/arm/arm_new_nodes.c
+        ./libfirm/arm/arm_optimize.c
+        ./libfirm/arm/arm_transform.c
+        ./libfirm/arm/gen_arm_emitter.c
+        ./libfirm/arm/gen_arm_new_nodes.c
+        ./libfirm/arm/gen_arm_regalloc_if.c
+        ./libfirm/arm/arm_bearch_t.h
+        ./libfirm/arm/arm_cconv.h
+        ./libfirm/arm/arm_emitter.h
+        ./libfirm/arm/arm_new_nodes.h
+        ./libfirm/arm/arm_new_nodes_t.h
+        ./libfirm/arm/arm_nodes_attr.h
+        ./libfirm/arm/arm_optimize.h
+        ./libfirm/arm/arm_transform.h
+        ./libfirm/arm/gen_arm_emitter.h
+        ./libfirm/arm/gen_arm_new_nodes.h
+        ./libfirm/arm/gen_arm_regalloc_if.h
+    ]
 }
 
 let ia32 : SourceSet {
@@ -58,18 +89,44 @@ let ia32 : SourceSet {
     ]
 }
 
+let template : SourceSet {
+    .configs += config;
+    .include_dirs += ./libfirm
+    .sources += [
+        ./libfirm/template/TEMPLATE_transform.c
+        ./libfirm/template/TEMPLATE_new_nodes.c
+        ./libfirm/template/TEMPLATE_emitter.c
+        ./libfirm/template/TEMPLATE_bearch.c
+        ./libfirm/template/gen_TEMPLATE_emitter.c
+        ./libfirm/template/gen_TEMPLATE_new_nodes.c
+        ./libfirm/template/gen_TEMPLATE_regalloc_if.c
+        ./libfirm/template/gen_TEMPLATE_emitter.h
+        ./libfirm/template/gen_TEMPLATE_new_nodes.h
+        ./libfirm/template/gen_TEMPLATE_regalloc_if.h
+        ./libfirm/template/TEMPLATE_bearch_t.h
+        ./libfirm/template/TEMPLATE_emitter.h
+        ./libfirm/template/TEMPLATE_new_nodes.h
+        ./libfirm/template/TEMPLATE_new_nodes_t.h
+        ./libfirm/template/TEMPLATE_nodes_attr.h
+        ./libfirm/template/TEMPLATE_transform.h
+    ]
+}
+
 let libfirm : SourceSet {
     .configs += config;
     if HAVE_IA32_BACKEND {
         .deps += [ ia32 ]
         .defines += "HAVE_IA32_BACKEND"
     }
-
+    if HAVE_ARM_BACKEND {
+        .deps += [ arm ]
+        .defines += "HAVE_ARM_BACKEND"
+    }
+    if HAVE_TEMPLATE_BACKEND {
+        .deps += [ template ]
+        .defines += "HAVE_TEMPLATE_BACKEND"
+    }
     .sources += [
-        ./libfirm/TEMPLATE_transform.c
-        ./libfirm/TEMPLATE_new_nodes.c
-        ./libfirm/TEMPLATE_emitter.c
-        ./libfirm/TEMPLATE_bearch.c
         ./libfirm/analyze_irg_args.c
         ./libfirm/array.c
         ./libfirm/be2addr.c
@@ -159,9 +216,6 @@ let libfirm : SourceSet {
         ./libfirm/gaussseidel.c
         ./libfirm/gen_irio.c
         ./libfirm/gen_irnode.c
-        ./libfirm/gen_TEMPLATE_emitter.c
-        ./libfirm/gen_TEMPLATE_new_nodes.c
-        ./libfirm/gen_TEMPLATE_regalloc_if.c
         ./libfirm/gvn_pre.c
         ./libfirm/heights.c
         ./libfirm/heuristical.c
@@ -367,9 +421,6 @@ let libfirm : SourceSet {
         ./libfirm/gaussseidel.h
         ./libfirm/gen_irnode.h
         ./libfirm/gen_proj_names.h
-        ./libfirm/gen_TEMPLATE_emitter.h
-        ./libfirm/gen_TEMPLATE_new_nodes.h
-        ./libfirm/gen_TEMPLATE_regalloc_if.h
         ./libfirm/hashptr.h
         ./libfirm/hashset.c.h
         ./libfirm/hashset.h

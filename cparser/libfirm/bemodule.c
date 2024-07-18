@@ -92,16 +92,19 @@ void be_init_modules(void)
 #ifdef HAVE_IA32_BACKEND
     be_init_arch_ia32();
 #endif
+#ifdef HAVE_ARM_BACKEND
+    be_init_arch_arm();
+#endif
+#ifdef HAVE_TEMPLATE_BACKEND
+    be_init_arch_TEMPLATE();
+#endif
 #if 0
     // TODO RK
-	be_init_arch_arm();
 	be_init_arch_mips();
 	be_init_arch_sparc();
 	be_init_arch_amd64();
 	be_init_arch_riscv32();
 #endif
-	be_init_arch_TEMPLATE();
-
 	be_init_listsched();
 	be_init_sched_normal();
 	be_init_sched_rand();

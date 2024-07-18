@@ -9,7 +9,7 @@
  */
 #include "timing.h"
 
-#include <libfirm/adt/xmalloc.h>
+#include <libfirm/xmalloc.h>
 
 static int timers_inited;
 

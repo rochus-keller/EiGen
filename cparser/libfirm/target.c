@@ -30,11 +30,18 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
         arch = cpu;
     } else
 #endif
-#if 0
-    // TODO RK
+#ifdef HAVE_ARM_BACKEND
     if (streq(cpu, "arm")) {
-		isa = &arm_isa_if;
-	} else if (streq(cpu, "sparc")) {
+        isa = &arm_isa_if;
+    } else
+#endif
+#ifdef HAVE_TEMPLATE_BACKEND
+    if (streq(cpu, "TEMPLATE")) {
+        isa = &TEMPLATE_isa_if;
+    } else
+#endif
+#if 0
+    if (streq(cpu, "sparc")) {
 		isa = &sparc_isa_if;
 		if (strstr(manufacturer, "leon") != NULL
 		 || streq(manufacturer, "invasic"))
@@ -47,9 +54,7 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 		isa = &riscv32_isa_if;
     } else
 #endif
-    if (streq(cpu, "TEMPLATE")) {
-		isa = &TEMPLATE_isa_if;
-	} else {
+    {
 		return false;
 	}
 	ir_target.isa = isa;

@@ -69,7 +69,7 @@ struct obstack  ldflags_obst;
 struct obstack  asflags_obst;
 struct obstack  codegenflags_obst;
 bool            construct_dep_target;
-int             driver_use_integrated_preprocessor = -1;
+int             driver_use_integrated_preprocessor = true; // RK orig was -1, but we want the pp be used by default
 bool            driver_no_stdinc;
 bool            driver_verbose;
 bool            dump_defines;
@@ -583,7 +583,7 @@ static bool start_preprocessing(compilation_env_t *env,
 
 static bool preprocess(compilation_env_t *env, compilation_unit_t *unit)
 {
-    if (driver_use_integrated_preprocessor == -1) { // TODO RK: reconsider this
+    if (driver_use_integrated_preprocessor == -1) {
 		/* don't use the integrated preprocessor when crosscompiling
 		 * since we probably don't have the correct location of the
 		 * system headers compiled in. */

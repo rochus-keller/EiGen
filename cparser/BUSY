@@ -1,6 +1,7 @@
 param HAVE_IA32_BACKEND = false
 param HAVE_ARM_BACKEND = false
 param HAVE_TEMPLATE_BACKEND = false
+param HAVE_EIGEN_BACKEND = false
 
 let config : Config {
     if target_toolchain == `gcc {
@@ -11,6 +12,11 @@ let config : Config {
         # nothing to do
     }else {
         error("target toolchain not supported")
+    }
+    if build_mode == `debug {
+        .defines += "DEBUG_libfirm"
+    }else{
+        .defines += "NDEBUG"
     }
 }
 
@@ -112,6 +118,27 @@ let template : SourceSet {
     ]
 }
 
+let eigen : SourceSet {
+    .configs += config;
+    .include_dirs += ./libfirm
+    .sources += [
+    ]
+    .sources += [
+        ./libfirm/eigen/eigen_bearch.c
+        ./libfirm/eigen/eigen_emitter.c
+        ./libfirm/eigen/eigen_new_nodes.c
+        ./libfirm/eigen/eigen_transform.c
+        ./libfirm/eigen/eigen_regalloc_if.c
+        ./libfirm/eigen/eigen_bearch_t.h
+        ./libfirm/eigen/eigen_emitter.h
+        ./libfirm/eigen/eigen_new_nodes_t.h
+        ./libfirm/eigen/eigen_nodes_attr.h
+        ./libfirm/eigen/eigen_transform.h
+        ./libfirm/eigen/eigen_new_nodes.h
+        ./libfirm/eigen/eigen_regalloc_if.h
+    ]
+}
+
 let libfirm : SourceSet {
     .configs += config;
     if HAVE_IA32_BACKEND {
@@ -125,6 +152,10 @@ let libfirm : SourceSet {
     if HAVE_TEMPLATE_BACKEND {
         .deps += [ template ]
         .defines += "HAVE_TEMPLATE_BACKEND"
+    }
+    if HAVE_EIGEN_BACKEND {
+        .deps += [ eigen ]
+        .defines += "HAVE_EIGEN_BACKEND"
     }
     .sources += [
         ./libfirm/analyze_irg_args.c

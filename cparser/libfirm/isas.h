@@ -29,4 +29,7 @@ extern arch_isa_if_t const riscv32_isa_if;
 void be_init_arch_sparc(void);
 extern arch_isa_if_t const sparc_isa_if;
 
+void be_init_arch_eigen(void);
+extern arch_isa_if_t const eigen_isa_if;
+
 #endif

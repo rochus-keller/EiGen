@@ -63,13 +63,14 @@ static void ppdef_unix(void)
 	ppdef1("unix");
 }
 
-void ir_platform_set(ir_machine_triple_t const *machine,
-                     unsigned const pointer_size)
+void ir_platform_set(ir_machine_triple_t const *machine)
 {
 	memset(&ir_platform, 0, sizeof(ir_platform));
-	assert(pointer_size >= 4 && "TODO: smaller sizes");
-	ir_platform.int_size            = 4;
-	ir_platform.long_size           = MIN(pointer_size, 8);
+    assert(ir_target.isa != 0);
+
+    // default values:
+    ir_platform.int_size            = 4;
+    ir_platform.long_size           = MIN(ir_target.isa->pointer_size, 8);
 	ir_platform.intptr_type         = IR_TYPE_LONG;
 	ir_platform.wchar_is_signed     = true;
 	ir_platform.wchar_type          = IR_TYPE_INT;
@@ -78,7 +79,14 @@ void ir_platform_set(ir_machine_triple_t const *machine,
 	const char *const cpu          = ir_triple_get_cpu_type(machine);
 	const char *const manufacturer = ir_triple_get_manufacturer(machine);
 	const char *const os           = ir_triple_get_operating_system(machine);
-	if (ir_is_cpu_x86_32(cpu)) {
+    if( streq(manufacturer, "eigen") )
+    {
+        // check whether the cpu-type and os is supported
+        // correct ir_platform
+
+        ppdef1("__ECS_C__"); // TODO RK
+    }
+    if (ir_is_cpu_x86_32(cpu) || streq(cpu, "amd32") ) {
 		ir_platform.supports_thread_local_storage = true;
 		ppdef1("i386");
 		ppdef1("__i386");
@@ -158,7 +166,6 @@ void ir_platform_set(ir_machine_triple_t const *machine,
 	} else if (streq(cpu, "TEMPLATE")) {
 		ir_platform.long_double_size  = 8;
 		ir_platform.long_double_align = 8;
-        ppdef1("__ECS_C__"); // TODO RK
     } else {
 		/** Everything that passes ir_init_target_from_triple()
 		 * should work here as well. */
@@ -222,7 +229,7 @@ BSD:
 		ppdef1("__WIN32");
 		ppdef1("__WIN32__");
 		ppdef1("WIN32");
-		if (pointer_size == 8) {
+        if (ir_target.isa->pointer_size == 8) {
 			ppdef1("_WIN64");
 			ppdef1("__WIN64");
 			ppdef1("__WIN64__");
@@ -234,7 +241,7 @@ BSD:
 			ir_platform.intptr_type  = IR_TYPE_LONG_LONG;
 			ir_platform.amd64_x64abi = true;
 		} else {
-			assert(pointer_size == 4);
+            assert(ir_target.isa->pointer_size == 4);
 			ir_platform.user_label_prefix = '_';
 			ir_platform.intptr_type = IR_TYPE_INT;
 		}
@@ -243,11 +250,11 @@ BSD:
 		ir_platform.long_long_and_double_struct_align = 0;
 		ir_platform.supports_thread_local_storage     = false;
 		ppdef1("__midipix__");
-		if (pointer_size == 8) {
+        if (ir_target.isa->pointer_size == 8) {
 			ir_platform.amd64_x64abi = true;
 			ppdef1("__NT64");
 		} else {
-			assert(pointer_size == 4);
+            assert(ir_target.isa->pointer_size == 4);
 			ir_platform.user_label_prefix = '_';
 			ppdef1("__NT32");
 		}

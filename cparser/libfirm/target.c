@@ -24,6 +24,11 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 	char          const *arch      = NULL;
 	arch_isa_if_t const *isa;
 
+#ifdef HAVE_EIGEN_BACKEND
+    if (streq(manufacturer, "eigen")) {
+        isa = &eigen_isa_if;
+    } else
+#endif
 #ifdef HAVE_IA32_BACKEND
     if (ir_is_cpu_x86_32(cpu)) {
         isa  = &ia32_isa_if;
@@ -65,7 +70,7 @@ int ir_target_set_triple(ir_machine_triple_t const *machine)
 			panic("Could not set backend arch");
 	}
 
-	ir_platform_set(machine, isa->pointer_size);
+    ir_platform_set(machine);
 
 	return true;
 }

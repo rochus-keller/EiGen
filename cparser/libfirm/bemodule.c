@@ -95,6 +95,9 @@ void be_init_modules(void)
 #ifdef HAVE_ARM_BACKEND
     be_init_arch_arm();
 #endif
+#ifdef HAVE_EIGEN_BACKEND
+    be_init_arch_eigen();
+#endif
 #ifdef HAVE_TEMPLATE_BACKEND
     be_init_arch_TEMPLATE();
 #endif

@@ -56,7 +56,7 @@ extern platform_t ir_platform;
  * Initializes platform information based on target triple. The target/platform
  * may still be configured by ir_target_option().
  */
-void ir_platform_set(ir_machine_triple_t const *machine, unsigned pointer_size);
+void ir_platform_set(ir_machine_triple_t const *machine);
 
 /** Finish platform initialization after all ir_target_option() calls. */
 void ir_platform_init(void);

@@ -69,7 +69,8 @@ struct InitDesg {
 // Likewise, global variables are accumulated to this list.
 static Obj *globals;
 
-static Scope *scope = &(Scope){0};
+static Scope root = {0};
+static Scope *cur_scope = &root;
 
 // Points to the function object the parser is currently parsing.
 static Obj *current_fn;
@@ -148,23 +149,23 @@ static int align_down(int n, int align) {
 
 static void enter_scope(void) {
   Scope *sc = calloc(1, sizeof(Scope));
-  sc->parent = scope;
-  sc->sibling_next = scope->children;
-  scope = scope->children = sc;
+  sc->parent = cur_scope;
+  sc->sibling_next = cur_scope->children;
+  cur_scope = cur_scope->children = sc;
 }
 
 static void enter_tmp_scope(void) {
   enter_scope();
-  scope->is_temporary = true;
+  cur_scope->is_temporary = true;
 }
 
 static void leave_scope(void) {
-  scope = scope->parent;
+  cur_scope = cur_scope->parent;
 }
 
 // Find a variable by name.
 static VarScope *find_var(Token *tok) {
-  for (Scope *sc = scope; sc; sc = sc->parent) {
+  for (Scope *sc = cur_scope; sc; sc = sc->parent) {
     VarScope *sc2 = hashmap_get2(&sc->vars, tok->loc, tok->len);
     if (sc2)
       return sc2;
@@ -173,7 +174,7 @@ static VarScope *find_var(Token *tok) {
 }
 
 static Type *find_tag(Token *tok) {
-  for (Scope *sc = scope; sc; sc = sc->parent) {
+  for (Scope *sc = cur_scope; sc; sc = sc->parent) {
     Type *ty = hashmap_get2(&sc->tags, tok->loc, tok->len);
     if (ty)
       return ty;
@@ -210,14 +211,14 @@ static Node *new_num(int64_t val, Token *tok) {
 static Node *new_long(int64_t val, Token *tok) {
   Node *node = new_node(ND_NUM, tok);
   node->val = val;
-  node->ty = ty_long;
+  node->ty = basic_type(TY_LONG);
   return node;
 }
 
 static Node *new_ulong(long val, Token *tok) {
   Node *node = new_node(ND_NUM, tok);
   node->val = val;
-  node->ty = ty_ulong;
+  node->ty = basic_utype(TY_LONG);
   return node;
 }
 
@@ -238,12 +239,12 @@ Node *new_cast(Node *expr, Type *ty) {
 }
 
 static Node *to_bool(Node *expr) {
-  return new_cast(expr, ty_bool);
+  return new_cast(expr, basic_type(TY_BOOL));
 }
 
 static VarScope *push_scope(char *name) {
   VarScope *sc = calloc(1, sizeof(VarScope));
-  hashmap_put(&scope->vars, name, sc);
+  hashmap_put(&cur_scope->vars, name, sc);
   return sc;
 }
 
@@ -287,38 +288,53 @@ static Initializer *new_initializer(Type *ty, bool is_flexible) {
   return init;
 }
 
-static Obj *new_var(char *name, Type *ty) {
+static char *get_ident(Token *tok) {
+  if (tok->kind != TK_IDENT)
+    error_tok(tok, "expected an identifier");
+  return mystrndup(tok->loc, tok->len);
+}
+
+static Obj *new_var(Token *nametok, Type *ty) {
+  const char* name = 0;
+  if( nametok )
+    name = get_ident(nametok);
   Obj *var = calloc(1, sizeof(Obj));
   var->name = name;
+  var->tok = nametok;
   var->ty = ty;
   if (name)
     push_scope(name)->var = var;
   return var;
 }
 
-static Obj *new_lvar(char *name, Type *ty) {
+static Obj *new_lvar(Token *name, Type *ty) {
   Obj *var = new_var(name, ty);
   var->is_local = true;
-  var->next = scope->locals;
-  scope->locals = var;
+  var->next = cur_scope->locals;
+  cur_scope->locals = var;
   return var;
 }
 
-static Obj *new_gvar(char *name, Type *ty) {
+static Obj *new_gvar(Token *name, Type *ty) {
   Obj *var = new_var(name, ty);
   var->next = globals;
   globals = var;
   return var;
 }
 
-static char *new_unique_name(void) {
+static char *new_unique_name(const char* name) {
   static int id = 0;
-  return format(".L..%d", id++);
+  return format(".L.%s.%d", name, id++);
 }
 
 static Obj *new_anon_gvar(Type *ty) {
+  char buf[32];
+  name_hash(base_file,buf,9);
+  buf[9] = '#';
+  strncpy(buf + 10, file_name(base_file),20);
+  buf[30] = 0;
   Obj *var = new_gvar(NULL, ty);
-  var->name = new_unique_name();
+  var->name = new_unique_name(buf);
   var->is_definition = true;
   var->is_static = true;
   return var;
@@ -328,12 +344,6 @@ static Obj *new_string_literal(char *p, Type *ty) {
   Obj *var = new_anon_gvar(ty);
   var->init_data = p;
   return var;
-}
-
-static char *get_ident(Token *tok) {
-  if (tok->kind != TK_IDENT)
-    error_tok(tok, "expected an identifier");
-  return strndup(tok->loc, tok->len);
 }
 
 static Type *find_typedef(Token *tok) {
@@ -346,7 +356,12 @@ static Type *find_typedef(Token *tok) {
 }
 
 static void push_tag_scope(Token *tok, Type *ty) {
-  hashmap_put2(&scope->tags, tok->loc, tok->len, ty);
+  hashmap_put2(&cur_scope->tags, tok->loc, tok->len, ty);
+  assert(ty->tag==0);
+  if(ty->name_pos==0)
+    ty->name_pos = tok;
+  if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
+    ty->tag = tok;
 }
 
 static void chain_expr(Node **lhs, Node *rhs) {
@@ -410,7 +425,7 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
     UNSIGNED = 1 << 18,
   };
 
-  Type *ty = ty_int;
+  Type *ty = basic_type(TY_INT);
   int counter = 0;
 
   while (is_typename(tok)) {
@@ -496,67 +511,67 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
     switch (counter) {
     case VOID:
-      ty = ty_void;
+      ty = basic_type(TY_VOID);
       break;
     case BOOL:
-      ty = ty_bool;
+      ty = basic_type(TY_BOOL);
       break;
     case CHAR:
-      ty = ty_pchar;
+      ty = basic_type(TY_PCHAR);
       break;
     case SIGNED + CHAR:
-      ty = ty_char;
+      ty = basic_type(TY_CHAR);
       break;
     case UNSIGNED + CHAR:
-      ty = ty_uchar;
+      ty = basic_utype(TY_CHAR);
       break;
     case SHORT:
     case SHORT + INT:
     case SIGNED + SHORT:
     case SIGNED + SHORT + INT:
-      ty = ty_short;
+      ty = basic_type(TY_SHORT);
       break;
     case UNSIGNED + SHORT:
     case UNSIGNED + SHORT + INT:
-      ty = ty_ushort;
+      ty = basic_utype(TY_SHORT);
       break;
     case INT:
     case SIGNED:
     case SIGNED + INT:
-      ty = ty_int;
+      ty = basic_type(TY_INT);
       break;
     case UNSIGNED:
     case UNSIGNED + INT:
-      ty = ty_uint;
+      ty = basic_utype(TY_INT);
       break;
     case LONG:
     case LONG + INT:
     case SIGNED + LONG:
     case SIGNED + LONG + INT:
-      ty = ty_long;
-      break;
+        ty = basic_type(TY_LONG);
+        break;
     case LONG + LONG:
     case LONG + LONG + INT:
     case SIGNED + LONG + LONG:
     case SIGNED + LONG + LONG + INT:
-      ty = ty_llong;
+      ty = basic_type(TY_LONGLONG);
       break;
     case UNSIGNED + LONG:
     case UNSIGNED + LONG + INT:
-      ty = ty_ulong;
-      break;
+        ty = basic_utype(TY_LONG);
+        break;
     case UNSIGNED + LONG + LONG:
     case UNSIGNED + LONG + LONG + INT:
-      ty = ty_ullong;
+      ty = basic_utype(TY_LONGLONG);
       break;
     case FLOAT:
-      ty = ty_float;
+      ty = basic_type(TY_FLOAT);
       break;
     case DOUBLE:
-      ty = ty_double;
+      ty = basic_type(TY_DOUBLE);
       break;
     case LONG + DOUBLE:
-      ty = ty_ldouble;
+      ty = basic_type(TY_LDOUBLE);
       break;
     default:
       error_tok(tok, "invalid type");
@@ -573,7 +588,7 @@ static Type *func_params_old_style(Token **rest, Token *tok, Type *fn_ty) {
   tok = skip_paren(tok);
 
   enter_scope();
-  fn_ty->scopes = scope;
+  fn_ty->scope = cur_scope;
   Node *expr = NULL;
 
   while (is_typename(tok)) {
@@ -585,16 +600,16 @@ static Type *func_params_old_style(Token **rest, Token *tok, Type *fn_ty) {
         error_tok(tok, "expected identifier");
 
       Obj *promoted = NULL;
-      if (is_integer(ty) && ty->size < ty_int->size)
-        promoted = new_lvar(NULL, ty_int);
+      if (is_integer(ty) && ty->size < basic_type(TY_INT)->size)
+        promoted = new_lvar(NULL, basic_type(TY_INT));
       else if (ty->kind == TY_FLOAT)
-        promoted = new_lvar(NULL, ty_double);
+        promoted = new_lvar(NULL, basic_type(TY_DOUBLE));
       else if (ty->kind == TY_ARRAY || ty->kind == TY_VLA)
         ty = pointer_to(ty->base);
       else if (ty->kind == TY_FUNC)
         ty = pointer_to(ty);
 
-      Obj *var = new_lvar(get_ident(name), ty);
+      Obj *var = new_lvar(name, ty);
       if (promoted) {
         var->param_promoted = promoted;
         chain_expr(&expr, new_binary(ND_ASSIGN, new_var_node(var, tok),
@@ -609,11 +624,11 @@ static Type *func_params_old_style(Token **rest, Token *tok, Type *fn_ty) {
   Obj *cur = &head;
 
   for (tok = start; comma_list(&tok, &tok, ")", cur != &head);) {
-    VarScope *sc = hashmap_get2(&fn_ty->scopes->vars, tok->loc, tok->len);
+    VarScope *sc = hashmap_get2(&fn_ty->scope->vars, tok->loc, tok->len);
 
     Obj *nxt;
     if (!sc)
-      nxt = new_lvar(get_ident(tok), ty_int);
+      nxt = new_lvar(tok, basic_type(TY_INT));
     else if (sc->var->param_promoted)
       nxt = sc->var->param_promoted;
     else
@@ -650,7 +665,7 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
   Node *expr = NULL;
 
   enter_scope();
-  fn_ty->scopes = scope;
+  fn_ty->scope = cur_scope;
 
   while (comma_list(rest, &tok, ")", cur != &head)) {
     if (equal(tok, "...")) {
@@ -674,8 +689,7 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
       // only in the parameter context.
       ty2 = pointer_to(ty2);
     }
-    char *var_name = name ? get_ident(name) : NULL;
-    cur = cur->param_next = new_lvar(var_name, ty2);
+    cur = cur->param_next = new_lvar(name, ty2);
   }
   leave_scope();
   add_type(expr);
@@ -706,7 +720,7 @@ static Type *array_dimensions(Token **rest, Token *tok, Type *ty) {
   if (ty->kind != TY_VLA && is_const_expr(expr, &array_len))
     return array_of(ty, array_len);
 
-  if (scope->parent == NULL)
+  if (cur_scope->parent == NULL)
     error_tok(tok, "variably-modified type at file scope");
   return vla_of(ty, expr);
 }
@@ -868,7 +882,7 @@ static Node *compute_vla_size(Type *ty, Token *tok) {
   else
     base_sz = new_num(ty->base->size, tok);
 
-  ty->vla_size = new_lvar(NULL, ty_ulong);
+  ty->vla_size = new_lvar(NULL, basic_utype(TY_LONG));
   chain_expr(&node, new_binary(ND_ASSIGN, new_var_node(ty->vla_size, tok),
                                new_binary(ND_MUL, ty->vla_len, base_sz, tok),
                                tok));
@@ -878,7 +892,7 @@ static Node *compute_vla_size(Type *ty, Token *tok) {
 
 static Node *new_vla(Node *sz, Obj *var) {
   Node *node = new_unary(ND_ALLOCA, sz, sz->tok);
-  node->ty = pointer_to(ty_void);
+  node->ty = pointer_to(basic_type(TY_VOID));
   node->var = var;
   add_type(sz);
   return node;
@@ -930,7 +944,7 @@ static Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) 
       // Variable length arrays (VLAs) are translated to alloca() calls.
       // For example, `int x[n+2]` is translated to `tmp = n + 2,
       // x = alloca(tmp)`.
-      Obj *var = new_lvar(get_ident(name), ty);
+      Obj *var = new_lvar(name, ty);
       chain_expr(&expr, new_vla(new_var_node(ty->vla_size, name), var));
 
       var->vla_next = current_vla;
@@ -939,7 +953,7 @@ static Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) 
       continue;
     }
 
-    Obj *var = new_lvar(get_ident(name), ty);
+    Obj *var = new_lvar(name, ty);
     if (equal(tok, "="))
       chain_expr(&expr, lvar_initializer(&tok, tok->next, var));
 
@@ -1322,6 +1336,12 @@ static void initializer2(Token **rest, Token *tok, Initializer *init) {
   }
 
   init->expr = assign(rest, tok);
+
+  if( init->expr->var && init->ty->kind != TY_ARRAY && init->ty->kind != TY_PTR &&
+          init->expr->var->ty->kind == TY_ARRAY )
+      // RK: assure char c[] = {"World" "hello"}; from initialize-string.c is illegal
+      // cannot use is_compatible because then a lot of other code fails!
+      error_tok(tok, "incompatible initializer element");
 }
 
 static Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty) {
@@ -1416,8 +1436,6 @@ static Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
   InitDesg desg = {NULL, 0, NULL, var};
 
   Node *expr = create_lvar_init(init, var->ty, &desg, tok);
-  if (opt_optimize && init->expr)
-    return expr;
 
   // If a partial initializer list is given, the standard requires
   // that unspecified elements are set to 0. Here, we simply
@@ -1455,11 +1473,11 @@ static void write_buf(char *buf, uint64_t val, int sz) {
 }
 
 static Relocation *
-write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset) {
+write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset, int is_static) {
   if (ty->kind == TY_ARRAY) {
     int sz = ty->base->size;
     for (int i = 0; i < ty->array_len; i++)
-      cur = write_gvar_data(cur, init->children[i], ty->base, buf, offset + sz * i);
+      cur = write_gvar_data(cur, init->children[i], ty->base, buf, offset + sz * i, 0);
     return cur;
   }
 
@@ -1479,7 +1497,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
         write_buf(loc, combined, mem->ty->size);
       } else {
         cur = write_gvar_data(cur, init->children[mem->idx], mem->ty, buf,
-                              offset + mem->offset);
+                              offset + mem->offset, 0);
       }
     }
     return cur;
@@ -1489,13 +1507,14 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
     if (!init->mem)
       return cur;
     return write_gvar_data(cur, init->children[init->mem->idx],
-                           init->mem->ty, buf, offset);
+                           init->mem->ty, buf, offset, 0);
   }
 
   if (!init->expr)
     return cur;
   add_type(init->expr);
 
+  // TODO: consider target endianness (here and in write_buf)
   switch(ty->kind) {
   case TY_FLOAT:
     *(float *)(buf + offset) = eval_double(init->expr);
@@ -1516,6 +1535,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
     return cur;
   }
 
+  // TODO: is_static
   Relocation *rel = calloc(1, sizeof(Relocation));
   rel->offset = offset;
   rel->label = label;
@@ -1533,7 +1553,7 @@ static void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 
   Relocation head = {0};
   char *buf = calloc(1, var->ty->size);
-  write_gvar_data(&head, init, var->ty, buf, 0);
+  write_gvar_data(&head, init, var->ty, buf, 0, var->is_static);
   var->init_data = buf;
   var->rel = head.next;
 }
@@ -1576,6 +1596,29 @@ static void static_assertion(Token **rest, Token *tok) {
   *rest = skip(tok, ";");
 }
 
+// asm-section = "asm" ["target"] "(" string-literal ")"
+static Token *asm_section(Token *tok) {
+  Obj* fn = new_gvar(NULL, basic_type(TY_VOID));
+
+  Node *node = new_node(ND_ASM, tok);
+  fn->body = node;
+  fn->is_function = true;
+  fn->is_definition = true;
+
+  tok = tok->next;
+
+  if (equal(tok, "target")) {
+    tok = tok->next;
+    fn->is_inline = true;
+  }
+
+  tok = skip(tok, "(");
+  if (tok->kind != TK_STR || tok->ty->base->kind != TY_CHAR)
+    error_tok(tok, "expected string literal");
+  node->asm_str = tok->str;
+  return skip(tok->next, ")");
+}
+
 // asm-stmt = "__asm__" ("volatile" | "inline")* "(" string-literal ")"
 static Node *asm_stmt(Token **rest, Token *tok) {
   Node *node = new_node(ND_ASM, tok);
@@ -1595,8 +1638,8 @@ static Node *asm_stmt(Token **rest, Token *tok) {
 static void loop_body(Token **rest, Token *tok, Node *node) {
   char *brk = brk_label;
   char *cont = cont_label;
-  brk_label = node->brk_label = new_unique_name();
-  cont_label = node->cont_label = new_unique_name();
+  brk_label = node->brk_label = new_unique_name("");
+  cont_label = node->cont_label = new_unique_name("");
 
   Obj *vla = brk_vla;
   brk_vla = current_vla;
@@ -1666,7 +1709,7 @@ static Node *stmt(Token **rest, Token *tok, bool chained) {
     current_switch = node;
 
     char *brk = brk_label;
-    brk_label = node->brk_label = new_unique_name();
+    brk_label = node->brk_label = new_unique_name("");
 
     Obj *vla = brk_vla;
     brk_vla = current_vla;
@@ -1686,7 +1729,7 @@ static Node *stmt(Token **rest, Token *tok, bool chained) {
       error_tok(tok, "jump crosses VLA initialization");
 
     Node *node = new_node(ND_CASE, tok);
-    node->label = new_unique_name();
+    node->label = new_unique_name("");
 
     int64_t begin = const_expr(&tok, tok->next);
     int64_t end;
@@ -1727,7 +1770,7 @@ static Node *stmt(Token **rest, Token *tok, bool chained) {
       error_tok(tok, "jump crosses VLA initialization");
 
     Node *node = new_node(ND_CASE, tok);
-    node->label = new_unique_name();
+    node->label = new_unique_name("");
 
     tok = skip(tok->next, ":");
     if (chained)
@@ -1841,14 +1884,14 @@ static Node *stmt(Token **rest, Token *tok, bool chained) {
 
   if (tok->kind == TK_IDENT && equal(tok->next, ":")) {
     Node *node = new_node(ND_LABEL, tok);
-    node->label = strndup(tok->loc, tok->len);
+    node->label = mystrndup(tok->loc, tok->len);
 
     tok = tok->next->next;
     if (chained)
       node->lhs = stmt(rest, tok, true);
     else
       *rest = tok;
-    node->unique_label = new_unique_name();
+    node->unique_label = new_unique_name("");
     node->goto_next = labels;
     node->top_vla = current_vla;
     labels = node;
@@ -2514,7 +2557,8 @@ static Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
   // ptr - ptr, which returns how many elements are between the two.
   if (lhs->ty->base && rhs->ty->base) {
     int sz = lhs->ty->base->size;
-    Node *node = new_binary(ND_SUB, new_cast(lhs, ty_llong), new_cast(rhs, ty_llong), tok);
+    Node *node = new_binary(ND_SUB, new_cast(lhs, basic_type(TY_LONGLONG)),
+                            new_cast(rhs, basic_type(TY_LONGLONG)), tok);
     return new_binary(ND_DIV, node, new_num(sz, tok), tok);
   }
 
@@ -2755,7 +2799,7 @@ static Type *struct_union_decl(Token **rest, Token *tok, TypeKind kind) {
   if (!tag)
     return ty;
 
-  Type *ty2 = hashmap_get2(&scope->tags, tag->loc, tag->len);
+  Type *ty2 = hashmap_get2(&cur_scope->tags, tag->loc, tag->len);
   if (ty2) {
     *ty2 = *ty;
     return ty2;
@@ -3016,7 +3060,7 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
         error_tok(tok, "too many arguments");
 
       if (arg->ty->kind == TY_FLOAT)
-        arg = new_cast(arg, ty_double);
+        arg = new_cast(arg, basic_type(TY_DOUBLE));
       else if (arg->ty->kind == TY_ARRAY || arg->ty->kind == TY_VLA)
         arg = new_cast(arg, pointer_to(arg->ty->base));
       else if (arg->ty->kind == TY_FUNC)
@@ -3067,12 +3111,12 @@ static Node *primary(Token **rest, Token *tok) {
       error_tok(tok, "compound literals cannot be VLA");
     tok = skip(tok, ")");
 
-    if (scope->parent == NULL) {
+    if (cur_scope->parent == NULL) {
       Obj *var = new_anon_gvar(ty);
       gvar_initializer(rest, tok, var);
       return new_var_node(var, start);
     }
-    Scope *sc = scope;
+    Scope *sc = cur_scope;
     while (sc->is_temporary)
       sc = sc->parent;
 
@@ -3087,7 +3131,7 @@ static Node *primary(Token **rest, Token *tok) {
   }
 
   if (equal(tok, "(") && equal(tok->next, "{")) {
-    if (scope->parent == NULL)
+    if (cur_scope->parent == NULL)
       error_tok(tok, "statement expresssion at file scope");
 
     Node *node = compound_stmt(&tok, tok->next->next, ND_STMT_EXPR);
@@ -3145,7 +3189,7 @@ static Node *primary(Token **rest, Token *tok) {
     tok = skip(tok->next, "(");
     node->lhs = assign(&tok, tok);
     *rest = skip(tok, ")");
-    node->ty = pointer_to(ty_void);
+    node->ty = pointer_to(basic_type(TY_VOID));
     return node;
   }
 
@@ -3263,9 +3307,9 @@ static Node *primary(Token **rest, Token *tok) {
     if (current_fn && (equal(tok, "__func__") || equal(tok, "__FUNCTION__"))) {
       char *name = current_fn->name;
       VarScope *vsc = calloc(1, sizeof(VarScope));
-      vsc->var = new_string_literal(name, array_of(ty_pchar, strlen(name) + 1));
-      hashmap_put(&current_fn->ty->scopes->vars, "__func__", vsc);
-      hashmap_put(&current_fn->ty->scopes->vars, "__FUNCTION__", vsc);
+      vsc->var = new_string_literal(name, array_of(basic_type(TY_PCHAR), strlen(name) + 1));
+      hashmap_put(&current_fn->ty->scope->vars, "__func__", vsc);
+      hashmap_put(&current_fn->ty->scope->vars, "__FUNCTION__", vsc);
       return new_var_node(vsc->var, tok);
     }
 
@@ -3346,12 +3390,12 @@ static void resolve_goto_labels(void) {
   gotos = labels = NULL;
 }
 
-static Obj *find_func(char *name) {
-  Scope *sc = scope;
+static Obj *find_func(char *name, int namelen) {
+  Scope *sc = cur_scope;
   while (sc->parent)
     sc = sc->parent;
 
-  VarScope *sc2 = hashmap_get(&sc->vars, name);
+  VarScope *sc2 = hashmap_get2(&sc->vars, name, namelen);
   if (sc2 && sc2->var && sc2->var->is_function)
     return sc2->var;
   return NULL;
@@ -3363,18 +3407,16 @@ static void mark_live(Obj *var) {
   var->is_live = true;
 
   for (int i = 0; i < var->refs.len; i++) {
-    Obj *fn = find_func(var->refs.data[i]);
+    Obj *fn = find_func(var->refs.data[i],strlen(var->refs.data[i]));
     if (fn)
       mark_live(fn);
   }
 }
 
 static Obj *func_prototype(Type *ty, VarAttr *attr, Token *name) {
-  char *name_str = get_ident(name);
-
-  Obj *fn = find_func(name_str);
+  Obj *fn = find_func(name->loc, name->len);
   if (!fn) {
-    fn = new_gvar(name_str, ty);
+    fn = new_gvar(name, ty);
     fn->is_function = true;
     fn->is_static = attr->is_static || (attr->is_inline && !attr->is_extern);
     fn->is_inline = attr->is_inline;
@@ -3397,11 +3439,11 @@ static void func_definition(Token **rest, Token *tok, Type *ty, VarAttr *attr, T
   current_vla = NULL;
   fn_use_vla = dont_dealloc_vla = false;
 
-  if (ty->scopes) {
-    scope = ty->scopes;
+  if (ty->scope) {
+    cur_scope = ty->scope;
   } else {
     enter_scope();
-    ty->scopes = scope;
+    ty->scope = cur_scope;
   }
 
   fn->body = compound_stmt(rest, tok->next, ND_BLOCK);
@@ -3430,7 +3472,7 @@ static Token *global_declaration(Token *tok, Type *basety, VarAttr *attr) {
         error_tok(tok, "function name omitted");
 
       if (equal(tok, "{")) {
-        if (!first || scope->parent)
+        if (!first || cur_scope->parent)
           error_tok(tok, "function definition is not allowed here");
         func_definition(&tok, tok, ty, attr, name);
         return tok;
@@ -3442,7 +3484,7 @@ static Token *global_declaration(Token *tok, Type *basety, VarAttr *attr) {
     if (!name)
       error_tok(tok, "variable name omitted");
 
-    Obj *var = new_gvar(get_ident(name), ty);
+    Obj *var = new_gvar(name, ty);
     var->is_definition = !attr->is_extern;
     var->is_static = attr->is_static;
     var->is_tls = attr->is_tls;
@@ -3482,7 +3524,7 @@ static void scan_globals(void) {
   globals = head.next;
 }
 
-// program = (typedef | function-definition | global-variable)*
+// program = (typedef | function-definition | global-variable | asm-section)*
 Obj *parse(Token *tok) {
   globals = NULL;
 
@@ -3490,6 +3532,11 @@ Obj *parse(Token *tok) {
     if (equal(tok, "_Static_assert")) {
       static_assertion(&tok, tok->next);
       continue;
+    }
+
+    if( tok->kind == TK_KEYWORD && tok->loc[0] == 'a' && tok->loc[1] == 's' && tok->loc[2] == 'm') {
+        tok = asm_section(tok);
+        continue;
     }
 
     VarAttr attr = {0};

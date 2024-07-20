@@ -64,6 +64,16 @@ void error_at(char *loc, char *fmt, ...) {
 }
 
 void error_tok(Token *tok, char *fmt, ...) {
+  if( tok == 0 )
+  {
+      fprintf(stderr,"token is zero!\n");
+      va_list ap;
+      va_start(ap, fmt);
+      vfprintf(stderr,fmt,ap);
+      va_end(ap);
+      fflush(stderr);
+      exit(1);
+  }
   va_list ap;
   va_start(ap, fmt);
   verror_at(tok->file->name, tok->file->contents, tok->line_no, tok->loc, fmt, ap);
@@ -251,6 +261,48 @@ static char *string_literal_end(char *p) {
   return p;
 }
 
+static char *raw_string_literal_end(char *p, const char* match, int matchLen) {
+  char *start = p;
+  while(1)
+  {
+      while( *p != ')' && *p != 0 )
+          p++;
+      if( *p != ')' )
+          error_at(start, "unclosed raw string literal");
+      p++;
+      if( matchLen == 0 && *p == '"')
+          break;
+      if( strncmp(p,match,matchLen) == 0 && *(p += matchLen) == '"' )
+          break;
+  }
+  assert( *p == '"' );
+  return p;
+}
+
+static Token *read_raw_string_literal(char *start, int* plus) {
+    assert(start[0] == 'R' && start[1] == '"' );
+    start += 2;
+    const char* match = start;
+    while( *start != '(' && *start != 0 )
+        start++;
+    if( *start != '(' )
+        error_at(match,"invalid raw string literal");
+    const int matchLen = start-match;
+
+    char *end = raw_string_literal_end(++start, match, matchLen);
+    char *buf = calloc(1, end - start);
+
+    const int len = end - start - matchLen - 1; // -1 for ')'
+    strncpy(buf, start, len);
+    buf[len] = 0;
+
+    Token *tok = new_token(TK_STR, start, start + len);
+    tok->ty = array_of(basic_type(TY_CHAR), len);
+    tok->str = buf;
+    *plus = 2 + 2 * matchLen + 2 + 1; // R"=2 ()=2 "=1
+    return tok;
+}
+
 static Token *read_string_literal(char *start, char *quote) {
   char *end = string_literal_end(quote + 1);
   char *buf = calloc(1, end - quote);
@@ -264,7 +316,7 @@ static Token *read_string_literal(char *start, char *quote) {
   }
 
   Token *tok = new_token(TK_STR, start, end + 1);
-  tok->ty = array_of(ty_pchar, len + 1);
+  tok->ty = array_of(basic_type(TY_PCHAR), len + 1);
   tok->str = buf;
   return tok;
 }
@@ -300,7 +352,7 @@ static Token *read_utf16_string_literal(char *start, char *quote) {
   }
 
   Token *tok = new_token(TK_STR, start, end + 1);
-  tok->ty = array_of(ty_ushort, len + 1);
+  tok->ty = array_of(basic_utype(TY_SHORT), len + 1);
   tok->str = (char *)buf;
   return tok;
 }
@@ -397,36 +449,36 @@ static bool convert_pp_int(Token *tok) {
   Type *ty;
   if (base == 10) {
     if (ll && u)
-      ty = ty_ullong;
+      ty = basic_utype(TY_LONGLONG);
     else if (l && u)
-      ty = ty_ulong;
+      ty = basic_utype(TY_LONG);
     else if (ll)
-      ty = ty_llong;
+      ty = basic_type(TY_LONGLONG);
     else if (l)
-      ty = ty_long;
+      ty = basic_type(TY_LONG);
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) ? basic_utype(TY_LONGLONG) : basic_utype(TY_INT);
     else
-      ty = (val >> 31) ? ty_long : ty_int;
+      ty = (val >> 31) ? basic_type(TY_LONGLONG) : basic_type(TY_INT);
   } else {
     if (ll && u)
-      ty = ty_ullong;
+      ty = basic_utype(TY_LONGLONG);
     else if (l && u)
-      ty = ty_ulong;
+      ty = basic_utype(TY_LONG);
     else if (ll)
-      ty = (val >> 63) ? ty_ullong : ty_llong;
+      ty = (val >> 63) ? basic_utype(TY_LONGLONG) : basic_type(TY_LONGLONG);
     else if (l)
-      ty = (val >> 63) ? ty_ulong : ty_long;
+      ty = (val >> 63) ? basic_utype(TY_LONGLONG) : basic_type(TY_LONGLONG);
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) ? basic_utype(TY_LONGLONG) : basic_utype(TY_INT);
     else if (val >> 63)
-      ty = ty_ulong;
+      ty = basic_utype(TY_LONGLONG);
     else if (val >> 32)
-      ty = ty_long;
+      ty = basic_type(TY_LONGLONG);
     else if (val >> 31)
-      ty = ty_uint;
+      ty = basic_utype(TY_INT);
     else
-      ty = ty_int;
+      ty = basic_type(TY_INT);
   }
 
   tok->kind = TK_NUM;
@@ -453,13 +505,13 @@ void convert_pp_number(Token *tok) {
 
   Type *ty;
   if (*end == 'f' || *end == 'F') {
-    ty = ty_float;
+    ty = basic_type(TY_FLOAT);
     end++;
   } else if (*end == 'l' || *end == 'L') {
-    ty = ty_ldouble;
+    ty = basic_type(TY_LDOUBLE);
     end++;
   } else {
-    ty = ty_double;
+    ty = basic_type(TY_DOUBLE);
   }
 
   if (tok->loc + tok->len != end)
@@ -583,21 +635,28 @@ Token *tokenize(File *file, Token **end) {
 
     // Wide string literal
     if (startswith(p, "L\"")) {
-      cur = cur->next = read_utf32_string_literal(p, p + 1, ty_int);
+      cur = cur->next = read_utf32_string_literal(p, p + 1, basic_type(TY_INT));
       p += cur->len;
       continue;
     }
 
     // UTF-32 string literal
     if (startswith(p, "U\"")) {
-      cur = cur->next = read_utf32_string_literal(p, p + 1, ty_uint);
+      cur = cur->next = read_utf32_string_literal(p, p + 1, basic_utype(TY_INT));
       p += cur->len;
       continue;
     }
 
+    if (startswith(p, "R\"")) {
+        int plus;
+        cur = cur->next = read_raw_string_literal(p, &plus);
+        p += cur->len + plus;
+        continue;
+    }
+
     // Character literal
     if (*p == '\'') {
-      cur = cur->next = read_char_literal(p, p, ty_int);
+      cur = cur->next = read_char_literal(p, p, basic_type(TY_INT));
       cur->val = (char)cur->val;
       p += cur->len;
       continue;
@@ -605,7 +664,7 @@ Token *tokenize(File *file, Token **end) {
 
     // UTF-16 character literal
     if (startswith(p, "u'")) {
-      cur = cur->next = read_char_literal(p, p + 1, ty_ushort);
+      cur = cur->next = read_char_literal(p, p + 1, basic_utype(TY_SHORT));
       cur->val &= 0xffff;
       p += cur->len;
       continue;
@@ -613,14 +672,14 @@ Token *tokenize(File *file, Token **end) {
 
     // Wide character literal
     if (startswith(p, "L'")) {
-      cur = cur->next = read_char_literal(p, p + 1, ty_int);
+      cur = cur->next = read_char_literal(p, p + 1, basic_type(TY_INT));
       p += cur->len;
       continue;
     }
 
     // UTF-32 character literal
     if (startswith(p, "U'")) {
-      cur = cur->next = read_char_literal(p, p + 1, ty_uint);
+      cur = cur->next = read_char_literal(p, p + 1, basic_utype(TY_INT));
       p += cur->len;
       continue;
     }
@@ -656,36 +715,34 @@ static char *read_file(char *path) {
   FILE *fp;
 
   if (strcmp(path, "-") == 0) {
-    // By convention, read from stdin if a given filename is "-".
-    fp = stdin;
+    error("cannot read from stdin");
   } else {
     fp = fopen(path, "r");
     if (!fp)
       return NULL;
   }
 
-  char *buf;
-  size_t buflen;
-  FILE *out = open_memstream(&buf, &buflen);
+  fseek(fp,0,SEEK_END);
+  const int len = ftell(fp);
+  fseek(fp,0,SEEK_SET);
+
+  char *buf = (char*)malloc(len+2); // NOTE: allocated an never freed!
+
 
   // Read the entire file.
+  int n = 0;
   for (;;) {
-    char buf2[4096];
-    int n = fread(buf2, 1, sizeof(buf2), fp);
-    if (n == 0)
-      break;
-    fwrite(buf2, 1, n, out);
+      n += fread(buf + n, 1, len, fp);
+      if (n == len)
+        break;
   }
 
-  if (fp != stdin)
+  //if (fp != stdin)
     fclose(fp);
 
   // Make sure that the last line is properly terminated with '\n'.
-  fflush(out);
-  if (buflen == 0 || buf[buflen - 1] != '\n')
-    fputc('\n', out);
-  fputc('\0', out);
-  fclose(out);
+  buf[len] = '\n';
+  buf[len+1] = 0;
   return buf;
 }
 

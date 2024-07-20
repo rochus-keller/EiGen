@@ -1,21 +1,13 @@
-#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <glob.h>
-#include <libgen.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
 
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -36,6 +28,38 @@
 #define NORETURN
 #endif
 
+//
+// Target
+//
+
+typedef enum {NoTarget, AMD32Linux, AMD64Linux, ARMA32Linux, ARMA64Linux, ARMT32Linux, ARMT32FPELinux,
+              BIOS16, BIOS32, BIOS64, DOS, EFI32, EFI64, OSX32, OSX64, RPi2B, Win32, Win64,
+              BareAmd16, BareAmd32, BareAmd64, BareArmA32, BareArmT32, BareArmA64,
+              MaxTarget} Target;
+typedef enum { NoProcessor, Amd16, Amd32, Amd64, Arma32, Armt32, Arma64} Processor;
+
+struct TargetData
+{
+    const char*const name;
+    const char*const backend;
+    Processor architecture;
+    const bool executable;
+    const char*const description;
+    const char*const converter;
+};
+extern struct TargetData targets[];
+extern uint8_t target_pointer_width; // 2, 4, 8
+extern uint8_t target_has_linkregister; // 0, 1
+extern uint8_t target_stack_align; // 4, 8, 16
+extern uint8_t target; // Target
+extern uint8_t debug_info;
+
+#define CHIBICC_HAVE_LLONG
+
+////////////////
+
+/// \brief Type
+///
 typedef struct Type Type;
 typedef struct Node Node;
 typedef struct Member Member;
@@ -170,15 +194,16 @@ struct Obj {
   Obj *next;
   char *name;    // Variable name
   Type *ty;      // Type
+  Token *tok;    // representative token
   bool is_local; // local or global/function
 
-  // Local variable
-  int ofs;
+  int offset;
+  int align;     // alignment
+
   Obj *param_next;
   Obj *param_promoted;
   Obj *vla_next;
-  bool pass_by_stack;
-  int stack_offset;
+  int stack_size;
 
   // Global variable or function
   bool is_function;
@@ -388,6 +413,10 @@ struct Type {
   // the C spec.
   Type *base;
 
+  // Declaration
+  Token *name_pos;
+  Token* tag;
+
   // Array
   int array_len;
 
@@ -401,7 +430,7 @@ struct Type {
   bool is_packed;
 
   // Function type
-  Scope *scopes;
+  Scope *scope;
   Type *return_ty;
   Obj *param_list;
   Node *pre_calc;
@@ -423,26 +452,9 @@ struct Member {
   int bit_width;
 };
 
-extern Type *ty_void;
-extern Type *ty_bool;
-
-extern Type *ty_pchar;
-
-extern Type *ty_char;
-extern Type *ty_short;
-extern Type *ty_int;
-extern Type *ty_long;
-extern Type *ty_llong;
-
-extern Type *ty_uchar;
-extern Type *ty_ushort;
-extern Type *ty_uint;
-extern Type *ty_ulong;
-extern Type *ty_ullong;
-
-extern Type *ty_float;
-extern Type *ty_double;
-extern Type *ty_ldouble;
+extern Type *basic_type(TypeKind);
+extern Type *basic_utype(TypeKind);
+extern void cleanup_base_types();
 
 bool is_integer(Type *ty);
 bool is_flonum(Type *ty);
@@ -496,10 +508,22 @@ extern StringArray include_paths;
 extern bool opt_E;
 extern bool opt_fpic;
 extern bool opt_fcommon;
-extern bool opt_optimize;
-extern bool opt_g;
 extern bool opt_func_sections;
 extern bool opt_data_sections;
 extern bool opt_cc1_asm_pp;
 extern char *base_file;
 extern StdVer opt_std;
+
+//
+// helper
+//
+
+extern const char* file_name(const char* path);
+extern void name_hash(const char* path, char* buf, int buflen );
+extern void run_linker(StringArray *inputs, StringArray *extra_args, const char *output);
+extern void run_codegen(const char *input, const char *output);
+extern void register_for_cleanup(const char* path, int make_copy);
+
+char *mystrndup( const char *src, size_t size );
+char *mystrdup( const char *src);
+char *rebase_file(const char* newBase, const char* filename);

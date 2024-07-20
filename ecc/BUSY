@@ -29,6 +29,6 @@ let ecc ! : Executable {
     .deps += sources;
     .sources += [
         ./main.c
-        #./codegen.c
+        ./codegen.c
     ]
 }

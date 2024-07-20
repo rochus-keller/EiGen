@@ -9,7 +9,7 @@
  * Made available under the same license as chibicc
  */
 
-#include "chibicc.h"
+#include "widcc.h"
 
 enum EcsRegs { R0, R1, R2, R3, R4, R5, R6, R7,
                Res, Sp, Fp, Lnk };
@@ -210,13 +210,6 @@ static void pop(const char* type, const char *arg) {
     depth--;
 }
 
-// Round up `n` to the nearest multiple of `align`. For instance,
-// align_to(5, 8) returns 8 and align_to(11, 8) returns 16.
-int align_to(int n, int align) {
-    // ok
-    return (n + align - 1) / align * align;
-}
-
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
 static void gen_addr(Node *node) {
@@ -293,10 +286,6 @@ static void gen_addr(Node *node) {
             return;
         }
         break;
-    case ND_VLA_PTR:
-        error_tok(node->tok,"VLA not yet supported");
-        println("  mov ptr $0, ptr $fp%+d", node->var->offset);
-        return;
     }
 
     error_tok(node->tok, "not an lvalue");
@@ -405,10 +394,6 @@ static int push_args(Node *node) {
     // ok
     int stack = 0;
 
-    for (Node *arg = node->args; arg; arg = arg->next) {
-        arg->pass_by_stack = true;
-    }
-
     stack += push_args2(node->args);
 
     // If the return type is a large struct/union, the caller passes
@@ -441,6 +426,7 @@ static void copy_struct_mem(void) {
 
 static void builtin_alloca(void) {
     // TODO
+#if 0
     // Align size to 16 bytes.
     println("  add $15, %%rdi");
     println("  and $0xfffffff0, %%edi");
@@ -466,6 +452,7 @@ static void builtin_alloca(void) {
     println("  mov %d(%%rbp), %%rax", current_fn->alloca_bottom->offset);
     println("  sub %%rdi, %%rax");
     println("  mov %%rax, %d(%%rbp)", current_fn->alloca_bottom->offset);
+#endif
 }
 
 static const char* file_path(int file_no)
@@ -516,6 +503,9 @@ void name_hash(const char* path, char* buf, int buflen )
 }
 static void loc(Token * tok)
 {
+    if( tok == 0 )
+        return;
+
     static int file_no = 0, line_no = 0;
 
     if( tok->file->file_no != file_no || tok->line_no != line_no )
@@ -578,7 +568,7 @@ static void gen_expr(Node *node) {
         println("  neg %s $0, %s $0", type, type );
         return;
     }
-    case ND_PLUS:
+    case ND_POS:
         gen_expr(node->lhs);
         return;
     case ND_VAR:
@@ -780,44 +770,7 @@ static void gen_expr(Node *node) {
         error_tok(node->tok,"label-as-value not yet supported"); // TODO
 #endif
         return;
-    case ND_CAS: {
-#if 0
-        gen_expr(node->cas_addr);
-        pushRes();
-        gen_expr(node->cas_new);
-        pushRes();
-        gen_expr(node->cas_old);
-        println("  mov %%rax, %%r8");
-        load(node->cas_old->ty->base);
-        pop("%rdx"); // new
-        pop("%rdi"); // addr
 
-        int sz = node->cas_addr->ty->base->size;
-        // TODO println("  lock cmpxchg %s, (%%rdi)", reg_dx(sz));
-        println("  sete %%cl");
-        println("  je 1f");
-        println("  mov %s, (%%r8)", reg_ax(sz));
-        println("1:");
-        println("  movzbl %%cl, %%eax");
-#else
-        error_tok(node->tok,"atomic compare-and-swap not yet supported"); // TODO
-#endif
-        return;
-    }
-    case ND_EXCH: {
-#if 0
-        gen_expr(node->lhs);
-        pushRes();
-        gen_expr(node->rhs);
-        pop("%rdi");
-
-        int sz = node->lhs->ty->base->size;
-        println("  xchg %s, (%%rdi)", reg_ax(sz));
-#else
-        error_tok(node->tok,"atomic exchange not yet supported"); // TODO
-#endif
-        return;
-    }
     }
 
     // ok ff
@@ -1048,7 +1001,7 @@ static void assign_lvar_offsets(Obj *prog) {
             top += target_stack_align; // if fn has struct return, the first param is a pointer to result
 
         // Assign offsets to parameters.
-        for (Obj *var = fn->params; var; var = var->next) {
+        for (Obj *var = fn->ty->param_list; var; var = var->param_next) {
             top = align_to(top, MAX(target_stack_align, var->align));
             var->offset = top;
             top += var->ty->size;
@@ -1057,7 +1010,7 @@ static void assign_lvar_offsets(Obj *prog) {
         int bottom = 0;
 
         // Assign offsets to local variables.
-        for (Obj *var = fn->locals; var; var = var->next) {
+        for (Obj *var = fn->ty->scope ? fn->ty->scope->locals : 0; var; var = var->next) {
             if (var->offset)
                 continue;
 
@@ -1151,11 +1104,11 @@ static void emit_data(Obj *prog) {
 
 static void print_var_names(Obj* fn)
 {
-    for (Obj *var = fn->params; var; var = var->next) {
+    for (Obj *var = fn->ty->param_list; var; var = var->param_next) {
         println("  ; param '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
                 var->offset, var->ty->size, var->align );
     }
-    for (Obj *var = fn->locals; var; var = var->next) {
+    for (Obj *var = fn->ty->scope->locals; var; var = var->next) {
         if( var->offset > 0 )
             break; // hit a param; apparently chibicc links params just behind locals
         println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),

@@ -27,7 +27,7 @@ using namespace ECS;
 // This version of codegen was derived from https://software.openbrace.org/attachments/315
 
 extern "C" {
-#include "chibicc.h"
+#include "widcc.h"
 }
 
 class MyEmitter : public Code::Emitter
@@ -324,13 +324,6 @@ static Smop pop(const Code::Type& type) {
     return res;
 }
 
-// Round up `n` to the nearest multiple of `align`. For instance,
-// align_to(5, 8) returns 8 and align_to(11, 8) returns 16.
-int align_to(int n, int align) {
-
-    return (n + align - 1) / align * align;
-}
-
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
 static Smop gen_addr(Node *node) {
@@ -399,9 +392,6 @@ static Smop gen_addr(Node *node) {
             return gen_expr(node);
         }
         break;
-    case ND_VLA_PTR:
-        error_tok(node->tok,"VLA not yet supported");
-        return (Code::Reg(types[ptr], Code::RFP,node->var->offset)); // mov ptr $0, ptr $fp%+d
     }
 
     error_tok(node->tok, "not an lvalue");
@@ -475,7 +465,7 @@ static int push_struct(Type *ty, const Smop& reg) {
     return sz;
 }
 
-static int push_args2(Node *args, int param_count) {
+static int push_args2(Obj *args, int param_count) {
 
     if (!args)
         return 0;
@@ -526,10 +516,6 @@ static int push_args2(Node *args, int param_count) {
 static int push_args(Node *node, int param_count) {
 
     int aligned_size = 0;
-
-    for (Node *arg = node->args; arg; arg = arg->next) {
-        arg->pass_by_stack = true;
-    }
 
     aligned_size += push_args2(node->args, param_count);
 
@@ -634,7 +620,7 @@ static Type* getFunc(Type* ty)
 static int getParamCount(Type* fn)
 {
     int res = 0;
-    Type * arg = fn->params;
+    Obj * arg = fn->param_list;
     while(arg) {
         res++;
         arg = arg->next;
@@ -669,7 +655,7 @@ static Smop gen_expr(Node *node) {
         const Code::Type type = getCodeType(node->ty);
         return e->Negate(e->Convert(type,tmp)); // neg %s $0, %s $0
     }
-    case ND_PLUS:
+    case ND_POS:
         return gen_expr(node->lhs);
     case ND_VAR: {
 
@@ -879,44 +865,6 @@ static Smop gen_expr(Node *node) {
         error_tok(node->tok,"label-as-value not yet supported"); // TODO
 #endif
         return Smop();
-    case ND_CAS: {
-#if 0
-        gen_expr(node->cas_addr);
-        pushRes();
-        gen_expr(node->cas_new);
-        pushRes();
-        gen_expr(node->cas_old);
-        println("  mov %%rax, %%r8");
-        load(node->cas_old->ty->base);
-        pop("%rdx"); // new
-        pop("%rdi"); // addr
-
-        int sz = node->cas_addr->ty->base->size;
-        // TODO println("  lock cmpxchg %s, (%%rdi)", reg_dx(sz));
-        println("  sete %%cl");
-        println("  je 1f");
-        println("  mov %s, (%%r8)", reg_ax(sz));
-        println("1:");
-        println("  movzbl %%cl, %%eax");
-#else
-        error_tok(node->tok,"atomic compare-and-swap not yet supported"); // TODO
-#endif
-        return Smop();
-    }
-    case ND_EXCH: {
-#if 0
-        gen_expr(node->lhs);
-        pushRes();
-        gen_expr(node->rhs);
-        pop("%rdi");
-
-        int sz = node->lhs->ty->base->size;
-        println("  xchg %s, (%%rdi)", reg_ax(sz));
-#else
-        error_tok(node->tok,"atomic exchange not yet supported"); // TODO
-#endif
-        return Smop();
-    }
     }
 
     Smop lhs = gen_expr(node->lhs);
@@ -1529,7 +1477,7 @@ static void emit_text(Obj *prog) {
 
         if( debug_info )
         {
-            e->Locate(file_path(fn->ty->name->file->file_no),ECS::Position(fn->ty->name->line_no,1));
+            e->Locate(file_path(fn->ty->name_pos->file->file_no),ECS::Position(fn->ty->name_pos->line_no,1));
             if( fn->ty->return_ty )
             {
                 if( fn->ty->return_ty->kind != TY_VOID )

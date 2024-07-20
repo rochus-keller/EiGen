@@ -257,7 +257,7 @@ static Token *new_num_token(int val, Token *tmpl) {
 static void to_int_token(Token *tok, int64_t val) {
   tok->kind = TK_NUM;
   tok->val = val;
-  tok->ty = ty_int;
+  tok->ty = basic_type(TY_INT);
 }
 
 static Token *read_const_expr(Token *tok) {
@@ -361,13 +361,13 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, char **va_args_na
       error_tok(tok, "expected an identifier");
 
     if (equal(tok->next, "...")) {
-      *va_args_name = strndup(tok->loc, tok->len);
+      *va_args_name = mystrndup(tok->loc, tok->len);
       *rest = skip(tok->next->next, ")");
       return head.next;
     }
 
     MacroParam *m = calloc(1, sizeof(MacroParam));
-    m->name = strndup(tok->loc, tok->len);
+    m->name = mystrndup(tok->loc, tok->len);
     cur = cur->next = m;
     tok = tok->next;
   }
@@ -379,7 +379,7 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, char **va_args_na
 static void read_macro_definition(Token **rest, Token *tok) {
   if (tok->kind != TK_IDENT)
     error_tok(tok, "macro name must be an identifier");
-  char *name = strndup(tok->loc, tok->len);
+  char *name = mystrndup(tok->loc, tok->len);
   tok = tok->next;
 
   if (!tok->has_space && equal(tok, "(")) {
@@ -818,7 +818,7 @@ static char *read_include_filename(Token *tok, bool *is_dquote) {
     // So we don't want to use token->str.
     *is_dquote = true;
     skip_line(tok->next);
-    return strndup(tok->loc + 1, tok->len - 2);
+    return mystrndup(tok->loc + 1, tok->len - 2);
   }
 
   // Pattern 2: #include <foo.h>
@@ -910,7 +910,7 @@ static Token *preprocess2(Token *tok) {
       continue;
     }
 
-    if (opt_g)
+    if (debug_info)
       add_loc_info(tok);
 
     cur = cur->next = tok;
@@ -930,7 +930,7 @@ static Token *directives(Token **cur, Token *start) {
     bool is_dquote;
     char *filename = read_include_filename(split_line(&tok, tok->next), &is_dquote);
     if (filename[0] != '/' && is_dquote) {
-      char *path = format("%s/%s", dirname(strdup(start->file->name)), filename);
+      char *path = rebase_file(start->file->name, filename);
       if (file_exists(path)) {
         tok = include_file(tok, path, start->next->next);
         return tok;
@@ -959,7 +959,7 @@ static Token *directives(Token **cur, Token *start) {
     tok = tok->next;
     if (tok->kind != TK_IDENT)
       error_tok(tok, "macro name must be an identifier");
-    undef_macro(strndup(tok->loc, tok->len));
+    undef_macro(mystrndup(tok->loc, tok->len));
     tok = skip_line(tok->next);
     return tok;
   }
@@ -1019,7 +1019,7 @@ static Token *directives(Token **cur, Token *start) {
 
     if (tok->guard_file && tok->guard_file == cond_incl->tok->guard_file) {
       Token *name_tok = cond_incl->tok->next;
-      char *guard_name = strndup(name_tok->loc, name_tok->len);
+      char *guard_name = mystrndup(name_tok->loc, name_tok->len);
       hashmap_put(&include_guards, tok->guard_file, guard_name);
     }
 
@@ -1129,6 +1129,7 @@ static Token *counter_macro(Token *start) {
   return tok;
 }
 
+#if 0
 // __TIMESTAMP__ is expanded to a string describing the last
 // modification time of the current file. E.g.
 // "Fri Jul 24 01:32:50 2020"
@@ -1146,6 +1147,9 @@ static Token *timestamp_macro(Token *start) {
   tok->next = start->next;
   return tok;
 }
+#endif
+
+
 
 static Token *base_file_macro(Token *start) {
   Token *tok = new_str_token(base_file, start);
@@ -1198,7 +1202,7 @@ static Token *has_include_macro(Token *start) {
 
   bool found = false;
   if (filename[0] != '/' && is_dquote) {
-    char *path = format("%s/%s", dirname(strdup(start->file->name)), filename);
+    char *path = rebase_file(start->file->name, filename);
     found = file_exists(path);
   }
   if (!found)
@@ -1253,71 +1257,153 @@ static char *format_time(struct tm *tm) {
   return format("\"%02d:%02d:%02d\"", tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
 
+static void define_int_macro(char* name, uint64_t val)
+{
+    char buf[32];
+    sprintf(buf,"%lld",val);
+    char* str = malloc(strlen(buf)+1); // NOTE like read_file this mem is allocated and never freed!
+    strcpy(str,buf);
+    define_macro(name,str);
+}
+
+static uint64_t maxValueOf(int type)
+{
+    return (1ll << ( basic_type(type)->size * 8 - 1 )) - 1;
+}
+
 void init_macros(void) {
   // Define predefined macros
-  define_macro("_LP64", "1");
-  define_macro("__BYTE_ORDER__", "1234");
-  define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
+#if 0
+    // TODO: chibicc had these:
   define_macro("__ELF__", "1");
-  define_macro("__LP64__", "1");
-  define_macro("__ORDER_BIG_ENDIAN__", "4321");
-  define_macro("__ORDER_LITTLE_ENDIAN__", "1234");
-  define_macro("__SIZEOF_DOUBLE__", "8");
-  define_macro("__SIZEOF_FLOAT__", "4");
-  define_macro("__SIZEOF_INT__", "4");
-  define_macro("__SIZEOF_LONG_DOUBLE__", "8");
-  define_macro("__SIZEOF_LONG_LONG__", "8");
-  define_macro("__SIZEOF_LONG__", "8");
-  define_macro("__SIZEOF_POINTER__", "8");
-  define_macro("__SIZEOF_PTRDIFF_T__", "8");
-  define_macro("__SIZEOF_SHORT__", "2");
   define_macro("__SIZEOF_SIZE_T__", "8");
   define_macro("__SIZE_TYPE__", "unsigned long");
-  define_macro("__STDC_HOSTED__", "1");
-  define_macro("__STDC_NO_ATOMIC__", "1");
   define_macro("__STDC_NO_COMPLEX__", "1");
   define_macro("__STDC_UTF_16__", "1");
   define_macro("__STDC_UTF_32__", "1");
-  define_macro("__STDC__", "1");
   define_macro("__USER_LABEL_PREFIX__", "");
   define_macro("__alignof__", "_Alignof");
-  define_macro("__amd64", "1");
-  define_macro("__amd64__", "1");
   define_macro("__const__", "const");
   define_macro("__gnu_linux__", "1");
   define_macro("__inline__", "inline");
-  define_macro("__linux", "1");
-  define_macro("__linux__", "1");
   define_macro("__signed__", "signed");
-  define_macro("__widcc__", "1");
-  define_macro("__unix", "1");
-  define_macro("__unix__", "1");
+  define_macro("__typeof__", "typeof");
   define_macro("__volatile__", "volatile");
-  define_macro("__x86_64", "1");
-  define_macro("__x86_64__", "1");
-  define_macro("linux", "1");
-  define_macro("unix", "1");
+#endif
 
-  switch (opt_std) {
-  case STD_C89: break;
-  case STD_C99: define_macro("__STDC_VERSION__", "199901L"); break;
-  case STD_C11: define_macro("__STDC_VERSION__", "201112L"); break;
-  case STD_C17: define_macro("__STDC_VERSION__", "201710L"); break;
-  case STD_C23: define_macro("__STDC_VERSION__", "202311L"); break;
-  default: define_macro("__STDC_VERSION__", "201710L");
+  switch(targets[target].architecture)
+  {
+  case Amd16:
+      define_macro("__AS386_16__", "1");
+      define_macro("__amd16__", "1");
+      // ?
+      break;
+  case Amd32:
+      define_macro("i386", "1");
+      define_macro("__i386__", "1");
+      define_macro("__i386", "1");
+      define_macro("_M_IX86", "1");
+      define_macro("__amd32__", "1");
+      break;
+  case Amd64:
+      define_macro("__amd64", "1");
+      define_macro("__amd64__", "1");
+      define_macro("__x86_64", "1");
+      define_macro("__x86_64__", "1");
+      define_macro("_M_X64", "1");
+      break;
+  case Arma32:
+      define_macro("__ARM_ARCH_7__", "1");
+      define_macro("__arm__", "1");
+      define_macro("__arma32__", "1");
+      break;
+  case Armt32:
+      define_macro("__ARM_ARCH_7__", "1");
+      define_macro("__arm__", "1");
+      define_macro("__armt32__", "1");
+      break;
+  case Arma64:
+      define_macro("_M_ARM64", "1");
+      define_macro("__aarch64__", "1");
+      break;
   }
+
+  define_macro("__BIG_ENDIAN", "4321");
+  define_macro("__LITTLE_ENDIAN", "1234");
+  define_macro("__BYTE_ORDER", "__LITTLE_ENDIAN");
+
+  if( target >= AMD32Linux && target <= ARMT32FPELinux )
+  {
+      define_macro("__unix", "1");
+      define_macro("__unix__", "1");
+      define_macro("__linux", "1");
+      define_macro("__linux__", "1");
+      define_macro("linux", "1");
+      define_macro("unix", "1");
+      if( target == AMD64Linux || target == ARMA64Linux )
+         define_macro("_LP64", "1");
+  }else if( target == OSX32 || target == OSX64 )
+  {
+      define_macro("__APPLE__", "1");
+      if( target == OSX64 )
+         define_macro("_LP64", "1");
+  }else if( target == Win32 || target == Win64 )
+  {
+      define_macro("WIN32", "1");
+      define_macro("_WIN32", "1");
+      define_macro("__WIN32__", "1");
+      define_macro("__NT__", "1");
+      if( target == Win64 )
+      {
+          define_macro("WIN64", "1");
+          define_macro("_WIN64", "1");
+          define_macro("__WIN64__", "1");
+      }
+  }
+
+  define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
+  define_macro("__SIZEOF_DOUBLE__", "8");
+  define_macro("__SIZEOF_FLOAT__", "4");
+  define_int_macro("__SIZEOF_INT__", basic_type(TY_INT)->size);
+  define_macro("__SIZEOF_LONG_DOUBLE__", "8");
+  define_int_macro("__SIZEOF_LONG_LONG__", basic_type(TY_LONGLONG)->size);
+  define_int_macro("__SIZEOF_LONG__", basic_type(TY_LONG)->size);
+  define_macro("__SIZEOF_SHORT__", "2");
+  define_int_macro("__SIZEOF_POINTER__", target_pointer_width);
+  define_int_macro("__SIZEOF_PTRDIFF_T__", target_pointer_width);
+  define_int_macro("__STACK_ALIGNMENT__", target_stack_align);
+
+  define_int_macro("__CHAR_BIT__", 8);
+  define_macro("__SCHAR_MAX__", "127");
+  define_macro("__SHRT_MAX__", "32767");
+  define_int_macro("__INT_MAX__", maxValueOf(TY_INT));
+  define_int_macro("__LONG_MAX__", maxValueOf(TY_LONG));
+  define_macro("__LONG_LONG_MAX__", "9223372036854775807LL");
+  define_macro("__PTRDIFF_TYPE__", "long");
+  define_int_macro("__PTRDIFF_MAX__", maxValueOf(TY_LONG));
+  define_macro("__SIZE_TYPE__", "unsigned long");
+  define_int_macro("__SIZE_MAX__", maxValueOf(TY_LONG));
+  define_macro("__INTPTR_TYPE__", "long");
+  define_int_macro("__INTPTR_MAX__", maxValueOf(TY_LONG));
+  define_macro("__UINTPTR_TYPE__", "unsigned long");
+  define_int_macro("__UINTPTR_MAX__", 1ll << ( basic_type(TY_LONG)->size * 8 ));
+  define_macro("__INTMAX_TYPE__", "long long");
+  define_macro("__INTMAX_MAX__", "9223372036854775807LL");
+  define_macro("__SIG_ATOMIC_TYPE__", "int");
+  define_int_macro("__SIG_ATOMIC_MAX__", maxValueOf(TY_INT));
+
+  define_macro("__ecs_chibicc__", "1");
+  define_macro("__ECS_C__", "1");
+  define_macro("__STDC_VERSION__", "199901L"); // orig: 201112L");
+  define_macro("__STDC__", "1");
+  define_macro("__STDC_HOSTED__", "1");
+
 
   add_builtin("__FILE__", file_macro);
   add_builtin("__LINE__", line_macro);
   add_builtin("__COUNTER__", counter_macro);
-  add_builtin("__TIMESTAMP__", timestamp_macro);
+  // add_builtin("__TIMESTAMP__", timestamp_macro);
   add_builtin("__BASE_FILE__", base_file_macro);
-
-  add_builtin("_Pragma", pragma_macro);
-
-  add_builtin("__has_attribute", has_attribute_macro);
-  add_builtin("__has_builtin", has_builtin_macro);
-  add_builtin("__has_include", has_include_macro);
 
   time_t now = time(NULL);
   struct tm *tm = localtime(&now);

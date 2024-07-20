@@ -1,6 +1,6 @@
 // This is an implementation of the open-addressing hash table.
 
-#include "chibicc.h"
+#include "widcc.h"
 
 // Initial hash bucket size
 #define INIT_SIZE 16
@@ -38,7 +38,7 @@ static void rehash(HashMap *map) {
   assert(cap > 0);
 
   // Create a new hashmap and copy all key-values.
-  HashMap map2 = {};
+  HashMap map2 = {0};
   map2.buckets = calloc(cap, sizeof(HashEntry));
   map2.capacity = cap;
 
@@ -70,7 +70,7 @@ static HashEntry *get_entry(HashMap *map, char *key, int keylen) {
     if (ent->key == NULL)
       return NULL;
   }
-  unreachable();
+  internal_error();
 }
 
 static HashEntry *get_or_insert_entry(HashMap *map, char *key, int keylen) {
@@ -89,12 +89,6 @@ static HashEntry *get_or_insert_entry(HashMap *map, char *key, int keylen) {
     if (match(ent, key, keylen))
       return ent;
 
-    if (ent->key == TOMBSTONE) {
-      ent->key = key;
-      ent->keylen = keylen;
-      return ent;
-    }
-
     if (ent->key == NULL) {
       ent->key = key;
       ent->keylen = keylen;
@@ -102,7 +96,7 @@ static HashEntry *get_or_insert_entry(HashMap *map, char *key, int keylen) {
       return ent;
     }
   }
-  unreachable();
+  internal_error();
 }
 
 void *hashmap_get(HashMap *map, char *key) {

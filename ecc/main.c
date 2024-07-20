@@ -1,17 +1,21 @@
-#include "chibicc.h"
-#include <time.h>
+#include "widcc.h"
 
 typedef enum {
-  FILE_NONE, FILE_C, FILE_ASM, FILE_OBJ, FILE_AR, FILE_DSO,
+  FILE_NONE, FILE_C, FILE_ASM, FILE_OBJ, FILE_AR, FILE_DSO, FILE_PP_ASM
 } FileType;
 
 StringArray include_paths;
 bool opt_fcommon = true;
 bool opt_fpic;
+bool opt_optimize;
+bool opt_g;
+bool opt_func_sections;
+bool opt_data_sections;
+bool opt_cc1_asm_pp;
+StdVer opt_std;
 
-static FileType opt_x;
 static StringArray opt_include;
-static bool opt_E;
+bool opt_E;
 static bool opt_M;
 static bool opt_MD;
 static bool opt_MMD;
@@ -22,37 +26,22 @@ static bool opt_cc1;
 static bool opt_hash_hash_hash;
 static bool opt_static;
 static bool opt_shared;
-static bool opt_lib = 0;
 static char *opt_MF;
 static char *opt_MT;
 static char *opt_o;
+bool dont_reuse_stack;
 
 static StringArray ld_extra_args;
 static StringArray std_include_paths;
 
 char *base_file;
 static char *output_file;
-uint8_t debug_info = 0;
 
 static StringArray input_paths;
 static StringArray tmpfiles;
 
 static void usage(int status) {
-  fprintf (stderr,
-           "Usage: ecc options <source files>; where options are:\n");
-  fprintf (stderr, "\n");
-  fprintf (stderr, "  -E -- output C preprocessed code into stdout\n");
-  fprintf (stderr, "  -Dname[=value], -Uname -- predefine or unpredefine macros\n");
-  fprintf (stderr, "  -Idir, -Ldir -- add directories to search include headers or lbraries\n");
-  fprintf (stderr, "  -w -- do not print any warnings\n");
-  fprintf (stderr, "  -S, -c -- generate corresponding cod or obf files\n");
-  fprintf (stderr, "  -o file -- put output code into given file\n");
-  fprintf (stderr, "  -M, -MD   -- write a list of input files to stdout\n");
-  fprintf (stderr, "  -lib   -- combine files to a library instead of an executable\n");
-
-  fprintf(stderr,  "  -t  target\tselect one of the following targets (default: as host):\n\n");
-  for( int i = 1; i < MaxTarget; i++ )
-      fprintf(stderr, "      %s\t%s\n", targets[i].name, targets[i].description);
+  fprintf(stderr, "widcc [ -o <path> ] <file>\n");
   exit(status);
 }
 
@@ -67,73 +56,26 @@ static bool take_arg(char *arg) {
   return false;
 }
 
+static void add_default_include_paths(char *argv0) {
+  // We expect that compiler-provided include files are installed
+  // to ./include relative to argv[0].
+  strarray_push(&std_include_paths, format("%s/include", dirname(strdup(argv0))));
+
+  // Add standard include paths.
+  strarray_push(&std_include_paths, "/usr/local/include");
+  strarray_push(&std_include_paths, "/usr/include/x86_64-linux-gnu");
+  strarray_push(&std_include_paths, "/usr/include");
+
+  for (int i = 0; i < std_include_paths.len; i++)
+    strarray_push(&include_paths, std_include_paths.data[i]);
+}
+
 static void define(char *str) {
   char *eq = strchr(str, '=');
   if (eq)
-    define_macro(mystrndup(str, eq - str), eq + 1);
+    define_macro(strndup(str, eq - str), eq + 1);
   else
     define_macro(str, "1");
-}
-
-static int set_target(char *str) {
-    for( int i = 1; i < MaxTarget; i++ )
-    {
-        if( strcmp(str,targets[i].name) == 0 )
-        {
-            target = i;
-            Type* int_type = basic_type(TY_INT);
-            Type* uint_type = basic_utype(TY_INT);
-            Type* long_type = basic_type(TY_LONG);
-            Type* ulong_type = basic_utype(TY_LONG);
-            switch(targets[i].architecture)
-            {
-            case Amd16:
-                target_pointer_width = 2;
-                target_has_linkregister = 0;
-                target_stack_align = 2;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 2;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 2;
-               break;
-            case Amd32:
-                target_pointer_width = 4;
-                target_has_linkregister = 0;
-                target_stack_align = 4;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
-                break;
-            case Amd64:
-                target_pointer_width = 8;
-                target_has_linkregister = 0;
-                target_stack_align = 8;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 8;
-               break;
-            case Arma32:
-                target_pointer_width = 4;
-                target_has_linkregister = 1;
-                target_stack_align = 4;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
-                break;
-            case Armt32:
-                target_pointer_width = 4;
-                target_has_linkregister = 1;
-                target_stack_align = 4;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 4;
-                break;
-            case Arma64:
-                target_pointer_width = 8;
-                target_has_linkregister = 1;
-                target_stack_align = 16;
-                int_type->size = int_type->align = uint_type->size = uint_type->align = 4;
-                long_type->size = long_type->align = ulong_type->size = ulong_type->align = 8;
-                break;
-            }
-            return 1;
-        }
-    }
-    return 0;
 }
 
 static FileType parse_opt_x(char *s) {
@@ -141,6 +83,8 @@ static FileType parse_opt_x(char *s) {
     return FILE_C;
   if (!strcmp(s, "assembler"))
     return FILE_ASM;
+  if (!strcmp(s, "assembler-with-cpp"))
+    return FILE_PP_ASM;
   if (!strcmp(s, "none"))
     return FILE_NONE;
   error("<command line>: unknown argument for -x: %s", s);
@@ -182,7 +126,7 @@ static void parse_args(int argc, char **argv) {
       if (!argv[++i])
         usage(1);
 
-  StringArray idirafter = {};
+  StringArray idirafter = {0};
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-###")) {
@@ -190,7 +134,12 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-    if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h"))
+    if (!strcmp(argv[i], "-cc1")) {
+      opt_cc1 = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "--help"))
       usage(0);
 
     if (!strcmp(argv[i], "-o")) {
@@ -208,7 +157,6 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-#if 0
     if (!strcmp(argv[i], "-fcommon")) {
       opt_fcommon = true;
       continue;
@@ -218,7 +166,6 @@ static void parse_args(int argc, char **argv) {
       opt_fcommon = false;
       continue;
     }
-#endif
 
     if (!strcmp(argv[i], "-c")) {
       opt_c = true;
@@ -230,14 +177,13 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-    if (!strncmp(argv[i], "-I", 2)) {
-      strarray_push(&include_paths, argv[i] + 2);
+    if (!strcmp(argv[i], "-I")) {
+      strarray_push(&include_paths, argv[++i]);
       continue;
     }
 
-    if (!strncmp(argv[i], "-lib", 4)) {
-      opt_lib = 1;
-      strarray_push(&ld_extra_args, "-lib");
+    if (!strncmp(argv[i], "-I", 2)) {
+      strarray_push(&include_paths, argv[i] + 2);
       continue;
     }
 
@@ -248,12 +194,6 @@ static void parse_args(int argc, char **argv) {
 
     if (!strncmp(argv[i], "-D", 2)) {
       define(argv[i] + 2);
-      continue;
-    }
-
-    if (!strcmp(argv[i], "-t")) {
-      if( !set_target(argv[++i]) )
-          error("unknown target: %s", argv[i]);
       continue;
     }
 
@@ -273,12 +213,14 @@ static void parse_args(int argc, char **argv) {
     }
 
     if (!strcmp(argv[i], "-x")) {
-      opt_x = parse_opt_x(argv[++i]);
+      strarray_push(&input_paths, "-x");
+      strarray_push(&input_paths, argv[++i]);
       continue;
     }
 
     if (!strncmp(argv[i], "-x", 2)) {
-      opt_x = parse_opt_x(argv[i] + 2);
+      strarray_push(&input_paths, "-x");
+      strarray_push(&input_paths, argv[i] + 2);
       continue;
     }
 
@@ -287,12 +229,15 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-#if 0
+    if (!strcmp(argv[i], "-rdynamic")) {
+      strarray_push(&input_paths, "-Wl,--export-dynamic");
+      continue;
+    }
+
     if (!strcmp(argv[i], "-Xlinker")) {
       strarray_push(&ld_extra_args, argv[++i]);
       continue;
     }
-#endif
 
     if (!strcmp(argv[i], "-s")) {
       strarray_push(&ld_extra_args, "-s");
@@ -340,9 +285,24 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-#if 0
     if (!strcmp(argv[i], "-fpic") || !strcmp(argv[i], "-fPIC")) {
       opt_fpic = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-cc1-input")) {
+      base_file = argv[++i];
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-cc1-output")) {
+      output_file = argv[++i];
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-cc1-asm-pp")) {
+      opt_E = true;
+      opt_cc1_asm_pp = true;
       continue;
     }
 
@@ -362,7 +322,6 @@ static void parse_args(int argc, char **argv) {
       strarray_push(&ld_extra_args, "-shared");
       continue;
     }
-#endif
 
     if (!strcmp(argv[i], "-L")) {
       strarray_push(&ld_extra_args, "-L");
@@ -376,32 +335,86 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-    if (!strncmp(argv[i], "-g", 2)) {
-        debug_info = 1;
-        continue;
-    }
-
-#if 0
     if (!strcmp(argv[i], "-hashmap-test")) {
       hashmap_test();
       exit(0);
     }
 
+    if (!strncmp(argv[i], "-g", 2)) {
+      if (argv[i][2] == '0')
+        opt_g = false;
+      else
+        opt_g = true;
+      continue;
+    }
+
+    if (!strncmp(argv[i], "-O", 2)) {
+      if (argv[i][2] == '0')
+        opt_optimize = false;
+      else
+        opt_optimize = true;
+      continue;
+    }
+    if (!strncmp(argv[i], "-std=c", 6)) {
+      int val = strtoul(argv[i] + 6, NULL, 10);
+      if (val == 89 || val == 90)
+        opt_std = STD_C89;
+      else if (val == 99)
+        opt_std = STD_C99;
+      else if (val == 11)
+        opt_std = STD_C11;
+      else if (val == 17 || val == 18)
+        opt_std = STD_C17;
+      else if (val == 23)
+        opt_std = STD_C23;
+      else
+        error("unknown c standard");
+      continue;
+    }
+
+    if (!strncmp(argv[i], "-fstack-reuse=", 14)) {
+      if (strncmp(argv[i] + 14, "all\0", 4))
+        dont_reuse_stack = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-fsigned-char"))
+      continue;
+    if (!strcmp(argv[i], "-funsigned-char")) {
+      ty_pchar->is_unsigned = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-ffunction-sections")) {
+      opt_func_sections = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-fdata-sections")) {
+      opt_data_sections = true;
+      continue;
+    }
+
     // These options are ignored for now.
-    if (!strncmp(argv[i], "-O", 2) ||
-        !strncmp(argv[i], "-W", 2) ||
-        !strncmp(argv[i], "-g", 2) ||
+    if (!strncmp(argv[i], "-W", 2) ||
         !strncmp(argv[i], "-std=", 5) ||
+        !strncmp(argv[i], "-march=", 7) ||
         !strcmp(argv[i], "-ffreestanding") ||
         !strcmp(argv[i], "-fno-builtin") ||
+        !strcmp(argv[i], "-fno-lto") ||
+        !strcmp(argv[i], "-fno-asynchronous-unwind-tables") ||
+        !strcmp(argv[i], "-fno-delete-null-pointer-checks") ||
         !strcmp(argv[i], "-fno-omit-frame-pointer") ||
         !strcmp(argv[i], "-fno-stack-protector") ||
         !strcmp(argv[i], "-fno-strict-aliasing") ||
+        !strcmp(argv[i], "-fno-strict-overflow") ||
+        !strcmp(argv[i], "-fwrapv") ||
         !strcmp(argv[i], "-m64") ||
+        !strcmp(argv[i], "-mfpmath=sse") ||
         !strcmp(argv[i], "-mno-red-zone") ||
+        !strcmp(argv[i], "-pedantic") ||
         !strcmp(argv[i], "-w"))
       continue;
-#endif
 
     if (argv[i][0] == '-' && argv[i][1] != '\0')
       error("unknown argument: %s", argv[i]);
@@ -414,10 +427,6 @@ static void parse_args(int argc, char **argv) {
 
   if (input_paths.len == 0)
     error("no input files");
-
-  // -E implies that the input is the C macro language.
-  if (opt_E)
-    opt_x = FILE_C;
 }
 
 static FILE *open_file(char *path) {
@@ -438,64 +447,76 @@ static bool endswith(char *p, char *q) {
 
 // Replace file extension
 static char *replace_extn(char *tmpl, char *extn) {
-  char *dot = strrchr(tmpl, '.');
-  const int len2 = strlen(extn);
-  int len1;
+  char *filename = basename(strdup(tmpl));
+  char *dot = strrchr(filename, '.');
   if (dot)
-    len1 = dot - tmpl;
-  else
-    len1 = strlen(tmpl);
-  const int len3 = len1 + len2 + 1;
-  char* res = (char*)malloc(len3);
-  memcpy(res, tmpl, len1);
-  memcpy(res + len1, extn, len2 );
-  res[len3-1] = 0;
-  return res;
+    *dot = '\0';
+  return format("%s%s", filename, extn);
 }
 
 static void cleanup(void) {
   for (int i = 0; i < tmpfiles.len; i++)
-  {
-    remove(tmpfiles.data[i]);
-    free(tmpfiles.data[i]);
-  }
-  cleanup_base_types();
-}
-
-void register_for_cleanup(const char* path, int make_copy)
-{
-    if( make_copy )
-    {
-        char* buf = (char*)malloc(strlen(path)+1);
-        strcpy(buf,path);
-        path = buf;
-    }
-    strarray_push(&tmpfiles, path);
+    unlink(tmpfiles.data[i]);
 }
 
 static char *create_tmpfile(void) {
-  char* path = (char*)malloc(TMP_MAX);
-  tmpnam(path);
-  register_for_cleanup(path,0);
+  char *path = strdup("/tmp/widcc-XXXXXX");
+  int fd = mkstemp(path);
+  if (fd == -1)
+    error("mkstemp failed: %s", strerror(errno));
+  close(fd);
+
+  strarray_push(&tmpfiles, path);
   return path;
 }
 
-static void cc1(void);
-static void run_cc1(int argc, char **argv, char *input, char *output) {
-  if (input) { // -cc1-input
-    base_file = input;
+static void run_subprocess(char **argv) {
+  // If -### is given, dump the subprocess's command line.
+  if (opt_hash_hash_hash) {
+    fprintf(stderr, "%s", argv[0]);
+    for (int i = 1; argv[i]; i++)
+      fprintf(stderr, " %s", argv[i]);
+    fprintf(stderr, "\n");
   }
 
-  if (output) { // -cc1-output
-    output_file = output;
+  if (fork() == 0) {
+    // Child process. Run a new command.
+    execvp(argv[0], argv);
+    fprintf(stderr, "exec failed: %s: %s\n", argv[0], strerror(errno));
+    _exit(1);
   }
 
-  cc1();
+  // Wait for the child process to finish.
+  int status;
+  while (wait(&status) > 0);
+  if (status != 0)
+    exit(1);
+}
+
+static void run_cc1(int argc, char **argv, char *input, char *output, char *option) {
+  char **args = calloc(argc + 10, sizeof(char *));
+  memcpy(args, argv, argc * sizeof(char *));
+  args[argc++] = "-cc1";
+
+  if (input) {
+    args[argc++] = "-cc1-input";
+    args[argc++] = input;
+  }
+
+  if (output) {
+    args[argc++] = "-cc1-output";
+    args[argc++] = output;
+  }
+
+  if (option)
+    args[argc++] = option;
+
+  run_subprocess(args);
 }
 
 // Print tokens to stdout. Used for -E.
-static void print_tokens(Token *tok) {
-  FILE *out = open_file(opt_o ? opt_o : "-");
+static void print_tokens(Token *tok, char *path) {
+  FILE *out = open_file(path);
 
   int line = 1;
   for (; tok->kind != TK_EOF; tok = tok->next) {
@@ -537,47 +558,51 @@ static void print_dependencies(void) {
   if (opt_MT)
     fprintf(out, "%s:", opt_MT);
   else
-    fprintf(out, "%s:", quote_makefile(replace_extn(base_file, ".obf")));
+    fprintf(out, "%s:", quote_makefile(replace_extn(base_file, ".o")));
 
   File **files = get_input_files();
 
   for (int i = 0; files[i]; i++) {
-    if (opt_MMD && in_std_include_path(files[i]->name))
+    char *name = files[i]->name;
+    if ((opt_MMD && in_std_include_path(name)) || !strcmp(name, "widcc_builtins"))
       continue;
-    fprintf(out, " \\\n  %s", files[i]->name);
+    fprintf(out, " \\\n  %s", name);
   }
 
   fprintf(out, "\n\n");
 
   if (opt_MP) {
     for (int i = 1; files[i]; i++) {
-      if (opt_MMD && in_std_include_path(files[i]->name))
+      char *name = files[i]->name;
+      if ((opt_MMD && in_std_include_path(name)) || !strcmp(name, "widcc_builtins"))
         continue;
-      fprintf(out, "%s:\n\n", quote_makefile(files[i]->name));
+      fprintf(out, "%s:\n\n", quote_makefile(name));
     }
   }
 }
 
-static Token *must_tokenize_file(char *path) {
-  Token *tok = tokenize_file(path);
+static Token *must_tokenize_file(char *path, Token **end) {
+  Token *tok = tokenize_file(path, end);
   if (!tok)
     error("%s: %s", path, strerror(errno));
   return tok;
 }
 
-static Token *append_tokens(Token *tok1, Token *tok2) {
-  if (!tok1 || tok1->kind == TK_EOF)
-    return tok2;
-
-  Token *t = tok1;
-  while (t->next->kind != TK_EOF)
-    t = t->next;
-  t->next = tok2;
-  return tok1;
-}
-
 static void cc1(void) {
-  Token *tok = NULL;
+  Token head = {0};
+  Token *cur = &head;
+
+  if (!opt_E) {
+    Token *end;
+    head.next = tokenize(add_input_file("widcc_builtins",
+    "typedef struct {"
+    "  unsigned int gp_offset;"
+    "  unsigned int fp_offset;"
+    "  void *overflow_arg_area;"
+    "  void *reg_save_area;"
+    "} __builtin_va_list[1];"), &end);
+    cur = end;
+  }
 
   // Process -include option
   for (int i = 0; i < opt_include.len; i++) {
@@ -592,18 +617,15 @@ static void cc1(void) {
         error("-include: %s: %s", incl, strerror(errno));
     }
 
-    Token *tok2 = must_tokenize_file(path);
-    tok = append_tokens(tok, tok2);
+    Token *end = NULL;
+    cur->next = must_tokenize_file(path, &end);
+    if (end)
+      cur = end;
   }
 
-#ifdef ECC_COMPILING_MESSAGE
-  printf("compiling '%s'\n", base_file);
-#endif
-  fflush(stdout);
   // Tokenize and parse.
-  Token *tok2 = must_tokenize_file(base_file);
-  tok = append_tokens(tok, tok2);
-  tok = preprocess(tok);
+  cur->next = must_tokenize_file(base_file, NULL);
+  Token *tok = preprocess(head.next);
 
   // If -M or -MD are given, print file dependencies.
   if (opt_M || opt_MD) {
@@ -614,81 +636,181 @@ static void cc1(void) {
 
   // If -E is given, print out preprocessed C code as a result.
   if (opt_E) {
-    print_tokens(tok);
+    print_tokens(tok, output_file);
     return;
   }
 
   Obj *prog = parse(tok);
 
   // Open a temporary output buffer.
-  FILE *output_buf = tmpfile();
+  char *buf;
+  size_t buflen;
+  FILE *output_buf = open_memstream(&buf, &buflen);
 
   // Traverse the AST to emit assembly.
   codegen(prog, output_buf);
-  fseek(output_buf,0,SEEK_SET);
+  fclose(output_buf);
 
   // Write the asembly text to a file.
   FILE *out = open_file(output_file);
-  char a;
-  while ( (a = fgetc(output_buf)) != EOF )
-  {
-     fputc(a, out);
-  }
+  fwrite(buf, buflen, 1, out);
   fclose(out);
-  fclose(output_buf);
 }
 
 static void assemble(char *input, char *output) {
-#ifdef ECC_HAVE_BACKEND
-  run_codegen(input,output);
-#else
-  error("this version of ecc has no integrated backend; call 'ecsd -t %s <cod-file>' instead",
-        targets[target].name);
-#endif
+  char *cmd[] = {"as", input, "-o", output, NULL};
+  // char *cmd[] = {"clang", "-c", "-xassembler", input, "-o", output, NULL};
+  run_subprocess(cmd);
 }
 
-static void link(StringArray *inputs, char *output) {
-  // TODO if (opt_static) {
-  // TODO if (opt_shared)
-#ifdef ECC_HAVE_BACKEND
-  run_linker(inputs, &ld_extra_args, output);
-#endif
+static char *find_file(char *pattern) {
+  char *path = NULL;
+  glob_t buf = {0};
+  glob(pattern, 0, NULL, &buf);
+  if (buf.gl_pathc > 0)
+    path = strdup(buf.gl_pathv[buf.gl_pathc - 1]);
+  globfree(&buf);
+  return path;
+}
+
+// Returns true if a given file exists.
+bool file_exists(char *path) {
+  struct stat st;
+  return !stat(path, &st);
+}
+
+static char *find_libpath(void) {
+  if (file_exists("/usr/lib/x86_64-linux-gnu/crti.o"))
+    return "/usr/lib/x86_64-linux-gnu";
+  if (file_exists("/usr/lib64/crti.o"))
+    return "/usr/lib64";
+  error("library path is not found");
+}
+
+static char *find_gcc_libpath(void) {
+  char *path = find_file("/usr/lib*/gcc/x86_64*-linux*/*/crtbegin.o");
+  if (path)
+    return dirname(path);
+  error("gcc library path is not found");
+}
+
+static void run_linker(StringArray *inputs, char *output) {
+  StringArray arr = {0};
+
+  strarray_push(&arr, "ld");
+  strarray_push(&arr, "-o");
+  strarray_push(&arr, output);
+  strarray_push(&arr, "-m");
+  strarray_push(&arr, "elf_x86_64");
+
+  char *libpath = find_libpath();
+  char *gcc_libpath = find_gcc_libpath();
+
+  if (opt_shared) {
+    strarray_push(&arr, format("%s/crti.o", libpath));
+    strarray_push(&arr, format("%s/crtbeginS.o", gcc_libpath));
+  } else {
+    strarray_push(&arr, format("%s/crt1.o", libpath));
+    strarray_push(&arr, format("%s/crti.o", libpath));
+    strarray_push(&arr, format("%s/crtbegin.o", gcc_libpath));
+  }
+
+  strarray_push(&arr, format("-L%s", gcc_libpath));
+  strarray_push(&arr, "-L/usr/lib/x86_64-linux-gnu");
+  strarray_push(&arr, "-L/usr/lib64");
+  strarray_push(&arr, "-L/lib64");
+  strarray_push(&arr, "-L/usr/lib/x86_64-linux-gnu");
+  strarray_push(&arr, "-L/usr/lib/x86_64-pc-linux-gnu");
+  strarray_push(&arr, "-L/usr/lib/x86_64-redhat-linux");
+  strarray_push(&arr, "-L/usr/lib");
+  strarray_push(&arr, "-L/lib");
+
+  if (!opt_static) {
+    strarray_push(&arr, "-dynamic-linker");
+    strarray_push(&arr, "/lib64/ld-linux-x86-64.so.2");
+  }
+
+  for (int i = 0; i < ld_extra_args.len; i++)
+    strarray_push(&arr, ld_extra_args.data[i]);
+
+  for (int i = 0; i < inputs->len; i++)
+    strarray_push(&arr, inputs->data[i]);
+
+  if (opt_static) {
+    strarray_push(&arr, "--start-group");
+    strarray_push(&arr, "-lgcc");
+    strarray_push(&arr, "-lgcc_eh");
+    strarray_push(&arr, "-lc");
+    strarray_push(&arr, "--end-group");
+  } else {
+    strarray_push(&arr, "-lc");
+    strarray_push(&arr, "-lgcc");
+    strarray_push(&arr, "--as-needed");
+    strarray_push(&arr, "-lgcc_s");
+    strarray_push(&arr, "--no-as-needed");
+  }
+
+  if (opt_shared)
+    strarray_push(&arr, format("%s/crtendS.o", gcc_libpath));
+  else
+    strarray_push(&arr, format("%s/crtend.o", gcc_libpath));
+
+  strarray_push(&arr, format("%s/crtn.o", libpath));
+  strarray_push(&arr, NULL);
+
+  run_subprocess(arr.data);
 }
 
 static FileType get_file_type(char *filename) {
-  if (opt_x != FILE_NONE)
-    return opt_x;
-
-  if (endswith(filename, ".lib"))
+  if (endswith(filename, ".a"))
     return FILE_AR;
-  if (endswith(filename, ".obf"))
+  if (endswith(filename, ".so"))
+    return FILE_DSO;
+  if (endswith(filename, ".o") || endswith(filename, ".lo"))
     return FILE_OBJ;
   if (endswith(filename, ".c"))
     return FILE_C;
-  if (endswith(filename, ".cod"))
+  if (endswith(filename, ".s"))
     return FILE_ASM;
+  if (endswith(filename, ".S"))
+    return FILE_PP_ASM;
+
+  if (opt_E && !strcmp(filename, "-"))
+    return FILE_C;
+
+  char *p = strstr(filename, ".so.");
+  if (p) {
+    p += 3;
+    while (isdigit(*p) || (*p == '.' && isdigit(p[1])))
+      p++;
+    if (!*p)
+      return FILE_DSO;
+  }
 
   error("<command line>: unknown file extension: %s", filename);
 }
 
 int main(int argc, char **argv) {
-  clock_t start, end;
-  start = clock();
-
   atexit(cleanup);
+  init_macros();
   parse_args(argc, argv);
 
-  if( target == NoTarget )
-      error("please specify a valid target using the -t option");
+  if (opt_cc1) {
+    add_default_include_paths(argv[0]);
+    cc1();
+    return 0;
+  }
 
-  init_macros();
-
-  if (input_paths.len > 1 && opt_o && (opt_c || opt_S | opt_E))
-    error("cannot specify '-o' with '-c,' '-S' or '-E' with multiple files");
-
-  StringArray ld_args = {};
+  StringArray ld_args = {0};
+  int file_count = 0;
+  FileType opt_x = FILE_NONE;
 
   for (int i = 0; i < input_paths.len; i++) {
+    if (!strcmp(input_paths.data[i], "-x")) {
+      opt_x = parse_opt_x(input_paths.data[++i]);
+      continue;
+    }
+
     char *input = input_paths.data[i];
 
     if (!strncmp(input, "-l", 2)) {
@@ -697,7 +819,7 @@ int main(int argc, char **argv) {
     }
 
     if (!strncmp(input, "-Wl,", 4)) {
-      char *s = mystrdup(input + 4);
+      char *s = strdup(input + 4);
       char *arg = strtok(s, ",");
       while (arg) {
         strarray_push(&ld_args, arg);
@@ -706,15 +828,23 @@ int main(int argc, char **argv) {
       continue;
     }
 
+    if (opt_o && (opt_c || opt_S || opt_E))
+      if (++file_count > 1)
+        error("cannot specify '-o' with '-c,' '-S' or '-E' with multiple files");
+
     char *output;
     if (opt_o)
       output = opt_o;
     else if (opt_S)
-      output = replace_extn(input, ".cod");
+      output = replace_extn(input, ".s");
     else
-      output = replace_extn(input, ".obf");
+      output = replace_extn(input, ".o");
 
-    FileType type = get_file_type(input);
+    FileType type;
+    if (opt_x != FILE_NONE)
+      type = opt_x;
+    else
+      type = get_file_type(input);
 
     // Handle .o or .a
     if (type == FILE_OBJ || type == FILE_AR || type == FILE_DSO) {
@@ -724,8 +854,37 @@ int main(int argc, char **argv) {
 
     // Handle .s
     if (type == FILE_ASM) {
-      if (!opt_S)
+      if (opt_S || opt_E || opt_M)
+        continue;
+
+      if (opt_c) {
         assemble(input, output);
+        continue;
+      }
+
+      char *tmp = create_tmpfile();
+      assemble(input, tmp);
+      strarray_push(&ld_args, tmp);
+      continue;
+    }
+
+    // Handle .S
+    if (type == FILE_PP_ASM) {
+      if (opt_S || opt_E || opt_M) {
+        run_cc1(argc, argv, input, (opt_o ? opt_o : "-"), "-cc1-asm-pp");
+        continue;
+      }
+      if (opt_c) {
+        char *tmp = create_tmpfile();
+        run_cc1(argc, argv, input, tmp, "-cc1-asm-pp");
+        assemble(tmp, output);
+        continue;
+      }
+      char *tmp1 = create_tmpfile();
+      char *tmp2 = create_tmpfile();
+      run_cc1(argc, argv, input, tmp1, "-cc1-asm-pp");
+      assemble(tmp1, tmp2);
+      strarray_push(&ld_args, tmp2);
       continue;
     }
 
@@ -733,20 +892,20 @@ int main(int argc, char **argv) {
 
     // Just preprocess
     if (opt_E || opt_M) {
-      run_cc1(argc, argv, input, NULL);
+      run_cc1(argc, argv, input, (opt_o ? opt_o : "-"), NULL);
       continue;
     }
 
     // Compile
     if (opt_S) {
-      run_cc1(argc, argv, input, output);
+      run_cc1(argc, argv, input, output, NULL);
       continue;
     }
 
     // Compile and assemble
     if (opt_c) {
       char *tmp = create_tmpfile();
-      run_cc1(argc, argv, input, tmp);
+      run_cc1(argc, argv, input, tmp, NULL);
       assemble(tmp, output);
       continue;
     }
@@ -754,80 +913,13 @@ int main(int argc, char **argv) {
     // Compile, assemble and link
     char *tmp1 = create_tmpfile();
     char *tmp2 = create_tmpfile();
-    run_cc1(argc, argv, input, tmp1);
+    run_cc1(argc, argv, input, tmp1, NULL);
     assemble(tmp1, tmp2);
     strarray_push(&ld_args, tmp2);
     continue;
   }
 
   if (ld_args.len > 0)
-    link(&ld_args, opt_o ? opt_o : opt_lib ? "a.lib" : "a.out");
-
-  end = clock();
-#ifdef ECC_SHOW_RUN_FOR_SECS
-  printf("run for %.1f seconds\n", ((float) (end - start)) / CLOCKS_PER_SEC);
-#endif
+    run_linker(&ld_args, opt_o ? opt_o : "a.out");
   return 0;
 }
-
-#include "hostdetect.h"
-
-uint8_t target_pointer_width = sizeof(void*);
-uint8_t target_stack_align = sizeof(void*);
-
-#ifdef Q_PROCESSOR_ARM
-uint8_t target_has_linkregister = 1;
-#else
-uint8_t target_has_linkregister = 0;
-#endif
-
-#ifdef Q_PROCESSOR_ARM
-#ifdef Q_OS_LINUX
-uint8_t target = sizeof(void*) == 8 ? ARMA64Linux : ARMA32Linux;
-#elif defined Q_OS_MACOS
-uint8_t target = NoTarget; // TODO
-#else
-uint8_t target = NoTarget;
-#endif
-#elif defined Q_PROCESSOR_X86
-#ifdef Q_OS_LINUX
-uint8_t target = sizeof(void*) == 8 ? AMD64Linux : AMD32Linux;
-#elif defined Q_OS_WIN32
-uint8_t target = sizeof(void*) == 8 ? Win64 : Win32;
-#elif defined Q_OS_MACOS
-uint8_t target = sizeof(void*) == 8 ? OSX64 : OSX32;
-#else
-uint8_t target = NoTarget;
-#endif
-#else
-uint8_t target = NoTarget;
-#endif
-
-struct TargetData targets[] = {
-    // all linkbin or linklib
-    {"", "none", NoProcessor, true, "undefined", "none"},
-    {"amd32linux", "amd32", Amd32, true, "Linux-based 32-bit systems", "dbgdwarf"}, // amd32run.obf amd32linuxrun.obf
-    {"amd64linux", "amd64", Amd64, true, "Linux-based 64-bit systems", "dbgdwarf"}, // amd64run.obf amd64linuxrun.obf
-    {"arma32linux", "arma32", Arma32, true, "Linux-based systems", "dbgdwarf"}, // arma32run.obf arma32linuxrun.obf
-    {"arma64linux", "arma64", Arma64, true, "Linux-based systems", "dbgdwarf"},
-    {"armt32linux", "armt32", Armt32, true, "Linux-based systems", "dbgdwarf"},
-    {"armt32fpelinux", "armt32fpe", Armt32, true, "Linux-based systems", "dbgdwarf"}, // armt32fperun.obf armt32fpelinuxrun.obf
-    {"bios16", "amd16", Amd16, false, "BIOS-based 16-bit systems"}, // amd16run.obf bios16run.obf
-    {"bios32", "amd32", Amd32, false, "BIOS-based 32-bit systems"},
-    {"bios64", "amd64", Amd64, false, "BIOS-based 64-bit systems"},
-    {"dos", "amd16", Amd16, false, "DOS systems"},
-    {"efi32", "amd32", Amd32, false, "EFI-based 32-bit systems"},
-    {"efi64", "amd64", Amd64, false, "EFI-based 64-bit systems"},
-    {"osx32", "amd32", Amd32, true, "32-bit OS X systems", "dbgdwarf"},
-    {"osx64", "amd64", Amd64, true, "64-bit OS X systems", "dbgdwarf"},
-    {"rpi2b", "arma32", Arma32, false, "Raspberry Pi 2 Model B"},
-    {"win32", "amd32", Amd32, false, "32-bit Windows systems"},
-    {"win64", "amd64", Amd64, false, "64-bit Windows systems"},
-    {"amd16", "amd16", Amd16, false, "barebone x86 real mode"},
-    {"amd32", "amd32", Amd32, false, "barebone x86 protected mode"},
-    {"amd64", "amd64", Amd64, false, "barebone x86 long mode"},
-    {"arma32", "arma32", Arma32, false, "barebone ARMv7"},
-    {"armt32", "armt32", Armt32, false, "barebone ARMv7 thumb"},
-    {"arma64", "arma64", Arma64, false, "barebone ARMv8"},
-};
-

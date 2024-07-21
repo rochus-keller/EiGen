@@ -57,10 +57,16 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
     return 0;
 }
 #else
-#include <time.h>
+#ifndef __ECS_C__
+#include <sys/time.h>
+#endif
 #endif
 
+#ifndef __ECS_C__
+static struct timeval start;
+#else
 static struct timespec start;
+#endif
 
 int32_t Input$Time()
 {

@@ -229,21 +229,19 @@ void Tester$Test6() {
 }
 
 void Tester$RunAll() {
-#if 0
     Harness$run((const struct OBX$Array$1){10,0,OBX$FromUtf("DeltaBlue",10,0)}, 12000, 1);
     Harness$run((const struct OBX$Array$1){9,0,OBX$FromUtf("Richards",9,0)}, 100, 1);
     Harness$run((const struct OBX$Array$1){5,0,OBX$FromUtf("Json",5,0)}, 100, 1);
     Harness$run((const struct OBX$Array$1){7,0,OBX$FromUtf("Havlak",7,0)}, 10, 1);
     Harness$run((const struct OBX$Array$1){4,0,OBX$FromUtf("CD2",4,0)}, 250, 2);
-#endif
     Harness$run((const struct OBX$Array$1){7,0,OBX$FromUtf("Bounce",7,0)}, 1500, 1);
     Harness$run((const struct OBX$Array$1){5,0,OBX$FromUtf("List",5,0)}, 1500, 1);
     Harness$run((const struct OBX$Array$1){11,0,OBX$FromUtf("Mandelbrot",11,0)}, 500, 1);
-    //Harness$run((const struct OBX$Array$1){6,0,OBX$FromUtf("NBody",6,0)}, 250000, 1);
+    Harness$run((const struct OBX$Array$1){6,0,OBX$FromUtf("NBody",6,0)}, 250000, 1);
     Harness$run((const struct OBX$Array$1){8,0,OBX$FromUtf("Permute",8,0)}, 1000, 1);
     Harness$run((const struct OBX$Array$1){7,0,OBX$FromUtf("Queens",7,0)}, 1000, 1);
     Harness$run((const struct OBX$Array$1){6,0,OBX$FromUtf("Sieve",6,0)}, 3000, 1);
-    //Harness$run((const struct OBX$Array$1){8,0,OBX$FromUtf("Storage",8,0)}, 1000, 1);
+    Harness$run((const struct OBX$Array$1){8,0,OBX$FromUtf("Storage",8,0)}, 1000, 1);
     Harness$run((const struct OBX$Array$1){7,0,OBX$FromUtf("Towers",7,0)}, 600, 1);
 }
 

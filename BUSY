@@ -322,7 +322,7 @@ let compiler : Executable {
         ./dbgdwarfconverter.cpp
         ./dbgdwarfconverter.hpp
         ]
-    .defines += ["ECC_HAVE_BACKEND"  ]
+    .defines += ["ECC_HAVE_BACKEND" "ECC_SHOW_RUN_FOR_SECS" ]
     #  ECC_SHOW_RUN_FOR_SECS "ECC_COMPILING_MESSAGE"
     .include_dirs += .
 

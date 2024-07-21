@@ -1500,8 +1500,8 @@ static void emit_text(Obj *prog) {
             const char* code = fn->body->asm_str;
             while( *code && ::isspace(*code) )
                 code++;
-            if( *code != '.' )
-                error_tok(fn->body->tok,"invalid assembler section");
+            //if( *code != '.' )
+            //    error_tok(fn->body->tok,"invalid assembler section");
             try {
                 if( fn->is_inline ){
                     // pass-through to machine code generator

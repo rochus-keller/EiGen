@@ -99,6 +99,7 @@ static uint8_t getTypeId(Type *ty) {
     // ok
     switch (ty->kind) {
     case TY_CHAR:
+    case TY_PCHAR:
         return ty->is_unsigned ? u1 : s1;
     case TY_SHORT:
         return ty->is_unsigned ? u2 : s2;
@@ -266,6 +267,7 @@ static void gen_addr(Node *node) {
         gen_expr(node->lhs);
         return;
     case ND_COMMA:
+    case ND_CHAIN:
         gen_expr(node->lhs);
         gen_addr(node->rhs);
         return;
@@ -367,15 +369,15 @@ static int push_struct(Type *ty) {
     return res;
 }
 
-static int push_args2(Node *args) {
+static int push_args2(Obj *args) {
     // ok
     if (!args)
         return 0;
 
     // invert order of arguments
-    int res = push_args2(args->next);
+    int res = push_args2(args->param_next);
 
-    gen_expr(args);
+    gen_expr(args->arg_expr);
 
     switch (args->ty->kind) {
     case TY_STRUCT:
@@ -656,6 +658,7 @@ static void gen_expr(Node *node) {
             gen_stmt(n);
         return;
     case ND_COMMA:
+    case ND_CHAIN:
         // ok
         gen_expr(node->lhs);
         gen_expr(node->rhs);
@@ -837,6 +840,7 @@ static void gen_expr(Node *node) {
         println("  lsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     case ND_SHR:
+    case ND_SAR:
         println("  rsh %s $0, %s $0, %s %s", lhsT, lhsT, rhsT, tmpname );
         break;
     default:
@@ -988,6 +992,27 @@ static int firstParamOffset()
     return 2 * target_stack_align; // previous frame and return address;
 }
 
+static void visit_vars(Scope *sc, void (*handle)(Scope* sc, Obj* var, void* data), void* data ) {
+  for (Obj *var = sc->locals; var; var = var->next) {
+     handle(sc, var, data);
+  }
+
+  for (Scope *sub_sc = sc->children; sub_sc;) {
+    visit_vars(sub_sc, handle, data);
+    sub_sc = sub_sc->sibling_next;
+  }
+}
+
+static void set_var_offset(Scope* sc, Obj* var, void* data)
+{
+    if (var->offset)
+        return;
+    int* bottom = (int*)data;
+    *bottom += var->ty->size;
+    *bottom = align_to(*bottom, var->ty->align);
+    var->offset = -*bottom;
+}
+
 // Assign offsets to local variables.
 static void assign_lvar_offsets(Obj *prog) {
     // ok
@@ -1002,7 +1027,7 @@ static void assign_lvar_offsets(Obj *prog) {
 
         // Assign offsets to parameters.
         for (Obj *var = fn->ty->param_list; var; var = var->param_next) {
-            top = align_to(top, MAX(target_stack_align, var->align));
+            top = align_to(top, MAX(target_stack_align, var->ty->align));
             var->offset = top;
             top += var->ty->size;
         }
@@ -1010,14 +1035,7 @@ static void assign_lvar_offsets(Obj *prog) {
         int bottom = 0;
 
         // Assign offsets to local variables.
-        for (Obj *var = fn->ty->scope ? fn->ty->scope->locals : 0; var; var = var->next) {
-            if (var->offset)
-                continue;
-
-            bottom += var->ty->size;
-            bottom = align_to(bottom, var->align);
-            var->offset = -bottom;
-        }
+        visit_vars(fn->ty->scope,set_var_offset,&bottom);
 
         fn->stack_size = align_to(bottom, target_stack_align); // TODO: orig was 16, i.e. 2 * codegen_StackAlign
     }
@@ -1051,7 +1069,7 @@ static void emit_data(Obj *prog) {
         // if (var->is_static)
         println(".data %s", make_name(var->is_static, var->name));
 
-        const int align = var->align;
+        const int align = var->ty->align;
 
         // Common symbol
         if (opt_fcommon && var->is_tentative) {
@@ -1102,18 +1120,21 @@ static void emit_data(Obj *prog) {
     }
 }
 
+static void print_local_vars(Scope* sc, Obj* var, void* data)
+{
+    if( var->offset > 0 )
+        return; // hit a param; apparently chibicc links params just behind locals
+    println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
+            var->offset, var->ty->size, var->ty->align );
+}
+
 static void print_var_names(Obj* fn)
 {
     for (Obj *var = fn->ty->param_list; var; var = var->param_next) {
         println("  ; param '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
-                var->offset, var->ty->size, var->align );
+                var->offset, var->ty->size, var->ty->align );
     }
-    for (Obj *var = fn->ty->scope->locals; var; var = var->next) {
-        if( var->offset > 0 )
-            break; // hit a param; apparently chibicc links params just behind locals
-        println("  ; local '%s' %s offset=%d size=%d align=%d", var->name, getTypeName(var->ty),
-                var->offset, var->ty->size, var->align );
-    }
+    visit_vars(fn->ty->scope,print_local_vars,0);
 }
 
 static void emit_text(Obj *prog) {

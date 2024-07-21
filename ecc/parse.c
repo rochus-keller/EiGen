@@ -357,8 +357,8 @@ static Type *find_typedef(Token *tok) {
 
 static void push_tag_scope(Token *tok, Type *ty) {
   hashmap_put2(&cur_scope->tags, tok->loc, tok->len, ty);
-  assert(ty->tag==0);
-  if(ty->name_pos==0)
+  assert(ty->tag == 0);
+  if(ty->name_pos == 0)
     ty->name_pos = tok;
   if(ty->kind == TY_STRUCT || ty->kind == TY_UNION)
     ty->tag = tok;
@@ -789,7 +789,9 @@ static Type *declarator(Token **rest, Token *tok, Type *ty, Token **name_tok) {
     *name_tok = tok;
     tok = tok->next;
   }
-  return type_suffix(rest, tok, ty);
+  ty = type_suffix(rest, tok, ty);
+  ty->name_pos = tok;
+  return ty;
 }
 
 // type-name = declspec abstract-declarator
@@ -2801,7 +2803,9 @@ static Type *struct_union_decl(Token **rest, Token *tok, TypeKind kind) {
 
   Type *ty2 = hashmap_get2(&cur_scope->tags, tag->loc, tag->len);
   if (ty2) {
+    Token* tmp = ty2->tag;
     *ty2 = *ty;
+    ty2->tag = tmp;
     return ty2;
   }
   push_tag_scope(tag, ty);
@@ -3043,7 +3047,6 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
 
   Obj head = {0};
   Obj *cur = &head;
-  Node *expr = NULL;
 
   enter_tmp_scope();
 
@@ -3070,8 +3073,9 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
     add_type(arg);
 
     Obj *var = new_lvar(NULL, arg->ty);
-    chain_expr(&expr, new_binary(ND_ASSIGN, new_var_node(var, tok), arg, tok));
-    add_type(expr);
+    arg = new_binary(ND_ASSIGN, new_var_node(var, tok), arg, tok);
+    add_type(arg);
+    var->arg_expr = arg;
 
     cur = cur->param_next = var;
   }
@@ -3083,7 +3087,6 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
   Node *node = new_unary(ND_FUNCALL, fn, tok);
   node->ty = ty->return_ty;
   node->args = head.param_next;
-  node->args_expr = expr;
 
   // If a function returns a struct, it is caller's responsibility
   // to allocate a space for the return value.
@@ -3356,6 +3359,8 @@ static Node *parse_typedef(Token **rest, Token *tok, Type *basety) {
       error_tok(tok, "typedef name omitted");
     push_scope(get_ident(name))->type_def = ty;
     chain_expr(&node, compute_vla_size(ty, tok));
+    if( ty->tag == 0 && (ty->kind == TY_STRUCT || ty->kind == TY_UNION) )
+        ty->tag = ty->name_pos;
   }
   return node;
 }

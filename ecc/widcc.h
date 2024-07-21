@@ -198,10 +198,10 @@ struct Obj {
   bool is_local; // local or global/function
 
   int offset;
-  int align;     // alignment
 
   Obj *param_next;
   Obj *param_promoted;
+  Node *arg_expr;
   Obj *vla_next;
   int stack_size;
 
@@ -323,7 +323,6 @@ struct Node {
   // Function call
   Obj *ret_buffer;
   Obj *args;
-  Node *args_expr;
 
   // Goto or labeled statement, or labels-as-values
   char *label;

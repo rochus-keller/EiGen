@@ -654,6 +654,7 @@ static void cc1(void) {
   {
      fputc(a, out);
   }
+  fclose(out);
   fclose(output_buf);
 }
 

@@ -1,5 +1,5 @@
 extern "C" {
-#include "chibicc.h"
+#include "widcc.h"
 }
 
 #include "debugging.hpp"

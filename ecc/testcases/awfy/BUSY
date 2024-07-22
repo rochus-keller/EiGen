@@ -12,7 +12,7 @@ let config : Config {
 
 let awfy ! : Executable {
     .configs += config;
-
+    .defines += "OBX_USE_BOEHM_GC"
     .sources += [
         ./Math.c
         ./MathL.c

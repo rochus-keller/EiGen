@@ -27,7 +27,19 @@
 #include "OBX.Runtime.h"
 #include <stdarg.h>
 #ifdef OBX_USE_BOEHM_GC
-#include <gc/gc.h>
+// #include <gc/gc.h>
+extern void GC_free(void *);
+extern void * GC_malloc(size_t /* size_in_bytes */);
+
+#ifdef __ECS_C__
+#include <sys/linuxlib.hpp>
+
+LIBRARY(libgc, "libgc.so");
+FUNCTION(libgc, GC_malloc, 1);
+FUNCTION(libgc, GC_free, 1);
+
+#endif
+
 #endif
 #include <stdio.h>
 
@@ -101,7 +113,7 @@ int64_t OBX$Mod64( int64_t a, int64_t b )
 void* OBX$Alloc( size_t s)
 {
 #ifdef OBX_USE_BOEHM_GC
-    return GC_MALLOC(s);
+    return GC_malloc(s);
 #else
     return malloc(s);
 #endif
@@ -903,7 +915,7 @@ void OBX$PopJump()
 		struct OBX$Jump* j = jumpStack;
 		jumpStack = j->prev;
 #ifdef OBX_USE_BOEHM_GC
-    	GC_FREE(j);
+        GC_free(j);
 #else
      	free(j);
 #endif

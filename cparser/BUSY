@@ -23,9 +23,8 @@ let libfirm : SourceSet {
     ]
 }
 
-let cparser ! : Executable {
+let sources ! : SourceSet {
     .configs += config;
-    .deps += [ libfirm ]
     .sources += [
         ./ir_opt.h
         ./actions.c
@@ -40,7 +39,6 @@ let cparser ! : Executable {
         ./format_check.c
         ./help.c
         ./input.c
-        ./main.c
         ./options.c
         ./panic.c
         ./parser.c
@@ -63,8 +61,6 @@ let cparser ! : Executable {
         ./warning.c
         ./actions.h
         ./array.h
-        ./ast2ir.c
-        ./ast2ir.h
         ./ast.h
         ./ast_t.h
         ./attribute.h
@@ -130,4 +126,14 @@ let cparser ! : Executable {
         ./write_jna.h
     ]
     .include_dirs += .
+}
+
+let cparser ! : Executable {
+    .configs += config;
+    .deps += [ libfirm sources ]
+    .sources += [
+        ./main.c
+        ./ast2ir.c
+        ./ast2ir.h
+    ]
 }

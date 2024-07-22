@@ -775,7 +775,7 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 
 	already_constructed_firm = true;
     // TODO init_implicit_optimizations();
-	translation_unit_to_firm(unit->ast);
+	translation_unit_to_ir(unit->ast);
 	timer_stop(t_construct);
 #if 0
     // TODO RK

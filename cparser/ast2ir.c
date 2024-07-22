@@ -803,7 +803,7 @@ static ir_node *conv_to_storage_type(dbg_info *const dbgi, ir_node *const val, t
  * @param src_pos    the source position of the string constant
  * @param value      the value of the string constant
  */
-static ir_node *string_to_firm(position_t const *const src_pos,
+static ir_node *string_to_ir(position_t const *const src_pos,
                                string_t *const value)
 {
 	ir_entity *entity;
@@ -867,9 +867,9 @@ make_address:;
 #endif
 }
 
-static ir_node *string_literal_to_firm(string_literal_expression_t const *const expr)
+static ir_node *string_literal_to_ir(string_literal_expression_t const *const expr)
 {
-	return string_to_firm(&expr->base.pos, expr->value);
+    return string_to_ir(&expr->base.pos, expr->value);
 }
 
 /**
@@ -982,7 +982,7 @@ static ir_node *reference_addr(const reference_expression_t *ref)
 	panic("reference to declaration with unknown type");
 }
 
-static ir_node *reference_expression_to_firm(const reference_expression_t *ref)
+static ir_node *reference_expression_to_ir(const reference_expression_t *ref)
 {
 	dbg_info *const dbgi   = get_dbg_info(&ref->base.pos);
 	entity_t *const entity = ref->entity;
@@ -1140,7 +1140,7 @@ static ir_node *complex_to_memory(dbg_info *dbgi, type_t *type,
  * 176.gcc for instance might allocate 2GB instead of 256 MB if alloca is not
  * handled right...
  */
-static ir_node *call_expression_to_firm(const call_expression_t *const call)
+static ir_node *call_expression_to_ir(const call_expression_t *const call)
 {
 	dbg_info *const dbgi = get_dbg_info(&call->base.pos);
 	assert(currently_reachable());
@@ -1285,8 +1285,8 @@ static ir_node *call_expression_to_firm(const call_expression_t *const call)
 	return result;
 }
 
-static ir_node *statement_to_firm(statement_t *statement);
-static ir_node *compound_statement_to_firm(compound_statement_t *compound);
+static ir_node *statement_to_ir(statement_t *statement);
+static ir_node *compound_statement_to_ir(compound_statement_t *compound);
 static ir_node *expression_to_addr(const expression_t *expression);
 
 static void assign_value(dbg_info *dbgi, ir_node *addr, type_t *type,
@@ -1334,7 +1334,7 @@ static ir_tarval *create_bitfield_mask(ir_mode *mode, int offset, int size)
 	return mask1;
 }
 
-static ir_node *bitfield_store_to_firm(dbg_info *dbgi,
+static ir_node *bitfield_store_to_ir(dbg_info *dbgi,
 		ir_entity *entity, ir_node *addr, ir_node *value, bool set_volatile,
 		bool need_return)
 {
@@ -1390,7 +1390,7 @@ static ir_node *bitfield_store_to_firm(dbg_info *dbgi,
 #endif
 }
 
-static ir_node *bitfield_extract_to_firm(const select_expression_t *expression,
+static ir_node *bitfield_extract_to_ir(const select_expression_t *expression,
                                          ir_node *addr)
 {
 #if 0
@@ -1486,7 +1486,7 @@ static ir_node *set_value_for_expression_addr(const expression_t *expression,
 			ir_entity *irentity = entity->compound_member.entity;
 			bool       set_volatile
 				= selecte->base.type->base.qualifiers & TYPE_QUALIFIER_VOLATILE;
-			value = bitfield_store_to_firm(dbgi, irentity, addr, value,
+            value = bitfield_store_to_ir(dbgi, irentity, addr, value,
 			                               set_volatile, true);
 			return value;
 		}
@@ -1524,7 +1524,7 @@ static ir_node *get_value_from_lvalue(const expression_t *expression,
 	if (expression->kind == EXPR_SELECT &&
 	    expression->select.compound_entry->compound_member.bitfield) {
 	    construct_select_compound(&expression->select);
-		value = bitfield_extract_to_firm(&expression->select, addr);
+        value = bitfield_extract_to_ir(&expression->select, addr);
 	} else {
 		value = deref_address(dbgi, expression->base.type, addr);
 	}
@@ -1532,7 +1532,7 @@ static ir_node *get_value_from_lvalue(const expression_t *expression,
 	return value;
 }
 
-static ir_node *incdec_to_firm(unary_expression_t const *const expr, bool const inc, bool const pre)
+static ir_node *incdec_to_ir(unary_expression_t const *const expr, bool const inc, bool const pre)
 {
 	type_t  *const type = skip_typeref(expr->base.type);
 	ir_mode *const mode = get_ir_mode_arithmetic(type);
@@ -1722,7 +1722,7 @@ static ir_node *create_cast(expression_t const *const expr)
     return 0;
 }
 
-static ir_node *complement_to_firm(unary_expression_t const *const expr)
+static ir_node *complement_to_ir(unary_expression_t const *const expr)
 {
 	dbg_info *const dbgi  = get_dbg_info(&expr->base.pos);
 	type_t   *const type  = skip_typeref(expr->base.type);
@@ -1731,7 +1731,7 @@ static ir_node *complement_to_firm(unary_expression_t const *const expr)
 //	return new_d_Not(dbgi, value);
 }
 
-static ir_node *dereference_to_firm(unary_expression_t const *const expr)
+static ir_node *dereference_to_ir(unary_expression_t const *const expr)
 {
 	dbg_info *const dbgi       = get_dbg_info(&expr->base.pos);
 	ir_node  *const value      = expression_to_value(expr->value);
@@ -1742,7 +1742,7 @@ static ir_node *dereference_to_firm(unary_expression_t const *const expr)
 	return deref_address(dbgi, points_to, value);
 }
 
-static ir_node *negate_to_firm(unary_expression_t const *const expr)
+static ir_node *negate_to_ir(unary_expression_t const *const expr)
 {
 	dbg_info *const dbgi  = get_dbg_info(&expr->base.pos);
 	type_t   *const type  = skip_typeref(expr->base.type);
@@ -1901,7 +1901,7 @@ normal_node:
 	}
 }
 
-static ir_node *binop_to_firm(binary_expression_t const *const expr)
+static ir_node *binop_to_ir(binary_expression_t const *const expr)
 {
 	ir_node *const left  = expression_to_value(expr->left);
 	ir_node *const right = expression_to_value(expr->right);
@@ -1960,7 +1960,7 @@ static void compare_to_control_flow(expression_t const *const expr, ir_node *con
 	set_unreachable_now();
 }
 
-static ir_node *binop_assign_to_firm(binary_expression_t const *const expr)
+static ir_node *binop_assign_to_ir(binary_expression_t const *const expr)
 {
 	ir_node            *const right     = expression_to_value(expr->right);
 	expression_t const *const left_expr = expr->left;
@@ -1983,7 +1983,7 @@ static ir_node *binop_assign_to_firm(binary_expression_t const *const expr)
 	return set_value_for_expression_addr(left_expr, result, addr);
 }
 
-static ir_node *assign_expression_to_firm(binary_expression_t const *const expr)
+static ir_node *assign_expression_to_ir(binary_expression_t const *const expr)
 {
 	ir_node *const addr  = expression_to_addr(expr->left);
 	ir_node *const right = expression_to_value(expr->right);
@@ -2002,7 +2002,7 @@ static void evaluate_expression_discard_result(const expression_t *expression)
 	}
 }
 
-static ir_node *comma_expression_to_firm(binary_expression_t const *const expr)
+static ir_node *comma_expression_to_ir(binary_expression_t const *const expr)
 {
 	evaluate_expression_discard_result(expr->left);
 	return expression_to_value(expr->right);
@@ -2020,7 +2020,7 @@ static ir_node *array_access_addr(const array_access_expression_t *expression)
     //return result;
 }
 
-static ir_node *array_access_to_firm(
+static ir_node *array_access_to_ir(
 		const array_access_expression_t *expression)
 {
 	dbg_info *dbgi   = get_dbg_info(&expression->base.pos);
@@ -2103,7 +2103,7 @@ static ir_node *compound_literal_addr(compound_literal_expression_t const *const
 #endif
 }
 
-static ir_node *compound_literal_to_firm(
+static ir_node *compound_literal_to_ir(
 		compound_literal_expression_t const* const expr)
 {
 	dbg_info *const dbgi = get_dbg_info(&expr->base.pos);
@@ -2118,7 +2118,7 @@ static ir_node *compound_literal_to_firm(
 		case INITIALIZER_VALUE:
 			return expression_to_value(initializer->value.value);
 		case INITIALIZER_STRING:
-			return string_to_firm(&expr->base.pos,
+            return string_to_ir(&expr->base.pos,
 			                      get_init_string(initializer)->value);
 		case INITIALIZER_LIST:
 		case INITIALIZER_DESIGNATOR: {
@@ -2135,7 +2135,7 @@ static ir_node *compound_literal_to_firm(
 /**
  * Transform a sizeof expression into Firm code.
  */
-static ir_node *sizeof_to_firm(const typeprop_expression_t *expression)
+static ir_node *sizeof_to_ir(const typeprop_expression_t *expression)
 {
 	type_t *const type = skip_typeref(expression->type);
 	/* §6.5.3.4:2 if the type is a VLA, evaluate the expression. */
@@ -2147,7 +2147,7 @@ static ir_node *sizeof_to_firm(const typeprop_expression_t *expression)
 	return get_type_size_node(type);
 }
 
-static ir_node *conditional_to_firm(const conditional_expression_t *expression)
+static ir_node *conditional_to_ir(const conditional_expression_t *expression)
 {
     jump_target true_target; //  = init_jump_target(NULL);
     jump_target false_target; // = init_jump_target(NULL);
@@ -2219,7 +2219,7 @@ static ir_node *select_addr(const select_expression_t *expression)
 //	return new_d_Member(dbgi, compound_addr, irentity);
 }
 
-static ir_node *select_to_firm(const select_expression_t *expression)
+static ir_node *select_to_ir(const select_expression_t *expression)
 {
 	dbg_info *dbgi = get_dbg_info(&expression->base.pos);
 	ir_node  *addr = select_addr(expression);
@@ -2231,7 +2231,7 @@ static ir_node *select_to_firm(const select_expression_t *expression)
 	assert(entry->kind == ENTITY_COMPOUND_MEMBER);
 
 	if (entry->compound_member.bitfield) {
-		return bitfield_extract_to_firm(expression, addr);
+        return bitfield_extract_to_ir(expression, addr);
 	}
 
 	return deref_address(dbgi, type, addr);
@@ -2240,10 +2240,10 @@ static ir_node *select_to_firm(const select_expression_t *expression)
 static ir_node *make_name(funcname_expression_t const *const expr, char const *const name)
 {
 	string_t *const string = make_string(name);
-	return string_to_firm(&expr->base.pos, string);
+    return string_to_ir(&expr->base.pos, string);
 }
 
-static ir_node *function_name_to_firm(const funcname_expression_t *const expr)
+static ir_node *function_name_to_ir(const funcname_expression_t *const expr)
 {
 	switch (expr->kind) {
 	case FUNCNAME_FUNCTION:
@@ -2267,12 +2267,12 @@ static ir_node *function_name_to_firm(const funcname_expression_t *const expr)
 	panic("Unsupported function name");
 }
 
-static ir_node *statement_expression_to_firm(const statement_expression_t *expr)
+static ir_node *statement_expression_to_ir(const statement_expression_t *expr)
 {
 	statement_t *statement = expr->statement;
 
 	assert(statement->kind == STATEMENT_COMPOUND);
-	ir_node *res = compound_statement_to_firm(&statement->compound);
+    ir_node *res = compound_statement_to_ir(&statement->compound);
 	if (!currently_reachable()) {
 		set_soft_unreachable();
 		type_t *const type = skip_typeref(expr->base.type);
@@ -2282,7 +2282,7 @@ static ir_node *statement_expression_to_firm(const statement_expression_t *expr)
 	return res;
 }
 
-static ir_node *va_start_expression_to_firm(const va_start_expression_t *const expr)
+static ir_node *va_start_expression_to_ir(const va_start_expression_t *const expr)
 {
 #if 0
 	dbg_info *const dbgi    = get_dbg_info(&expr->base.pos);
@@ -2321,7 +2321,7 @@ static ir_node *va_start_expression_to_firm(const va_start_expression_t *const e
 	return NULL;
 }
 
-static ir_node *va_arg_expression_to_firm(const va_arg_expression_t *const expr)
+static ir_node *va_arg_expression_to_ir(const va_arg_expression_t *const expr)
 {
 #if 0
 	dbg_info *const dbgi    = get_dbg_info(&expr->base.pos);
@@ -2384,7 +2384,7 @@ static ir_node *va_arg_expression_to_firm(const va_arg_expression_t *const expr)
 /**
  * Generate Firm for a va_copy expression.
  */
-static ir_node *va_copy_expression_to_firm(const va_copy_expression_t *const expr)
+static ir_node *va_copy_expression_to_ir(const va_copy_expression_t *const expr)
 {
 #if 0
     ir_node  *const src          = expression_to_value(expr->src);
@@ -2426,7 +2426,7 @@ static ir_node *expression_to_addr(const expression_t *expression)
 	case EXPR_SELECT:
 		return select_addr(&expression->select);
 	case EXPR_STRING_LITERAL:
-		return string_literal_to_firm(&expression->string_literal);
+        return string_literal_to_ir(&expression->string_literal);
 	case EXPR_UNARY_DEREFERENCE:
 		return dereference_addr(&expression->unary);
 	default:
@@ -2451,7 +2451,7 @@ static void prepare_label_target(label_t *const label)
  * Pointer to a label.  This is used for the
  * GNU address-of-label extension.
  */
-static ir_node *label_address_to_firm(const label_address_expression_t *label)
+static ir_node *label_address_to_ir(const label_address_expression_t *label)
 {
 	/* Beware: Might be called from create initializer with current_ir_graph
 	 * set to const_code_irg. */
@@ -2504,7 +2504,7 @@ static ir_node *expression_to_value(expression_t const *const expr)
 	case EXPR_BINARY_SHIFTLEFT:
 	case EXPR_BINARY_SHIFTRIGHT:
 	case EXPR_BINARY_SUB:
-		return binop_to_firm(&expr->binary);
+        return binop_to_ir(&expr->binary);
 
 	case EXPR_BINARY_ADD_ASSIGN:
 	case EXPR_BINARY_BITWISE_AND_ASSIGN:
@@ -2516,7 +2516,7 @@ static ir_node *expression_to_value(expression_t const *const expr)
 	case EXPR_BINARY_SHIFTLEFT_ASSIGN:
 	case EXPR_BINARY_SHIFTRIGHT_ASSIGN:
 	case EXPR_BINARY_SUB_ASSIGN:
-		return binop_assign_to_firm(&expr->binary);
+        return binop_assign_to_ir(&expr->binary);
 
 	{
 		bool inc;
@@ -2526,7 +2526,7 @@ static ir_node *expression_to_value(expression_t const *const expr)
 	case EXPR_UNARY_PREFIX_DECREMENT:  inc = false; pre = true;  goto incdec;
 	case EXPR_UNARY_PREFIX_INCREMENT:  inc = true;  pre = true;  goto incdec;
 incdec:
-		return incdec_to_firm(&expr->unary, inc, pre);
+        return incdec_to_ir(&expr->unary, inc, pre);
 	}
 
 	case EXPR_UNARY_IMAG: {
@@ -2538,29 +2538,29 @@ incdec:
 		return irvalue.real;
 	}
 
-	case EXPR_ARRAY_ACCESS:               return array_access_to_firm(            &expr->array_access);
-	case EXPR_BINARY_ASSIGN:              return assign_expression_to_firm(       &expr->binary);
+    case EXPR_ARRAY_ACCESS:               return array_access_to_ir(            &expr->array_access);
+    case EXPR_BINARY_ASSIGN:              return assign_expression_to_ir(       &expr->binary);
 	case EXPR_UNARY_CAST:                 return create_cast(expr);
-	case EXPR_BINARY_COMMA:               return comma_expression_to_firm(        &expr->binary);
-	case EXPR_CALL:                       return call_expression_to_firm(         &expr->call);
-	case EXPR_COMPOUND_LITERAL:           return compound_literal_to_firm(        &expr->compound_literal);
-	case EXPR_CONDITIONAL:                return conditional_to_firm(             &expr->conditional);
-	case EXPR_FUNCNAME:                   return function_name_to_firm(           &expr->funcname);
-	case EXPR_LABEL_ADDRESS:              return label_address_to_firm(           &expr->label_address);
-	case EXPR_REFERENCE:                  return reference_expression_to_firm(    &expr->reference);
-	case EXPR_SELECT:                     return select_to_firm(                  &expr->select);
-	case EXPR_SIZEOF:                     return sizeof_to_firm(                  &expr->typeprop);
-	case EXPR_STATEMENT:                  return statement_expression_to_firm(    &expr->statement);
-	case EXPR_STRING_LITERAL:             return string_literal_to_firm(          &expr->string_literal);
+    case EXPR_BINARY_COMMA:               return comma_expression_to_ir(        &expr->binary);
+    case EXPR_CALL:                       return call_expression_to_ir(         &expr->call);
+    case EXPR_COMPOUND_LITERAL:           return compound_literal_to_ir(        &expr->compound_literal);
+    case EXPR_CONDITIONAL:                return conditional_to_ir(             &expr->conditional);
+    case EXPR_FUNCNAME:                   return function_name_to_ir(           &expr->funcname);
+    case EXPR_LABEL_ADDRESS:              return label_address_to_ir(           &expr->label_address);
+    case EXPR_REFERENCE:                  return reference_expression_to_ir(    &expr->reference);
+    case EXPR_SELECT:                     return select_to_ir(                  &expr->select);
+    case EXPR_SIZEOF:                     return sizeof_to_ir(                  &expr->typeprop);
+    case EXPR_STATEMENT:                  return statement_expression_to_ir(    &expr->statement);
+    case EXPR_STRING_LITERAL:             return string_literal_to_ir(          &expr->string_literal);
 	case EXPR_UNARY_ASSUME:               return handle_assume(                    expr->unary.value);
-	case EXPR_UNARY_COMPLEMENT:           return complement_to_firm(              &expr->unary);
-	case EXPR_UNARY_DEREFERENCE:          return dereference_to_firm(             &expr->unary);
-	case EXPR_UNARY_NEGATE:               return negate_to_firm(                  &expr->unary);
+    case EXPR_UNARY_COMPLEMENT:           return complement_to_ir(              &expr->unary);
+    case EXPR_UNARY_DEREFERENCE:          return dereference_to_ir(             &expr->unary);
+    case EXPR_UNARY_NEGATE:               return negate_to_ir(                  &expr->unary);
 	case EXPR_UNARY_PLUS:                 return expression_to_value(              expr->unary.value);
 	case EXPR_UNARY_TAKE_ADDRESS:         return expression_to_addr(               expr->unary.value);
-	case EXPR_VA_ARG:                     return va_arg_expression_to_firm(       &expr->va_arge);
-	case EXPR_VA_COPY:                    return va_copy_expression_to_firm(      &expr->va_copye);
-	case EXPR_VA_START:                   return va_start_expression_to_firm(     &expr->va_starte);
+    case EXPR_VA_ARG:                     return va_arg_expression_to_ir(       &expr->va_arge);
+    case EXPR_VA_COPY:                    return va_copy_expression_to_ir(      &expr->va_copye);
+    case EXPR_VA_START:                   return va_start_expression_to_ir(     &expr->va_starte);
 
 	case EXPR_UNARY_DELETE:
 	case EXPR_UNARY_DELETE_ARRAY:
@@ -2778,7 +2778,7 @@ static complex_value complex_deref_address(dbg_info *const dbgi,
     return (complex_value){ 0, 0};
 }
 
-static complex_value complex_reference_to_firm(const reference_expression_t *ref)
+static complex_value complex_reference_to_ir(const reference_expression_t *ref)
 {
 	dbg_info *const dbgi   = get_dbg_info(&ref->base.pos);
 	entity_t *const entity = ref->entity;
@@ -2795,7 +2795,7 @@ static complex_value complex_reference_to_firm(const reference_expression_t *ref
 	}
 }
 
-static complex_value complex_select_to_firm(const select_expression_t *select)
+static complex_value complex_select_to_ir(const select_expression_t *select)
 {
 	dbg_info *const dbgi = get_dbg_info(&select->base.pos);
 	ir_node  *const addr = select_addr(select);
@@ -2803,7 +2803,7 @@ static complex_value complex_select_to_firm(const select_expression_t *select)
 	return complex_deref_address(dbgi, type, addr, cons_none);
 }
 
-static complex_value complex_array_access_to_firm(
+static complex_value complex_array_access_to_ir(
 	const array_access_expression_t *expression)
 {
 	dbg_info *dbgi = get_dbg_info(&expression->base.pos);
@@ -2835,7 +2835,7 @@ static complex_value get_complex_from_lvalue(const expression_t *expression,
 	return complex_deref_address(dbgi, expression->base.type, addr, cons_none);
 }
 
-static complex_value complex_cast_to_firm(const unary_expression_t *expression)
+static complex_value complex_cast_to_ir(const unary_expression_t *expression)
 {
 	const expression_t *const value     = expression->value;
 	dbg_info           *const dbgi      = get_dbg_info(&expression->base.pos);
@@ -2979,7 +2979,7 @@ static complex_value create_complex_assign_unop(const unary_expression_t *unop,
 	return return_old ? value : new_value;
 }
 
-static complex_value complex_negate_to_firm(const unary_expression_t *expr)
+static complex_value complex_negate_to_ir(const unary_expression_t *expr)
 {
 	complex_value cvalue = expression_to_complex(expr->value);
 	dbg_info     *dbgi   = get_dbg_info(&expr->base.pos);
@@ -2991,7 +2991,7 @@ static complex_value complex_negate_to_firm(const unary_expression_t *expr)
 	};
 }
 
-static complex_value complex_complement_to_firm(const unary_expression_t *expr)
+static complex_value complex_complement_to_ir(const unary_expression_t *expr)
 {
 	complex_value cvalue = expression_to_complex(expr->value);
 	dbg_info     *dbgi   = get_dbg_info(&expr->base.pos);
@@ -3033,9 +3033,9 @@ static complex_value create_complex_assign_binop(const binary_expression_t *bine
 	return complex_conv_to_storage(dbgi, new_value, res_type);
 }
 
-static complex_value complex_call_to_firm(const call_expression_t *call)
+static complex_value complex_call_to_ir(const call_expression_t *call)
 {
-	ir_node         *result        = call_expression_to_firm(call);
+    ir_node         *result        = call_expression_to_ir(call);
 	expression_t    *function      = call->function;
 	type_t          *type          = skip_typeref(function->base.type);
 	assert(is_type_pointer(type));
@@ -3129,7 +3129,7 @@ static complex_value complex_to_control_flow(
 #endif
 }
 
-static complex_value complex_conditional_to_firm(
+static complex_value complex_conditional_to_ir(
 	const conditional_expression_t *const expression)
 {
     jump_target   true_target; //  = init_jump_target(NULL);
@@ -3187,7 +3187,7 @@ static complex_value complex_conditional_to_firm(
 
 static void create_local_declarations(entity_t *first);
 
-static complex_value compound_statement_to_firm_complex(
+static complex_value compound_statement_to_ir_complex(
 	const compound_statement_t *compound)
 {
 	create_local_declarations(compound->scope.first_entity);
@@ -3200,21 +3200,21 @@ static complex_value compound_statement_to_firm_complex(
 		/* last statement is the return value */
 		if (next == NULL) {
 			/* it must be an expression, otherwise we wouldn't be in the
-			 * complex variant of compound_statement_to_firm */
+             * complex variant of compound_statement_to_ir */
 			if (statement->kind != STATEMENT_EXPRESSION)
 				panic("last member of complex statement expression not an expression statement");
 			expression_t *expression = statement->expression.expression;
 			assert(is_type_complex(skip_typeref(expression->base.type)));
 			result = expression_to_complex(expression);
 		} else {
-			statement_to_firm(statement);
+            statement_to_ir(statement);
 		}
 	}
 
 	return result;
 }
 
-static complex_value complex_assign_to_firm(const binary_expression_t *expr)
+static complex_value complex_assign_to_ir(const binary_expression_t *expr)
 {
 	dbg_info     *const dbgi  = get_dbg_info(&expr->base.pos);
 	complex_value const value = expression_to_complex(expr->right);
@@ -3223,16 +3223,16 @@ static complex_value complex_assign_to_firm(const binary_expression_t *expr)
 	return value;
 }
 
-static complex_value complex_statement_expression_to_firm(
+static complex_value complex_statement_expression_to_ir(
 	const statement_expression_t *const expr)
 {
 	const statement_t *const statement = expr->statement;
 	assert(statement->kind == STATEMENT_COMPOUND);
 
-	return compound_statement_to_firm_complex(&statement->compound);
+    return compound_statement_to_ir_complex(&statement->compound);
 }
 
-static complex_value complex_dereference_to_firm(
+static complex_value complex_dereference_to_ir(
 	const unary_expression_t *const expr)
 {
 	ir_node  *const addr = expression_to_value(expr->value);
@@ -3245,13 +3245,13 @@ static complex_value expression_to_complex(const expression_t *expression)
 {
 	switch (expression->kind) {
 	case EXPR_REFERENCE:
-		return complex_reference_to_firm(&expression->reference);
+        return complex_reference_to_ir(&expression->reference);
 	case EXPR_SELECT:
-		return complex_select_to_firm(&expression->select);
+        return complex_select_to_ir(&expression->select);
 	case EXPR_ARRAY_ACCESS:
-		return complex_array_access_to_firm(&expression->array_access);
+        return complex_array_access_to_ir(&expression->array_access);
 	case EXPR_UNARY_CAST:
-		return complex_cast_to_firm(&expression->unary);
+        return complex_cast_to_ir(&expression->unary);
 	case EXPR_BINARY_COMMA:
 		evaluate_expression_discard_result(expression->binary.left);
 		return expression_to_complex(expression->binary.right);
@@ -3286,13 +3286,13 @@ static complex_value expression_to_complex(const expression_t *expression)
 		return create_complex_assign_unop(&expression->unary,
 		                                  new_complex_decrement, true);
 	case EXPR_UNARY_NEGATE:
-		return complex_negate_to_firm(&expression->unary);
+        return complex_negate_to_ir(&expression->unary);
 	case EXPR_UNARY_COMPLEMENT:
-		return complex_complement_to_firm(&expression->unary);
+        return complex_complement_to_ir(&expression->unary);
 	case EXPR_UNARY_DEREFERENCE:
-		return complex_dereference_to_firm(&expression->unary);
+        return complex_dereference_to_ir(&expression->unary);
 	case EXPR_BINARY_ASSIGN:
-		return complex_assign_to_firm(&expression->binary);
+        return complex_assign_to_ir(&expression->binary);
 	case EXPR_LITERAL_INTEGER:
 	case EXPR_LITERAL_FLOATINGPOINT: {
 		complex_constant cnst = fold_complex_literal(&expression->literal);
@@ -3303,11 +3303,11 @@ static complex_value expression_to_complex(const expression_t *expression)
 		};
 	}
 	case EXPR_CALL:
-		return complex_call_to_firm(&expression->call);
+        return complex_call_to_ir(&expression->call);
 	case EXPR_CONDITIONAL:
-		return complex_conditional_to_firm(&expression->conditional);
+        return complex_conditional_to_ir(&expression->conditional);
 	case EXPR_STATEMENT:
-		return complex_statement_expression_to_firm(&expression->statement);
+        return complex_statement_expression_to_ir(&expression->statement);
 	case NEVER_COMPLEX_CASES:
 		break;
 	}
@@ -3841,7 +3841,7 @@ static void create_dynamic_bitfield_init(dbg_info *dbgi, ir_node *addr,
 	default:
 		panic("unexpected bitfield initializer");
 	}
-	bitfield_store_to_firm(dbgi, entity, addr, node, false, false);
+    bitfield_store_to_ir(dbgi, entity, addr, node, false, false);
 #endif
 }
 
@@ -4220,7 +4220,7 @@ static void create_local_static_variable(entity_t *entity)
 //	POP_IRG();
 }
 
-static ir_node *return_statement_to_firm(return_statement_t *statement)
+static ir_node *return_statement_to_ir(return_statement_t *statement)
 {
 	if (!currently_reachable())
 		return NULL;
@@ -4267,7 +4267,7 @@ static ir_node *return_statement_to_firm(return_statement_t *statement)
 	return NULL;
 }
 
-static ir_node *expression_statement_to_firm(expression_statement_t *statement)
+static ir_node *expression_statement_to_ir(expression_statement_t *statement)
 {
 	if (!currently_reachable())
 		return NULL;
@@ -4282,14 +4282,14 @@ static ir_node *expression_statement_to_firm(expression_statement_t *statement)
 	}
 }
 
-static ir_node *compound_statement_to_firm(compound_statement_t *compound)
+static ir_node *compound_statement_to_ir(compound_statement_t *compound)
 {
 	create_local_declarations(compound->scope.first_entity);
 
 	ir_node     *result    = NULL;
 	statement_t *statement = compound->statements;
 	for ( ; statement != NULL; statement = statement->base.next) {
-		result = statement_to_firm(statement);
+        result = statement_to_ir(statement);
 	}
 
 	return result;
@@ -4417,7 +4417,7 @@ static void initialize_local_declaration(entity_t *entity)
 	panic("invalid declaration kind");
 }
 
-static ir_node *declaration_statement_to_firm(declaration_statement_t *statement)
+static ir_node *declaration_statement_to_ir(declaration_statement_t *statement)
 {
 	entity_t *entity = statement->declarations_begin;
 	if (entity == NULL)
@@ -4442,7 +4442,7 @@ static ir_node *declaration_statement_to_firm(declaration_statement_t *statement
 	return NULL;
 }
 
-static ir_node *if_statement_to_firm(if_statement_t *statement)
+static ir_node *if_statement_to_ir(if_statement_t *statement)
 {
 	create_local_declarations(statement->scope.first_entity);
 
@@ -4457,13 +4457,13 @@ static ir_node *if_statement_to_firm(if_statement_t *statement)
 #if 0
 	/* Create the true statement. */
 	enter_jump_target(&true_target);
-	statement_to_firm(statement->true_statement);
+    statement_to_ir(statement->true_statement);
 	jump_to_target(&exit_target);
 
 	/* Create the false statement. */
 	enter_jump_target(&false_target);
 	if (statement->false_statement)
-		statement_to_firm(statement->false_statement);
+        statement_to_ir(statement->false_statement);
 	jump_to_target(&exit_target);
 
 	enter_jump_target(&exit_target);
@@ -4471,7 +4471,7 @@ static ir_node *if_statement_to_firm(if_statement_t *statement)
 	return NULL;
 }
 
-static ir_node *do_while_statement_to_firm(do_while_statement_t *statement)
+static ir_node *do_while_statement_to_ir(do_while_statement_t *statement)
 {
 	create_local_declarations(statement->scope.first_entity);
 
@@ -4483,7 +4483,7 @@ static ir_node *do_while_statement_to_firm(do_while_statement_t *statement)
 	/* Avoid an explicit body block in case of do ... while (0);. */
 	if (is_constant_expression(cond) != EXPR_CLASS_VARIABLE && !fold_expression_to_bool(cond)) {
 		/* do ... while (0);. */
-		statement_to_firm(statement->body);
+        statement_to_ir(statement->body);
 		jump_to_target(&continue_target);
 		enter_jump_target(&continue_target);
 		jump_to_target(&break_target);
@@ -4492,7 +4492,7 @@ static ir_node *do_while_statement_to_firm(do_while_statement_t *statement)
 		jump_to_target(&body_target);
 		enter_immature_jump_target(&body_target);
 		keep_loop();
-		statement_to_firm(statement->body);
+        statement_to_ir(statement->body);
 		jump_to_target(&continue_target);
 		if (enter_jump_target(&continue_target))
 			expression_to_control_flow(statement->condition, &body_target, &break_target);
@@ -4506,7 +4506,7 @@ static ir_node *do_while_statement_to_firm(do_while_statement_t *statement)
 	return NULL;
 }
 
-static ir_node *for_statement_to_firm(for_statement_t *statement)
+static ir_node *for_statement_to_ir(for_statement_t *statement)
 {
 	create_local_declarations(statement->scope.first_entity);
 
@@ -4543,7 +4543,7 @@ static ir_node *for_statement_to_firm(for_statement_t *statement)
 	}
 
 	/* Create the loop body. */
-	statement_to_firm(statement->body);
+    statement_to_ir(statement->body);
 #if 0
 	jump_to_target(&continue_target);
 
@@ -4597,7 +4597,7 @@ static ir_switch_table *create_switch_table(const switch_statement_t *statement)
 #endif
 }
 
-static ir_node *switch_statement_to_firm(switch_statement_t *statement)
+static ir_node *switch_statement_to_ir(switch_statement_t *statement)
 {
 #if 0
 	create_local_declarations(statement->scope.first_entity);
@@ -4621,7 +4621,7 @@ static ir_node *switch_statement_to_firm(switch_statement_t *statement)
 	saw_default_label                    = false;
 	current_switch                       = switch_node;
 
-	statement_to_firm(statement->body);
+    statement_to_ir(statement->body);
 	jump_to_target(&break_target);
 
 	if (!saw_default_label && switch_node) {
@@ -4639,7 +4639,7 @@ static ir_node *switch_statement_to_firm(switch_statement_t *statement)
 #endif
 }
 
-static ir_node *case_label_to_firm(const case_label_statement_t *statement)
+static ir_node *case_label_to_ir(const case_label_statement_t *statement)
 {
 	if (current_switch != NULL && !statement->is_empty_range) {
         jump_target case_target; // = init_jump_target(NULL);
@@ -4656,7 +4656,7 @@ static ir_node *case_label_to_firm(const case_label_statement_t *statement)
 #endif
 	}
 
-	return statement_to_firm(statement->statement);
+    return statement_to_ir(statement->statement);
 }
 
 static jump_target *jump_to_label(label_t *const label)
@@ -4672,7 +4672,7 @@ static jump_target *jump_to_label(label_t *const label)
 	return tgt;
 }
 
-static ir_node *label_to_firm(const label_statement_t *statement)
+static ir_node *label_to_ir(const label_statement_t *statement)
 {
 	jump_target *const imm_target = jump_to_label(statement->label);
 	if (imm_target) {
@@ -4680,17 +4680,17 @@ static ir_node *label_to_firm(const label_statement_t *statement)
 		keep_loop();
 	}
 
-	return statement_to_firm(statement->statement);
+    return statement_to_ir(statement->statement);
 }
 
-static ir_node *goto_statement_to_firm(goto_statement_t *const stmt)
+static ir_node *goto_statement_to_ir(goto_statement_t *const stmt)
 {
 	jump_to_label(stmt->label);
 	set_unreachable_now();
 	return NULL;
 }
 
-static ir_node *computed_goto_to_firm(computed_goto_statement_t const *const statement)
+static ir_node *computed_goto_to_ir(computed_goto_statement_t const *const statement)
 {
 	if (currently_reachable()) {
 		ir_node *const op = expression_to_value(statement->expression);
@@ -4725,7 +4725,7 @@ static void asm_set_values(out_info const *const outs)
 	}
 }
 
-static ir_node *asm_statement_to_firm(const asm_statement_t *statement)
+static ir_node *asm_statement_to_ir(const asm_statement_t *statement)
 {
 	if (!currently_reachable())
 		return NULL;
@@ -4893,7 +4893,7 @@ static ir_node *asm_statement_to_firm(const asm_statement_t *statement)
 /**
  * Transform a statement.
  */
-static ir_node *statement_to_firm(statement_t *const stmt)
+static ir_node *statement_to_ir(statement_t *const stmt)
 {
 #ifndef NDEBUG
 	assert(!stmt->base.transformed);
@@ -4901,20 +4901,20 @@ static ir_node *statement_to_firm(statement_t *const stmt)
 #endif
 
 	switch (stmt->kind) {
-	case STATEMENT_ASM:           return asm_statement_to_firm(        &stmt->asms);
-	case STATEMENT_CASE_LABEL:    return case_label_to_firm(           &stmt->case_label);
-	case STATEMENT_COMPOUND:      return compound_statement_to_firm(   &stmt->compound);
-	case STATEMENT_COMPUTED_GOTO: return computed_goto_to_firm(        &stmt->computed_goto);
-	case STATEMENT_DECLARATION:   return declaration_statement_to_firm(&stmt->declaration);
-	case STATEMENT_DO_WHILE:      return do_while_statement_to_firm(   &stmt->do_while);
+    case STATEMENT_ASM:           return asm_statement_to_ir(        &stmt->asms);
+    case STATEMENT_CASE_LABEL:    return case_label_to_ir(           &stmt->case_label);
+    case STATEMENT_COMPOUND:      return compound_statement_to_ir(   &stmt->compound);
+    case STATEMENT_COMPUTED_GOTO: return computed_goto_to_ir(        &stmt->computed_goto);
+    case STATEMENT_DECLARATION:   return declaration_statement_to_ir(&stmt->declaration);
+    case STATEMENT_DO_WHILE:      return do_while_statement_to_ir(   &stmt->do_while);
 	case STATEMENT_EMPTY:         return NULL; /* nothing */
-	case STATEMENT_EXPRESSION:    return expression_statement_to_firm( &stmt->expression);
-	case STATEMENT_FOR:           return for_statement_to_firm(        &stmt->fors);
-	case STATEMENT_GOTO:          return goto_statement_to_firm(       &stmt->gotos);
-	case STATEMENT_IF:            return if_statement_to_firm(         &stmt->ifs);
-	case STATEMENT_LABEL:         return label_to_firm(                &stmt->label);
-	case STATEMENT_RETURN:        return return_statement_to_firm(     &stmt->returns);
-	case STATEMENT_SWITCH:        return switch_statement_to_firm(     &stmt->switchs);
+    case STATEMENT_EXPRESSION:    return expression_statement_to_ir( &stmt->expression);
+    case STATEMENT_FOR:           return for_statement_to_ir(        &stmt->fors);
+    case STATEMENT_GOTO:          return goto_statement_to_ir(       &stmt->gotos);
+    case STATEMENT_IF:            return if_statement_to_ir(         &stmt->ifs);
+    case STATEMENT_LABEL:         return label_to_ir(                &stmt->label);
+    case STATEMENT_RETURN:        return return_statement_to_ir(     &stmt->returns);
+    case STATEMENT_SWITCH:        return switch_statement_to_ir(     &stmt->switchs);
 
 	{
 		jump_target *tgt;
@@ -5114,7 +5114,7 @@ static void create_function(function_t *const function)
 	next_value_number_function = 0;
 	initialize_function_parameters(function);
 
-	statement_to_firm(function->body);
+    statement_to_ir(function->body);
 
 	ir_node *end_block = get_irg_end_block(irg);
 
@@ -5197,7 +5197,7 @@ static bool is_decl_necessary(entity_t const *const entity)
 		(declaration_is_definition(entity) && (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
 }
 
-static void scope_to_firm(scope_t *scope)
+static void scope_to_ir(scope_t *scope)
 {
 	/* first pass: create declarations */
 	for (entity_t *entity = scope->first_entity; entity != NULL;
@@ -5222,7 +5222,7 @@ static void scope_to_firm(scope_t *scope)
 			create_global_variable(entity);
 			break;
 		case ENTITY_NAMESPACE:
-			scope_to_firm(&entity->namespacee.members);
+            scope_to_ir(&entity->namespacee.members);
 			break;
 		default:
 			break;
@@ -5272,7 +5272,7 @@ static void scope_to_firm(scope_t *scope)
 
 static bool ast2firm_initialized = false;
 
-static void init_ast2firm(void)
+static void init_ast2ir(void)
 {
 	if (ast2firm_initialized)
 		return;
@@ -5290,7 +5290,7 @@ static void init_ast2firm(void)
 //	init_mangle();
 }
 
-void exit_ast2firm(void)
+void exit_ast2ir(void)
 {
 	if (!ast2firm_initialized)
 		return;
@@ -5298,7 +5298,7 @@ void exit_ast2firm(void)
 	obstack_free(&asm_obst, NULL);
 }
 
-static void global_asm_to_firm(statement_t *s)
+static void global_asm_to_ir(statement_t *s)
 {
 	for (; s != NULL; s = s->base.next) {
 		assert(s->kind == STATEMENT_ASM);
@@ -5319,9 +5319,9 @@ static const char *get_cwd(void)
 	return buf;
 }
 
-void translation_unit_to_firm(translation_unit_t *unit)
+void translation_unit_to_ir(translation_unit_t *unit)
 {
-	init_ast2firm();
+    init_ast2ir();
 #if 0
 	if (dialect.cpp) {
 		be_dwarf_set_source_language(DW_LANG_C_plus_plus);
@@ -5349,9 +5349,9 @@ void translation_unit_to_firm(translation_unit_t *unit)
 	current_translation_unit = unit;
 #endif
 
-    //print_ast(unit);
-    //scope_to_firm(&unit->scope);
-    //global_asm_to_firm(unit->global_asm);
+    print_ast(unit);
+    //scope_to_ir(&unit->scope);
+    //global_asm_to_ir(unit->global_asm);
 
 //	current_ir_graph         = NULL;
 	current_translation_unit = NULL;

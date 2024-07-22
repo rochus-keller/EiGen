@@ -7,11 +7,12 @@
 
 //#include <libfirm/firm.h>
 
-#include "ast.h"
-#include "type.h"
+#include "type_t.h"
+#include "entity_t.h"
+#include "ast_t.h"
 
-void translation_unit_to_firm(translation_unit_t *unit);
+void translation_unit_to_ir(translation_unit_t *unit);
 
-void exit_ast2firm(void);
+void exit_ast2ir(void);
 
 #endif

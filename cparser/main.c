@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 	int ret = state.action(argv[0]);
 
     // TODO exit_firm_opt();
-	exit_ast2firm();
+	exit_ast2ir();
 	exit_parser();
 	exit_ast();
 	exit_preprocessor();

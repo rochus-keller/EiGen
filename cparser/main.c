@@ -26,9 +26,6 @@
 //#include "firm/jittest.h"
 #include "parser.h"
 #include "preprocessor.h"
-#include "write_compoundsizes.h"
-#include "write_fluffy.h"
-#include "write_jna.h"
 
 typedef enum compile_mode_t {
 	/* note the following is ordered according to gcc option precedence */
@@ -37,43 +34,13 @@ typedef enum compile_mode_t {
 	MODE_PARSE_ONLY,
 	MODE_COMPILE,
 	MODE_COMPILE_ASSEMBLE,
-
 	MODE_COMPILE_ASSEMBLE_LINK,
 	MODE_COMPILE_DUMP,
 	MODE_COMPILE_EXPORTIR,
 	MODE_BENCHMARK_PARSER,
 	MODE_PRINT_AST,
-	MODE_PRINT_FLUFFY,
-	MODE_PRINT_JNA,
-	MODE_PRINT_COMPOUND_SIZE,
-	MODE_JITTEST,
 } compile_mode_t;
 static compile_mode_t mode = MODE_COMPILE_ASSEMBLE_LINK;
-
-static bool print_fluffy(compilation_env_t *env, compilation_unit_t *unit)
-{
-	if (!open_output(env))
-		return false;
-	write_fluffy_decls(env->out, unit->ast);
-	return true;
-}
-
-static bool print_jna(compilation_env_t *env, compilation_unit_t *unit)
-{
-	if (!open_output(env))
-		return false;
-	write_jna_decls(env->out, unit->ast);
-	return true;
-}
-
-static bool print_compound_size(compilation_env_t *env,
-                                compilation_unit_t *unit)
-{
-	if (!open_output(env))
-		return false;
-	write_compoundsizes(env->out, unit->ast);
-	return true;
-}
 
 static bool parse_ignore_errors(compilation_env_t *env,
                                 compilation_unit_t *unit)
@@ -138,17 +105,6 @@ static void set_unused_after(compile_mode_t mode)
 	}
 }
 
-static bool jittest(compilation_env_t *env, compilation_unit_t *unit)
-{
-#if 0
-    // TODO RK
-	(void)env;
-	(void)unit;
-	jit_compile_execute_main();
-#endif
-	return true;
-}
-
 /** modify compilation sequence based on choosen compilation mode */
 static void set_handlers(compile_mode_t mode)
 {
@@ -177,18 +133,6 @@ static void set_handlers(compile_mode_t mode)
 		set_unit_handler(COMPILATION_UNIT_AST, do_nothing, true);
 		set_unused_after(MODE_PARSE_ONLY);
 		return;
-	case MODE_PRINT_FLUFFY:
-		set_unit_handler(COMPILATION_UNIT_AST, print_fluffy, true);
-		set_unused_after(MODE_PARSE_ONLY);
-		return;
-	case MODE_PRINT_JNA:
-		set_unit_handler(COMPILATION_UNIT_AST, print_jna, true);
-		set_unused_after(MODE_PARSE_ONLY);
-		return;
-	case MODE_PRINT_COMPOUND_SIZE:
-		set_unit_handler(COMPILATION_UNIT_AST, print_compound_size, true);
-		set_unused_after(MODE_PARSE_ONLY);
-		return;
 	case MODE_PARSE_ONLY:
 	case MODE_COMPILE_DUMP:
 		set_unit_handler(COMPILATION_UNIT_AST, build_firm_ir, true);
@@ -202,11 +146,6 @@ static void set_handlers(compile_mode_t mode)
 	case MODE_COMPILE:
 		set_unit_handler(COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION,
 		                 generate_code_final, true);
-		set_unused_after(MODE_COMPILE);
-		return;
-	case MODE_JITTEST:
-		set_unit_handler(COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION,
-		                 jittest, true);
 		set_unused_after(MODE_COMPILE);
 		return;
 	case MODE_COMPILE_ASSEMBLE:
@@ -250,19 +189,11 @@ static bool parse_compile_mode_options(options_state_t *s)
 		mode = MODE_BENCHMARK_PARSER;
 	} else if (simple_arg("-print-ast", s)) {
 		mode = MODE_PRINT_AST;
-	} else if (simple_arg("-print-fluffy", s)) {
-		mode = MODE_PRINT_FLUFFY;
-	} else if (simple_arg("-print-compound-sizes", s)) {
-		mode = MODE_PRINT_COMPOUND_SIZE;
-	} else if (simple_arg("-print-jna", s)) {
-		mode = MODE_PRINT_JNA;
 	} else if ((arg = spaced_arg("-dump-function", s)) != NULL) {
 		dumpfunction = arg;
 		mode         = MODE_COMPILE_DUMP;
 	} else if (simple_arg("-export-ir", s)) {
 		mode = MODE_COMPILE_EXPORTIR;
-	} else if (simple_arg("-jittest", s)) {
-		mode = MODE_JITTEST;
 	} else if (simple_arg("fsyntax-only", s)) {
 		set_mode_gcc_prec(MODE_PARSE_ONLY, full_option);
 	} else if (simple_arg("fno-syntax-only", s)) {
@@ -313,9 +244,9 @@ int main(int argc, char **argv)
     init_temp_files();
 	init_driver();
 	init_default_driver();
-	init_preprocessor();
-	init_ast();
-	init_parser();
+    init_preprocessor();
+    init_ast();
+    init_parser();
 
 	/* Optionally set target by executable name prefix. */
 	char const *const full_name = argv[0];
@@ -383,10 +314,10 @@ int main(int argc, char **argv)
 
     // TODO exit_firm_opt();
 	exit_ast2ir();
-	exit_parser();
-	exit_ast();
-	exit_preprocessor();
-	exit_driver();
+    exit_parser();
+    exit_ast();
+    exit_preprocessor();
+    exit_driver();
 	exit_default_driver();
 	exit_temp_files();
 	return ret;

@@ -1312,7 +1312,7 @@ static void print_declaration(entity_t const *const entity)
 			break;
 
 		case ENTITY_VARIABLE:
-			if (entity->variable.thread_local)
+			if (entity->variable.is_thread_local)
 				print_string(dialect.c11 ? "_Thread_local " : "__thread ");
 			print_type_ext(declaration->type, declaration->base.symbol, NULL);
 			if (entity->variable.initializer != NULL) {
@@ -1499,7 +1499,7 @@ static expression_classification_t is_object_with_linker_constant_address(
 		case STORAGE_CLASS_STATIC:
 			return
 				entity->kind != ENTITY_VARIABLE ||
-				!entity->variable.thread_local ? EXPR_CLASS_CONSTANT :
+				!entity->variable.is_thread_local ? EXPR_CLASS_CONSTANT :
 				EXPR_CLASS_VARIABLE;
 
 		case STORAGE_CLASS_REGISTER:

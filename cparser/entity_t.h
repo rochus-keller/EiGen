@@ -146,8 +146,7 @@ struct label_t {
 	label_t       *next; /**< Links all labels of a function. */
 
 	/* ast2firm info */
-    //jump_target    target;
-    //ir_node       *indirect_block;
+    void* target;
 };
 
 struct namespace_t {
@@ -168,9 +167,6 @@ struct declaration_t {
 	/** forced alignment or 0 to use type alignment */
 	unsigned short          alignment;
 	attribute_t            *attributes;
-
-	/* ast2firm info */
-	unsigned char     kind;
 };
 
 struct compound_member_t {
@@ -186,7 +182,7 @@ struct compound_member_t {
 
 struct variable_t {
 	declaration_t            base;
-	bool                     thread_local   : 1;
+    bool                     is_thread_local   : 1;
 	/** Set if the address of this declaration was taken. */
 	bool                     address_taken  : 1;
 	bool                     read           : 1;
@@ -199,11 +195,8 @@ struct variable_t {
 	} alias;                            /**< value from attribute((alias())) */
 
 	/* ast2firm info */
-	union {
-		unsigned int  value_number;
-        ir_entity    *entity;
-        ir_node      *vla_base;
-	} v;
+    int  offset;
+    bool is_local;
 };
 
 struct function_t {
@@ -228,12 +221,12 @@ struct function_t {
 		entity_t  *entity;
 	} alias;                           /**< value from attribute((alias())) */
 
-	/* ast2firm info */
-	union {
+    /* ast2firm info */
+    union {
         ir_builtin_kind firm_builtin_kind;
-		unsigned        chk_arg_pos;
-	} b;
-    ir_entity *irentity;
+        unsigned        chk_arg_pos;
+    } b;
+    int stack_size;
 };
 
 struct asm_operand_t {

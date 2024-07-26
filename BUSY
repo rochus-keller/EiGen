@@ -302,6 +302,29 @@ let linkmem : Executable {
     .defines += "MEMORYLINKFILEFORMAT"
 }
 
+############# cparser ################################
+submod cparser
+
+let compiler2 : Executable {
+    .configs += config;
+    .deps += [ cparser.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
+    .sources += [
+        ./cparser/main.c
+        ./cparser/codegen.cpp
+        ./cdemitter.cpp
+        ./cdemitter.hpp
+        ./cdgenerator.cpp
+        ./cdgenerator.hpp
+        ./dbgconverter.cpp
+        ./dbgconverter.hpp
+        ./dbgconvertercontext.hpp
+        ./dbgdwarfconverter.cpp
+        ./dbgdwarfconverter.hpp
+    ]
+    .name = "compiler"
+    .include_dirs += [ . ./cparser ]
+}
+
 ############# ECC ####################################
 submod ecc
 
@@ -322,6 +345,7 @@ let compiler : Executable {
         ./dbgdwarfconverter.cpp
         ./dbgdwarfconverter.hpp
         ]
+    .name = "compiler2"
     .defines += ["ECC_HAVE_BACKEND" "ECC_SHOW_RUN_FOR_SECS" ]
     #  ECC_SHOW_RUN_FOR_SECS "ECC_COMPILING_MESSAGE"
     .include_dirs += .
@@ -336,5 +360,5 @@ let tools ! : Group {
     .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe cdrun ]
     .deps += [ amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
     .deps += [ linkbin linkmem ]
-    .deps += compiler
+    .deps += [ compiler compiler2 ]
 }

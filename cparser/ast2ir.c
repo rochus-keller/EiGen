@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "panic.h"
 #include "strutil.h"
 #include "unicode.h"
@@ -685,8 +685,8 @@ static ir_visibility get_ir_visibility(storage_class_t const storage_class,
  */
 static ir_entity *get_function_entity(function_t *const function)
 {
-	if (function->irentity != NULL)
-		return function->irentity;
+    //if (function->irentity != NULL)
+    //	return function->irentity;
 
 	if (function->btk != BUILTIN_NONE && !function->builtin_in_lib)
 	    return NULL;
@@ -4176,7 +4176,7 @@ static void create_local_variable(entity_t *entity)
 static ir_type *get_glob_var_type(entity_t const *const entity)
 {
 #if 0
-	if (entity->variable.thread_local) {
+	if (entity->variable.is_thread_local) {
 		if (!ir_platform_supports_thread_local_storage()) {
 			errorf(&entity->base.pos,
 			       "Thread local storage not supported by backend");
@@ -4309,7 +4309,7 @@ static void create_global_variable(entity_t *entity)
 	/* "common" symbols */
 	if (storage == STORAGE_CLASS_NONE
 	    && entity->variable.initializer == NULL
-	    && !entity->variable.thread_local
+	    && !entity->variable.is_thread_local
 	    && (modifiers & DM_WEAK) == 0) {
 		linkage |= IR_LINKAGE_MERGE;
 	}

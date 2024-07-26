@@ -241,7 +241,7 @@ struct literal_expression_t {
 	const string_t   *value;
 	char const       *suffix; /**< Start of the suffix in value. */
 
-	/* ast2firm data */
+    /* ast2firm data */
     ir_tarval        *target_value;
 };
 
@@ -555,6 +555,7 @@ struct case_label_statement_t {
 	bool                   is_bad         : 1;
 	/** If set marked this as an empty range. */
 	bool                   is_empty_range : 1;
+    void* target;
 };
 
 struct label_statement_t {

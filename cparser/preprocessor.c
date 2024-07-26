@@ -15,7 +15,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "panic.h"
 #include "pset_new.h"
 #include "separator_t.h"

@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "panic.h"
 #include "strutil.h"
 #include "util.h"
@@ -47,7 +47,7 @@ struct declaration_specifiers_t {
 	position_t      pos;
 	storage_class_t storage_class;
 	bool            is_inline    : 1;
-	bool            thread_local : 1;
+	bool            is_thread_local : 1;
 	attribute_t    *attributes;        /**< list of attributes */
 	type_t         *type;
 };
@@ -2658,7 +2658,7 @@ static void parse_declaration_specifiers(declaration_specifiers_t *specifiers)
 			if (specifiers->storage_class != STORAGE_CLASS_NONE)           \
 				errorf(HERE, "multiple storage classes in declaration specifiers"); \
 			specifiers->storage_class = class;                             \
-			if (specifiers->thread_local)                                  \
+			if (specifiers->is_thread_local)                                  \
 				goto check_thread_storage_class;                           \
 			eat(token); \
 			break;
@@ -2675,10 +2675,10 @@ static void parse_declaration_specifiers(declaration_specifiers_t *specifiers)
 			break;
 
 		case T__Thread_local:
-			if (specifiers->thread_local) {
+			if (specifiers->is_thread_local) {
 				errorf(HERE, "duplicate %K", &token);
 			} else {
-				specifiers->thread_local = true;
+				specifiers->is_thread_local = true;
 check_thread_storage_class:
 				switch (specifiers->storage_class) {
 				case STORAGE_CLASS_EXTERN:
@@ -3612,7 +3612,7 @@ static type_t *semantic_parameter(const position_t *pos, type_t *type,
 	/* §6.9.1:6  The declarations in the declaration list shall contain
 	 *           no storage-class specifier other than register and no
 	 *           initializations. */
-	if (specifiers->thread_local
+	if (specifiers->is_thread_local
 	 || (specifiers->storage_class != STORAGE_CLASS_NONE
 	  && specifiers->storage_class != STORAGE_CLASS_REGISTER))
 		errorf(pos, "invalid storage class for %N", param);
@@ -3674,7 +3674,7 @@ static entity_t *parse_declarator(const declaration_specifiers_t *specifiers,
 			if (specifiers->is_inline && is_type_valid(type))
 				errorf(&env.pos, "%N declared 'inline'", entity);
 
-			if (specifiers->thread_local
+			if (specifiers->is_thread_local
 			 || specifiers->storage_class != STORAGE_CLASS_NONE)
 				errorf(&env.pos, "%N must have no storage class", entity);
 		}
@@ -3693,7 +3693,7 @@ static entity_t *parse_declarator(const declaration_specifiers_t *specifiers,
 				/* this needs fixes for C++ */
 				bool in_function_scope = current_function != NULL;
 
-				if (specifiers->thread_local
+				if (specifiers->is_thread_local
 				 || (specifiers->storage_class != STORAGE_CLASS_EXTERN
 				  && specifiers->storage_class != STORAGE_CLASS_NONE
 				  && (in_function_scope || specifiers->storage_class != STORAGE_CLASS_STATIC)
@@ -3703,7 +3703,7 @@ static entity_t *parse_declarator(const declaration_specifiers_t *specifiers,
 		} else {
 			entity = allocate_entity_zero(ENTITY_VARIABLE, NAMESPACE_NORMAL, env.symbol, pos);
 			entity->variable.elf_visibility = default_visibility;
-			entity->variable.thread_local   = specifiers->thread_local;
+			entity->variable.is_thread_local   = specifiers->is_thread_local;
 
 			if (env.symbol != NULL) {
 				if (specifiers->is_inline && is_type_valid(type))
@@ -3714,7 +3714,7 @@ static entity_t *parse_declarator(const declaration_specifiers_t *specifiers,
 					 && specifiers->storage_class != STORAGE_CLASS_NONE
 					 && specifiers->storage_class != STORAGE_CLASS_STATIC)
 						goto invalid_storage_class;
-				} else if (specifiers->thread_local
+				} else if (specifiers->is_thread_local
 				        && specifiers->storage_class == STORAGE_CLASS_NONE) {
 invalid_storage_class:
 					errorf(&env.pos, "invalid storage class for %N", entity);
@@ -4236,7 +4236,7 @@ static void parse_anonymous_declaration_rest(
 
 	position_t const *const pos = &specifiers->pos;
 	if (specifiers->storage_class != STORAGE_CLASS_NONE
-	 || specifiers->thread_local)
+	 || specifiers->is_thread_local)
 		warningf(WARN_OTHER, pos, "useless storage class in empty declaration");
 
 	type_t *type = specifiers->type;
@@ -4289,7 +4289,7 @@ static bool is_common_variable(const entity_t *entity)
 {
 	return entity->declaration.storage_class == STORAGE_CLASS_NONE
 	    && entity->variable.initializer == NULL
-	    && !entity->variable.thread_local
+	    && !entity->variable.is_thread_local
 	    && !(entity->declaration.modifiers & DM_WEAK);
 }
 
@@ -5589,7 +5589,7 @@ static type_t *parse_typename(void)
 	declaration_specifiers_t specifiers;
 	parse_declaration_specifiers(&specifiers);
 	if (specifiers.storage_class != STORAGE_CLASS_NONE
-	 || specifiers.thread_local)
+	 || specifiers.is_thread_local)
 		/* TODO: improve error message, user does probably not know what a
 		 * storage class is... */
 		errorf(&specifiers.pos, "type name must not have a storage class");

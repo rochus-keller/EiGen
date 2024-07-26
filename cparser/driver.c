@@ -251,7 +251,7 @@ bool process_all_units(compilation_env_t *env)
 		}
 
         // TODO RK stat_ev_ctx_push_str("compilation_unit", unit->name);
-		bool ok = process_unit(env, unit);
+        bool ok = process_unit(env, unit);
         // TODO RK stat_ev_ctx_pop("compilation_unit");
 		if (!ok) {
 			return false;

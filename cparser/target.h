@@ -10,8 +10,28 @@
 //#include <libfirm/target.h>
 
 #include "util.h"
-//#include "firm/firm_opt.h"
 #include "options.h"
+
+typedef enum {NoTarget, AMD32Linux, AMD64Linux, ARMA32Linux, ARMA64Linux, ARMT32Linux, ARMT32FPELinux,
+              BIOS16, BIOS32, BIOS64, DOS, EFI32, EFI64, OSX32, OSX64, RPi2B, Win32, Win64,
+              BareAmd16, BareAmd32, BareAmd64, BareArmA32, BareArmT32, BareArmA64,
+              MaxTarget} TargetCode;
+typedef enum { NoProcessor, Amd16, Amd32, Amd64, Arma32, Armt32, Arma64} ProcessorCode;
+
+struct TargetData
+{
+    const char*const name;
+    const char*const backend;
+    ProcessorCode architecture;
+    bool has_linkregister; // 0, 1
+    unsigned char pointer_width; // 2, 4, 8
+    unsigned char stack_align; // 4, 8, 16
+    unsigned char int_width; // usually 4
+    const bool executable;
+    const char*const description;
+    const char*const converter;
+};
+extern struct TargetData target_data[];
 
 typedef struct target_t {
 	char          user_label_prefix;
@@ -23,14 +43,16 @@ typedef struct target_t {
 	bool byte_order_big_endian : 1;
 	bool set_use_frame_pointer : 1;
 	bool use_frame_pointer     : 1;
-	/** parsed machine-triple of target machine. Try not to use this if possible
-	 * but create specific variables for language/target features instead. */
-//	ir_machine_triple_t *machine;
-	/** target triple as a string */
-	const char *triple;
+
+    TargetCode target;
+    const char* name;
 } target_t;
 
 extern target_t target;
+
+extern unsigned char target_stack_align();
+extern unsigned char target_pointer_width();
+extern unsigned char target_has_linkregister();
 
 void init_firm_target(void);
 bool target_setup(void);

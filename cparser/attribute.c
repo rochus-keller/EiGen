@@ -4,7 +4,7 @@
  */
 #include <assert.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "bitfiddle.h"
 #include "panic.h"
 #include "strutil.h"

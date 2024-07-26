@@ -11,7 +11,7 @@
 #include "entity_t.h"
 #include "ast_t.h"
 
-void translation_unit_to_ir(translation_unit_t *unit);
+void translation_unit_to_ir(translation_unit_t *unit, const char *source_file);
 
 void exit_ast2ir(void);
 

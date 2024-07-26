@@ -93,7 +93,7 @@
 #endif /* DO_REHASH */
 
 #ifndef Alloc
-#include "xmalloc.h"
+#include "libfirm/xmalloc.h"
 #define Alloc(size) XMALLOCN(HashSetEntry, (size))
 #define Free(ptr)      free(ptr)
 #endif /* Alloc */

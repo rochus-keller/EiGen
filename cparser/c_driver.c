@@ -13,7 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "panic.h"
 #include "strutil.h"
 #include "util.h"
@@ -151,8 +151,8 @@ static void decide_external_preprocessor(void)
 	if (driver_preprocessor != NULL)
 		return;
 	assert(obstack_object_size(&file_obst) == 0);
-	if (target.triple != NULL)
-		obstack_printf(&file_obst, "%s-gcc -E", target.triple);
+	if (target.name != NULL)
+		obstack_printf(&file_obst, "%s-gcc -E", target.name);
 	else
 		obstack_printf(&file_obst, "%s", PREPROCESSOR);
 	driver_preprocessor = obstack_nul_finish(&file_obst);
@@ -445,8 +445,8 @@ static void decide_assembler(void)
 	if (driver_assembler != NULL)
 		return;
 	assert(obstack_object_size(&file_obst) == 0);
-	if (target.triple != NULL)
-		obstack_printf(&file_obst, "%s-gcc -c -xassembler", target.triple);
+	if (target.name != NULL)
+		obstack_printf(&file_obst, "%s-gcc -c -xassembler", target.name);
 	else
 		obstack_printf(&file_obst, "%s", ASSEMBLER);
 	driver_assembler = obstack_nul_finish(&file_obst);
@@ -587,7 +587,7 @@ static bool preprocess(compilation_env_t *env, compilation_unit_t *unit)
 		/* don't use the integrated preprocessor when crosscompiling
 		 * since we probably don't have the correct location of the
 		 * system headers compiled in. */
-		driver_use_integrated_preprocessor = target.triple == NULL;
+		driver_use_integrated_preprocessor = target.name == NULL;
 	}
 	compilation_unit_handler preprocessor
 		= driver_use_integrated_preprocessor
@@ -767,15 +767,15 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 	timer_register(t_construct, "Frontend: Graph construction");
 	timer_start(t_construct);
 
-    // TODO RK if (already_constructed_firm)
-    //	panic("compiling multiple files/translation units not yet supported");
+    if (already_constructed_firm)
+        panic("compiling multiple files/translation units not yet supported");
     // NOTE: if we process awfy/*.c, then it loses type information an e.g. reports
     // Havlak.c:736:194: error: request for member 'class$' in incomplete type 'struct som$Vector$04445da84e$Vector'
     // even if the file is included and the type known; doesn't happen if each awfy file is compiled by itself!
 
 	already_constructed_firm = true;
     // TODO init_implicit_optimizations();
-	translation_unit_to_ir(unit->ast);
+    translation_unit_to_ir(unit->ast, unit->original_name);
 	timer_stop(t_construct);
 #if 0
     // TODO RK
@@ -855,8 +855,7 @@ bool generate_code_final(compilation_env_t *env, compilation_unit_t *unit)
 	return res;
 }
 
-bool generate_code_intermediate(compilation_env_t *env,
-                                compilation_unit_t *unit)
+bool generate_code_intermediate(compilation_env_t *env, compilation_unit_t *unit)
 {
 	(void)env;
 	const char *s_name;
@@ -877,8 +876,8 @@ static void decide_linker(void)
 	if (driver_linker != NULL)
 		return;
 	assert(obstack_object_size(&file_obst) == 0);
-	if (target.triple != NULL)
-		obstack_printf(&file_obst, "%s-gcc", target.triple);
+	if (target.name != NULL)
+		obstack_printf(&file_obst, "%s-gcc", target.name);
 	else
 		obstack_printf(&file_obst, "%s", LINKER);
 	driver_linker = obstack_nul_finish(&file_obst);
@@ -1069,18 +1068,13 @@ void set_default_handlers(void)
 
 	set_unit_handler(COMPILATION_UNIT_LEXER_TOKENS_C,   do_parsing, false);
 	set_unit_handler(COMPILATION_UNIT_LEXER_TOKENS_CXX, do_parsing, false);
-	set_unit_handler(COMPILATION_UNIT_LEXER_TOKENS_ASSEMBLER,
-	                 print_preprocessed_intermediate, false);
+    set_unit_handler(COMPILATION_UNIT_LEXER_TOKENS_ASSEMBLER, print_preprocessed_intermediate, false);
 
-	set_unit_handler(COMPILATION_UNIT_PREPROCESSED_C,
-	                 start_preprocessing, false);
-	set_unit_handler(COMPILATION_UNIT_PREPROCESSED_CXX,
-	                 start_preprocessing, false);
+    set_unit_handler(COMPILATION_UNIT_PREPROCESSED_C, start_preprocessing, false);
+    set_unit_handler(COMPILATION_UNIT_PREPROCESSED_CXX, start_preprocessing, false);
 	set_unit_handler(COMPILATION_UNIT_AST, build_firm_ir, false);
-	set_unit_handler(COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION,
-	                 generate_code_intermediate, false);
-	set_unit_handler(COMPILATION_UNIT_PREPROCESSED_ASSEMBLER,
-	                 assemble_intermediate, false);
+    set_unit_handler(COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION, generate_code_intermediate, false);
+    set_unit_handler(COMPILATION_UNIT_PREPROCESSED_ASSEMBLER, assemble_intermediate, false);
 	set_unit_handler(COMPILATION_UNIT_DEPENDENCIES, do_copy_file, true);
 }
 

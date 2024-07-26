@@ -14,17 +14,24 @@ let libfirm : SourceSet {
     .configs += config;
     .sources += [
     ./libfirm/xmalloc.c
+    ./libfirm/xmalloc.h
     ./libfirm/array.c
+    ./libfirm/array.h
     ./libfirm/tv.c
+    ./libfirm/tv.h
     ./libfirm/irmode.c
+    ./libfirm/irmode.h
     ./libfirm/pset.c
+    ./libfirm/pset.h
     ./libfirm/timing.c
+    ./libfirm/timing.h
     ./libfirm/typerep.h
     ]
 }
 
 let sources ! : SourceSet {
     .configs += config;
+    .deps += [ libfirm ]
     .sources += [
         ./ir_opt.h
         ./actions.c
@@ -60,7 +67,6 @@ let sources ! : SourceSet {
         ./walk.c
         ./warning.c
         ./actions.h
-        ./array.h
         ./ast.h
         ./ast_t.h
         ./attribute.h
@@ -116,24 +122,17 @@ let sources ! : SourceSet {
         ./version.h
         ./walk.h
         ./warning.h
-        ./xmalloc.h
-
-        ./write_compoundsizes.c
-        ./write_compoundsizes.h
-        ./write_fluffy.c
-        ./write_fluffy.h
-        ./write_jna.c
-        ./write_jna.h
     ]
     .include_dirs += .
 }
 
 let cparser ! : Executable {
     .configs += config;
-    .deps += [ libfirm sources ]
+    .deps += [ sources ]
     .sources += [
         ./main.c
         ./ast2ir.c
         ./ast2ir.h
     ]
+    .include_dirs += .
 }

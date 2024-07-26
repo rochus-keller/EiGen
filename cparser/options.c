@@ -25,7 +25,6 @@
 #include "preprocessor.h"
 #include "predefs.h"
 #include "target.h"
-#include "write_jna.h"
 
 codegen_option_t    *codegen_options        = NULL;
 codegen_option_t   **codegen_options_anchor = &codegen_options;
@@ -321,10 +320,6 @@ bool options_parse_driver(options_state_t *s)
 		print_implicit_casts = true;
 	} else if (simple_arg("-print-parenthesis", s)) {
 		print_parenthesis = true;
-	} else if ((arg = spaced_arg("-jna-limit", s)) != NULL) {
-		jna_limit_output(arg);
-	} else if ((arg = spaced_arg("-jna-libname", s)) != NULL) {
-		jna_set_libname(arg);
 	} else if (simple_arg("v", s)) {
 		driver_verbose = true;
 	} else if (simple_arg("-time", s)) {
@@ -655,21 +650,6 @@ bool options_parse_help(options_state_t *s)
 		return false;
 	}
 	s->action = action_help;
-	return true;
-}
-
-bool parse_target_triple(char const *const arg)
-{
-#if 0
-    // TODO RK
-	ir_machine_triple_t *triple = ir_parse_machine_triple(arg);
-	if (triple == NULL) {
-		errorf(NULL, "target-triple '%s' is not in the form 'cpu_type-manufacturer-operating_system'", arg);
-		return false;
-	}
-    target.machine = triple;
-	target.triple  = arg;
-#endif
 	return true;
 }
 

@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "array.h"
+#include "libfirm/array.h"
 #include "panic.h"
 #include "obst.h"
 #include "diagnostic.h"

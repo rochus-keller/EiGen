@@ -22,8 +22,6 @@
 #include "tempfile.h"
 #include "timing.h"
 #include "ast2ir.h"
-//#include "firm/firm_opt.h"
-//#include "firm/jittest.h"
 #include "parser.h"
 #include "preprocessor.h"
 

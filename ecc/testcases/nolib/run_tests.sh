@@ -5,7 +5,7 @@ export PATH=$PATH:/home/me/Programme/ecs/bin
 for t in *.c
 do
     echo "compiling $t"
-    ./ecc -S $t
+    ./compiler -S -w $t
     ecsd -g "${t%.*}.cod"
     ./${t%.*}; echo $?
 done

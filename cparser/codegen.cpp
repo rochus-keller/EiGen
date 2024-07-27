@@ -106,6 +106,7 @@ static void init_types()
 
 static uint8_t getTypeId(type_t *ty) {
 
+    ty = skip_typeref(ty);
     const int sz = get_ctype_size(ty);
 
     if( ty->kind == TYPE_ATOMIC ) {
@@ -225,7 +226,8 @@ static Smop lvalue(expression_t const *const expr) {
         entity_t* var = expr->reference.entity;
 
         // Local variable
-        if ( var->kind == ENTITY_VARIABLE && var->variable.is_local ) {
+        if ( (var->kind == ENTITY_VARIABLE && var->variable.is_local) ||
+             var->kind == ENTITY_PARAMETER ) {
             return (Code::Reg(types[ptr],Code::RFP, var->variable.offset));
         }
 
@@ -238,14 +240,14 @@ static Smop lvalue(expression_t const *const expr) {
         return (Code::Adr(types[ptr],rename(var)));
     }
     case EXPR_ARRAY_ACCESS:  {
-        Smop arr = expression(expr->array_access.array_ref);
+        Smop arr = expression(expr->array_access.array_ref); // TODO
         Smop idx = expression(expr->array_access.index);
         type_t    *const elem_type = skip_typeref(expr->array_access.array_ref->base.type);
         idx = e->Multiply(idx, Code::Imm(idx.type,get_ctype_size(elem_type)));
         return e->Add(arr,e->Convert(types[ptr],idx));
     }
     case EXPR_SELECT: {
-        Smop tmp = lvalue(expr->select.compound);
+        Smop tmp = expression(expr->select.compound);
         entity_t* mem = expr->select.compound_entry;
         assert(mem->kind == ENTITY_COMPOUND_MEMBER);
         return e->Add(e->Convert(types[ptr],tmp), Code::Imm(types[ptr],mem->compound_member.offset));
@@ -276,9 +278,8 @@ static Smop lvalue(expression_t const *const expr) {
     return Smop();
 }
 
-// Load a value from where $0 is pointing to.
 static void load(type_t * ty, Smop& tmp) {
-
+    ty = skip_typeref(ty);
     switch (ty->kind) {
     case TYPE_ARRAY:
     case TYPE_COMPOUND_STRUCT:
@@ -293,15 +294,15 @@ static void load(type_t * ty, Smop& tmp) {
         return;
     }
 
-    if( ty->kind == TYPE_POINTER && ty->pointer.points_to->kind == TYPE_FUNCTION )
-        return;
+    if( ty->kind == TYPE_POINTER && ty->pointer.replacemen_of != 0 &&
+            ( ty->pointer.replacemen_of->kind == TYPE_ARRAY || ty->pointer.replacemen_of->kind == TYPE_FUNCTION) )
+        return; // not really a pointer, but actually an array or function
 
     const Code::Type type = getCodeType(ty);
     tmp = e->MakeMemory(type,tmp);
 }
 
 static void cast(type_t *from, type_t *to, Smop& reg) {
-
 
     if (to->kind == TYPE_VOID)
         return;
@@ -321,7 +322,7 @@ static void cast(type_t *from, type_t *to, Smop& reg) {
 }
 
 static void store(type_t *ty, const Smop& lhs, const Smop& rhs) {
-
+    ty = skip_typeref(ty);
     switch (ty->kind) {
     case TYPE_COMPOUND_STRUCT:
     case TYPE_COMPOUND_UNION:
@@ -722,7 +723,7 @@ static Smop expression(expression_t const *const expr)
         return tmp;
     }
     case EXPR_REFERENCE:
-    case EXPR_ARRAY_ACCESS:  {
+    case EXPR_ARRAY_ACCESS: {
         Smop tmp = lvalue(expr);
         load(expr->base.type, tmp);
         return tmp;
@@ -814,8 +815,11 @@ static Smop expression(expression_t const *const expr)
             function_type = &points_to->function;
         }
 
-        type_t* ret = function_type->return_type && function_type->return_type->kind != TYPE_VOID ?
-                    function_type->return_type : 0;
+        type_t* ret = 0;
+        if( function_type->return_type ) {
+            ret = skip_typeref(function_type->return_type);
+            assert( ret->kind != TYPE_VOID );
+        }
 
         const int aligned_size = push_args(expr,getParamCount(function_type));
         Smop fun = expression(expr->call.function);
@@ -901,44 +905,6 @@ static Smop expression(expression_t const *const expr)
     lhs = e->Convert(lhsT,lhs);
 
     return binary_ops(expr->kind,lhs,rhs);
-}
-
-static bool declaration_is_definition(const entity_t *entity)
-{
-    switch (entity->kind) {
-    case ENTITY_VARIABLE:
-        return entity->declaration.storage_class != STORAGE_CLASS_EXTERN
-            || entity->variable.alias.entity != NULL;
-    case ENTITY_FUNCTION:
-        return entity->function.body != NULL
-            || entity->function.alias.entity != NULL;
-    case ENTITY_PARAMETER:
-    case ENTITY_COMPOUND_MEMBER:
-        return false;
-    case ENTITY_ASM_ARGUMENT:
-    case ENTITY_ASM_LABEL:
-    case ENTITY_CLASS:
-    case ENTITY_ENUM:
-    case ENTITY_ENUM_VALUE:
-    case ENTITY_LABEL:
-    case ENTITY_LOCAL_LABEL:
-    case ENTITY_NAMESPACE:
-    case ENTITY_STRUCT:
-    case ENTITY_TYPEDEF:
-    case ENTITY_UNION:
-        break;
-    }
-    panic("entity is not a declaration");
-}
-
-static bool is_decl_necessary(entity_t const *const entity)
-{
-    assert(is_declaration(entity));
-    declaration_t const *const decl = &entity->declaration;
-    return
-        decl->used ||
-        (declaration_is_definition(entity) &&
-         (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
 }
 
 static void statement(statement_t *const stmt);
@@ -1346,6 +1312,44 @@ static void create_function(function_t *const function)
     clabels.clear();
 }
 
+static bool declaration_is_definition(const entity_t *entity)
+{
+    switch (entity->kind) {
+    case ENTITY_VARIABLE:
+        return entity->declaration.storage_class != STORAGE_CLASS_EXTERN
+            || entity->variable.alias.entity != NULL;
+    case ENTITY_FUNCTION:
+        return entity->function.body != NULL
+            || entity->function.alias.entity != NULL;
+    case ENTITY_PARAMETER:
+    case ENTITY_COMPOUND_MEMBER:
+        return false;
+    case ENTITY_ASM_ARGUMENT:
+    case ENTITY_ASM_LABEL:
+    case ENTITY_CLASS:
+    case ENTITY_ENUM:
+    case ENTITY_ENUM_VALUE:
+    case ENTITY_LABEL:
+    case ENTITY_LOCAL_LABEL:
+    case ENTITY_NAMESPACE:
+    case ENTITY_STRUCT:
+    case ENTITY_TYPEDEF:
+    case ENTITY_UNION:
+        break;
+    }
+    panic("entity is not a declaration");
+}
+
+static bool is_decl_necessary(entity_t const *const entity)
+{
+    assert(is_declaration(entity));
+    declaration_t const *const decl = &entity->declaration;
+    return
+        decl->used ||
+        (declaration_is_definition(entity) &&
+         (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
+}
+
 static void scope_to_ir(scope_t *scope)
 {
     for (entity_t *entity = scope->first_entity; entity != NULL; entity = entity->base.next) {
@@ -1366,6 +1370,9 @@ static void scope_to_ir(scope_t *scope)
             break;
         }
         case ENTITY_VARIABLE: {
+            if( !declaration_is_definition(entity) )
+                continue;
+
             e->Begin(Code::Section::Data, rename(entity),
                      get_ctype_alignment(entity->variable.base.type),
                      false, // required
@@ -1433,7 +1440,7 @@ class fdostream : public std::ostream {
 
 extern "C" {
 
-void translation_unit_to_ir(translation_unit_t *unit, const char* source_file)
+void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char* source_file)
 {
     Layout layout(
         { target_data[target.target].int_width, 1, 8},
@@ -1477,7 +1484,7 @@ void translation_unit_to_ir(translation_unit_t *unit, const char* source_file)
 
     e = 0;
 
-    fdostream out_stream(stdout); // TODO
+    fdostream out_stream(cod_out);
 
     out_stream << "; this is Eigen intermediate code, generated by ECC" << std::endl;
     out_stream << "; see https://github.com/rochus-keller/EiGen/tree/master/ecc for more information" << std::endl;

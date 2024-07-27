@@ -5966,11 +5966,16 @@ type_t *automatic_type_conversion(type_t *orig_type)
 		type_t       *element_type = array_type->element_type;
 		unsigned      qualifiers   = array_type->base.qualifiers;
 
-		return make_pointer_type(element_type, qualifiers);
+        type_t * pointer = make_pointer_type(element_type, qualifiers);
+        pointer->pointer.replacemen_of = type;
+        return pointer;
 	}
 
-	if (is_type_function(type))
-		return make_pointer_type(orig_type, TYPE_QUALIFIER_NONE);
+    if (is_type_function(type)) {
+        type_t * pointer = make_pointer_type(orig_type, TYPE_QUALIFIER_NONE);
+        pointer->pointer.replacemen_of = type;
+        return pointer;
+    }
 
 	return orig_type;
 }

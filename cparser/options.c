@@ -372,7 +372,8 @@ bool options_parse_linker(options_state_t *s)
 	        || simple_arg("shared-libgcc", s)
 	        || simple_arg("static-libgcc", s)
 	        || simple_arg("symbolic", s)
-	        || accept_prefix(s, "-Wl,", true, &arg)) {
+            || simple_arg("lib", s) // RK -lib
+            || accept_prefix(s, "-Wl,", true, &arg)) {
 	    driver_add_flag(&ldflags_obst, full_option);
 	} else if ((arg = spaced_arg("Xlinker", s)) != NULL) {
 		driver_add_flag(&ldflags_obst, "-Xlinker");
@@ -436,6 +437,7 @@ bool options_parse_codegen(options_state_t *s)
 		/* ignore (gcc compatibility) we always adhere to the C99 standard
 		 * anyway in this respect */
 	} else if (accept_prefix(s, "-g", false, &arg)) {
+        target.debug_info = true;
 		if (streq(arg, "0")) {
 			set_target_option("debug=none");
 			set_target_option("ia32-optcc=true");

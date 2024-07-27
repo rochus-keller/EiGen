@@ -61,7 +61,6 @@ static const char *system_include_dir   = SYSTEM_INCLUDE_DIR;
 static const char *driver_linker;
 static const char *driver_preprocessor;
 static const char *driver_assembler;
-static const char *asflags;
 
 struct obstack  cppflags_obst;
 struct obstack  c_cpp_cppflags_obst;
@@ -437,55 +436,21 @@ static bool run_external_preprocessor(compilation_env_t *env,
 	return true;
 }
 
-static void decide_assembler(void)
-{
-	if (driver_assembler != NULL)
-		return;
-	driver_assembler = getenv("CPARSER_AS");
-	if (driver_assembler != NULL)
-		return;
-	assert(obstack_object_size(&file_obst) == 0);
-	if (target.name != NULL)
-		obstack_printf(&file_obst, "%s-gcc -c -xassembler", target.name);
-	else
-		obstack_printf(&file_obst, "%s", ASSEMBLER);
-	driver_assembler = obstack_nul_finish(&file_obst);
-}
+extern void run_codegen(const char *input, const char *output);
 
 static bool assemble(compilation_unit_t *unit, const char *o_name)
 {
-	if (!asflags)
-		asflags = obstack_nul_finish(&asflags_obst);
-
-	decide_assembler();
-	obstack_printf(&asflags_obst, "%s", driver_assembler);
-	if (asflags[0] != '\0')
-		obstack_printf(&asflags_obst, " %s", asflags);
-
-	obstack_printf(&asflags_obst, " %s -o %s", unit->name, o_name);
-
-	char *const commandline = obstack_nul_finish(&asflags_obst);
-	if (driver_verbose) {
-		puts(commandline);
-	}
-	int err = system(commandline);
-	if (err != EXIT_SUCCESS) {
-		position_t const pos = { unit->name, 0, 0, 0 };
-		errorf(&pos, "assembler reported an error");
-		unlink(o_name);
-		return false;
-	}
-	obstack_free(&asflags_obst, commandline);
+    run_codegen(unit->name,o_name);
 	unit->type = COMPILATION_UNIT_OBJECT;
 	unit->name = o_name;
-	return true;
+    return true;
 }
 
 bool assemble_final(compilation_env_t *env, compilation_unit_t *unit)
 {
 	const char *outname = env->outname;
 	if (outname == NULL) {
-		outname = get_output_name(unit->original_name, ".o");
+        outname = get_output_name(unit->original_name, ".obf");
 	}
 	return assemble(unit, outname);
 }
@@ -494,7 +459,7 @@ bool assemble_intermediate(compilation_env_t *env, compilation_unit_t *unit)
 {
 	(void)env;
 	const char *o_name;
-	FILE *tempf = open_temp_file(unit->name, ".o", &o_name);
+    FILE *tempf = open_temp_file(unit->name, ".obf", &o_name);
 	if (tempf == NULL)
 		return NULL;
 	/* hackish... */
@@ -603,7 +568,7 @@ static void write_preproc_dependencies(FILE *out, compilation_env_t *env,
 	if (target == NULL) {
 		target = env->outname;
 		if (target == NULL) {
-			target = get_output_name(unit->original_name, ".o");
+            target = get_output_name(unit->original_name, ".obf");
 		}
 	}
 	preprocessor_print_dependencies(out, include_system_headers_in_dependencies,
@@ -672,7 +637,7 @@ static bool print_preprocessed_intermediate(compilation_env_t *env,
 {
 	(void)env;
 	const char *s_name;
-	FILE *out = open_temp_file(unit->name, ".s", &s_name);
+    FILE *out = open_temp_file(unit->name, ".cod", &s_name);
 	if (out == NULL)
 		return false;
 	bool res = do_print_preprocessing_tokens(out, env, unit);
@@ -775,7 +740,14 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 
 	already_constructed_firm = true;
     // TODO init_implicit_optimizations();
-    translation_unit_to_ir(unit->ast, unit->original_name);
+    char* file_name = "";
+    FILE *cod_out = open_temp_file(unit->name, ".cod", &file_name);
+    if (cod_out == NULL)
+        return false;
+    translation_unit_to_ir(unit->ast, cod_out, unit->original_name);
+    unit->name = file_name;
+    fclose(cod_out);
+
 	timer_stop(t_construct);
 #if 0
     // TODO RK
@@ -831,6 +803,7 @@ static bool do_generate_code(FILE *asm_out, compilation_unit_t *unit)
 {
 #if 0
     // TODO RK
+    // input and output is cod file; here we will do optimization as soon as available
     ir_timer_t *t_opt_codegen = ir_timer_new();
 	timer_register(t_opt_codegen, "Optimization and Codegeneration");
 	timer_start(t_opt_codegen);
@@ -840,48 +813,52 @@ static bool do_generate_code(FILE *asm_out, compilation_unit_t *unit)
 		stat_ev_dbl("time_opt_codegen", ir_timer_elapsed_sec(t_opt_codegen));
 	}
 #endif
-    unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
     return true;
 }
 
 bool generate_code_final(compilation_env_t *env, compilation_unit_t *unit)
 {
-	if (!open_output_for_unit(env, unit, ".s"))
+    // unit->name is the temp COD file
+    if (!open_output_for_unit(env, unit, ".cod"))
 		return false;
+#if 0
 	bool res = do_generate_code(env->out, unit);
+#else
+    FILE* in = fopen(unit->name,"r");
+    if( in == 0 )
+        return false;
+    copy_file(env->out,in);
+    fclose(in);
+    bool res = true;
+#endif
 	close_output(env);
 	if (!res)
 		unlink(env->outname);
-	return res;
+    unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
+    return res;
 }
 
 bool generate_code_intermediate(compilation_env_t *env, compilation_unit_t *unit)
 {
-	(void)env;
+    // unit->name is already the temp COD file
+    // we don't have to do anything here until there is an optimizer which we can run
+#if 0
+    (void)env;
 	const char *s_name;
-	FILE *asm_out = open_temp_file(unit->name, ".s", &s_name);
+    FILE *asm_out = open_temp_file(unit->name, ".cod", &s_name);
 	if (asm_out == NULL)
 		return false;
 	bool result = do_generate_code(asm_out, unit);
 	unit->name = s_name;
 	fclose(asm_out);
 	return result;
+#else
+    unit->type = COMPILATION_UNIT_PREPROCESSED_ASSEMBLER;
+    return true;
+#endif
 }
 
-static void decide_linker(void)
-{
-	if (driver_linker != NULL)
-		return;
-	driver_linker = getenv("CPARSER_LINK");
-	if (driver_linker != NULL)
-		return;
-	assert(obstack_object_size(&file_obst) == 0);
-	if (target.name != NULL)
-		obstack_printf(&file_obst, "%s-gcc", target.name);
-	else
-		obstack_printf(&file_obst, "%s", LINKER);
-	driver_linker = obstack_nul_finish(&file_obst);
-}
+extern void run_linker(compilation_unit_t* inputs, const char *output);
 
 bool link_program(compilation_env_t *env, compilation_unit_t *units)
 {
@@ -890,111 +867,27 @@ bool link_program(compilation_env_t *env, compilation_unit_t *units)
 		outname = driver_default_exe_output;
 	}
 
-	char const *const flags = obstack_nul_finish(&ldflags_obst);
+    run_linker(units, outname);
 
-	/* construct commandline */
-	decide_linker();
-	assert(obstack_object_size(&file_obst) == 0);
-	obstack_printf(&file_obst, "%s ", driver_linker);
-
-	for (compilation_unit_t *unit = units; unit != NULL; unit = unit->next) {
-		if (unit->type != COMPILATION_UNIT_OBJECT)
-			continue;
-
-		driver_add_flag(&file_obst, "%s", unit->name);
-	}
-
-	if (lsysroot)
-		obstack_printf(&file_obst, " --sysroot=%s", lsysroot);
-
-	driver_add_flag(&file_obst, "-o");
-	driver_add_flag(&file_obst, outname);
-	obstack_printf(&file_obst, "%s", flags);
-
-	char *const commandline = obstack_nul_finish(&file_obst);
-
-	const char *err_without_nopie;
-	// create temp file to redirect linker stderr into
-	FILE *temp = make_temp_file("linker.err", &err_without_nopie);
-	if (temp == NULL) {
-		return false;
-	}
-	fclose(temp);
-	// append redirect output into file to command
-	const char *const redirect = " 2>";
-	char commandline_without_nopie[strlen(commandline) + strlen(redirect) + strlen(err_without_nopie) + 1];
-	snprintf(commandline_without_nopie, sizeof(commandline_without_nopie), "%s%s%s", commandline, redirect,
-	         err_without_nopie);
-
-
-	const char *err_nopie;
-	// create temp file to redirect stderr of second linker pass into
-	FILE *temp2 = make_temp_file("linker-no-pie.err", &err_nopie);
-	if (temp2 == NULL) {
-		return false;
-	}
-	fclose(temp2);
-	// append no-pie flag and redirect output into file to command
-	const char *const no_pie = " -no-pie";
-	char commandline_nopie[strlen(commandline) + strlen(no_pie) + strlen(redirect) + strlen(err_nopie) + 1];
-	snprintf(commandline_nopie, sizeof(commandline_nopie), "%s%s%s%s", commandline, no_pie, redirect,
-	         err_nopie);
-
-	/* Workaround for systems that expect PIE code when no flags are given:
-	 * Try linking with -no-pie flag first if we do not explicitly want PIC code. Old linkers don't support the -no-pie
-	 * flag, so we have to try linking without the flag if the first try failed. */
-	bool try_nopie_first = !target.pic;
-
-	char *first_linker_pass = try_nopie_first ? commandline_nopie : commandline_without_nopie;
-
-	if (driver_verbose) {
-		puts(first_linker_pass);
-	}
-
-	int err = system(first_linker_pass);
-	if (err != EXIT_SUCCESS) {
-		if (try_nopie_first) {
-			// retry without the -no-pie flag
-			if (driver_verbose) {
-				puts(commandline_without_nopie);
-			}
-			err = system(commandline_without_nopie);
-		}
-
-		if (err != EXIT_SUCCESS) {
-			// linking with -no-pie did not help; output original linker errors
-			temp = fopen(try_nopie_first ? err_without_nopie : err_nopie, "r");
-			char buf[BUFSIZ];
-			while (fgets(buf, BUFSIZ, temp)) {
-				fputs(buf, stderr);
-			}
-			fclose(temp);
-			position_t const pos = {outname, 0, 0, 0};
-			errorf(&pos, "linker reported an error");
-			unlink(outname);
-			return false;
-		}
-	}
 	return true;
 }
 
 bool write_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
-	if (!open_output_for_unit(env, unit, ".ir"))
-		return false;
-	ir_export_file(env->out);
-	int errors = ferror(env->out);
-	close_output(env);
-
-	if (errors != 0) {
-		position_t const pos = { env->outname, 0, 0, 0 };
-		errorf(&pos, "writing to output failed");
-		unlink(env->outname);
-		return false;
-	}
-#endif
+    FILE* in = fopen(unit->name,"r");
+    if( in == 0 )
+        return false;
+    if (!open_output_for_unit(env, unit, ".cod"))
+        return false;
+    copy_file(env->out,in);
+    int errors = ferror(env->out);
+    close_output(env);
+    if (errors != 0) {
+        position_t const pos = { env->outname, 0, 0, 0 };
+        errorf(&pos, "writing to output failed");
+        unlink(env->outname);
+        return false;
+    }
 	return true;
 }
 
@@ -1047,11 +940,15 @@ int action_print_file_name(const char *argv0)
 	if (driver_verbose) {
 		puts(commandline);
 	}
-	int err = system(commandline);
+    int err = EXIT_SUCCESS;
+#if 0
+    // TODO
+    err = system(commandline);
 	if (err != EXIT_SUCCESS) {
 		position_t const pos = { print_file_name_file, 0, 0, 0 };
 		errorf(&pos, "linker reported an error");
 	}
+#endif
 	obstack_free(&ldflags_obst, commandline);
 	return err;
 }

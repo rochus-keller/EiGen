@@ -43,6 +43,7 @@ typedef struct target_t {
 	bool byte_order_big_endian : 1;
 	bool set_use_frame_pointer : 1;
 	bool use_frame_pointer     : 1;
+    bool debug_info            : 1;
 
     TargetCode target;
     const char* name;

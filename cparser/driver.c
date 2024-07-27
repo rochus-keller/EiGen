@@ -25,7 +25,7 @@ const char         *filtev;
 int                 colorterm;
 bool                do_timing;
 bool                print_timing;
-const char         *driver_default_exe_output;
+const char         *driver_default_exe_output = "a.out";
 struct obstack      file_obst;
 compilation_unit_t *units;
 
@@ -306,8 +306,8 @@ compilation_unit_type_t autodetect_input(char const *const path)
 		return COMPILATION_UNIT_OBJECT;
 	++suffix;
 	return
-		streq(suffix, "S")   ? COMPILATION_UNIT_ASSEMBLER              :
-		streq(suffix, "a")   ? COMPILATION_UNIT_OBJECT                 :
+        //streq(suffix, "S")   ? COMPILATION_UNIT_ASSEMBLER              :
+        //streq(suffix, "a")   ? COMPILATION_UNIT_OBJECT                 :
 		streq(suffix, "c")   ? COMPILATION_UNIT_C                      :
 		streq(suffix, "i")   ? COMPILATION_UNIT_PREPROCESSED_C         :
 		streq(suffix, "C")   ? COMPILATION_UNIT_CXX                    :
@@ -319,10 +319,10 @@ compilation_unit_type_t autodetect_input(char const *const path)
 		streq(suffix, "c++") ? COMPILATION_UNIT_CXX                    :
 		streq(suffix, "ii")  ? COMPILATION_UNIT_PREPROCESSED_CXX       :
 		streq(suffix, "h")   ? COMPILATION_UNIT_C                      :
-		streq(suffix, "ir")  ? COMPILATION_UNIT_IR                     :
-		streq(suffix, "o")   ? COMPILATION_UNIT_OBJECT                 :
-		streq(suffix, "so")  ? COMPILATION_UNIT_OBJECT                 :
-		streq(suffix, "s")   ? COMPILATION_UNIT_PREPROCESSED_ASSEMBLER :
+        streq(suffix, "cod")  ? COMPILATION_UNIT_IR                     :
+        streq(suffix, "obf")   ? COMPILATION_UNIT_OBJECT                 :
+        //streq(suffix, "so")  ? COMPILATION_UNIT_OBJECT                 :
+        //streq(suffix, "s")   ? COMPILATION_UNIT_PREPROCESSED_ASSEMBLER :
 		COMPILATION_UNIT_OBJECT; /* gcc behavior: unknown file extension means
 		                            object file */
 }

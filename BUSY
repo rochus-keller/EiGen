@@ -311,6 +311,7 @@ let compiler2 : Executable {
     .sources += [
         ./cparser/main.c
         ./cparser/codegen.cpp
+        ./cparser/backend.cpp
         ./cdemitter.cpp
         ./cdemitter.hpp
         ./cdgenerator.cpp

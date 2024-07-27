@@ -51,6 +51,7 @@ struct atomic_type_t {
 struct pointer_type_t {
 	type_base_t  base;
 	type_t      *points_to;
+    type_t      *replacemen_of; // function or array type in case of automatic_type_conversion
 };
 
 struct reference_type_t {

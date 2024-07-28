@@ -178,7 +178,7 @@ extern cc_kind_t default_calling_convention;
 type_t *make_atomic_type(atomic_type_kind_t type, type_qualifiers_t qualifiers);
 type_t *make_complex_type(atomic_type_kind_t type, type_qualifiers_t qualifiers);
 type_t *make_imaginary_type(atomic_type_kind_t type, type_qualifiers_t qualifiers);
-type_t *make_pointer_type(type_t *points_to, type_qualifiers_t qualifiers);
+type_t *make_pointer_type(type_t *points_to, type_qualifiers_t qualifiers, type_t *replacement_of);
 type_t *make_reference_type(type_t *refers_to);
 type_t *make_array_type(type_t *element_type, size_t size,
                         type_qualifiers_t qualifiers);

@@ -14,17 +14,16 @@ main()
 	
 	p = &arr[1];
 	if(*(p--) != 3)
-		return 1;
+		return 3;
 	if(*(p--) != 2)
-		return 2;
+		return 4;
 		
 	p = &arr[0];
 	if(*(++p) != 3)
-		return 1;
+		return 5;
 	
 	p = &arr[1];
 	if(*(--p) != 2)
-		return 1;
-
+		return 6;
 	return 0;
 }

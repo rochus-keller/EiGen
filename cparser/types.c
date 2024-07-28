@@ -116,6 +116,11 @@ type_t *type_int64_ptr;
 type_t *type_unsigned_int32_ptr;
 type_t *type_unsigned_int64_ptr;
 
+static type_t *make_pointer_type0(type_t *points_to, type_qualifiers_t qualifiers)
+{
+    return make_pointer_type(points_to,qualifiers,0);
+}
+
 static void init_ms_types(void)
 {
 	type_int8                = make_atomic_type(int8_type_kind, TYPE_QUALIFIER_NONE);
@@ -132,10 +137,10 @@ static void init_ms_types(void)
 	type_unsigned_int64      = make_atomic_type(unsigned_int64_type_kind, TYPE_QUALIFIER_NONE);
 
 	/* pointer types */
-	type_int32_ptr           = make_pointer_type(type_int32,              TYPE_QUALIFIER_NONE);
-	type_int64_ptr           = make_pointer_type(type_int64,              TYPE_QUALIFIER_NONE);
-	type_unsigned_int32_ptr  = make_pointer_type(type_unsigned_int32,     TYPE_QUALIFIER_NONE);
-	type_unsigned_int64_ptr  = make_pointer_type(type_unsigned_int64,     TYPE_QUALIFIER_NONE);
+    type_int32_ptr           = make_pointer_type0(type_int32,              TYPE_QUALIFIER_NONE);
+    type_int64_ptr           = make_pointer_type0(type_int64,              TYPE_QUALIFIER_NONE);
+    type_unsigned_int32_ptr  = make_pointer_type0(type_unsigned_int32,     TYPE_QUALIFIER_NONE);
+    type_unsigned_int64_ptr  = make_pointer_type0(type_unsigned_int64,     TYPE_QUALIFIER_NONE);
 }
 
 void init_predefined_types(void)
@@ -174,29 +179,29 @@ void init_predefined_types(void)
 	type_int64_t = make_atomic_type(int64_type_kind, TYPE_QUALIFIER_NONE);
 
 	/* pointer types */
-	type_void_ptr                = make_pointer_type(type_void,              TYPE_QUALIFIER_NONE);
-	type_const_void_ptr          = make_pointer_type(type_const_void,        TYPE_QUALIFIER_NONE);
-	type_void_ptr_restrict       = make_pointer_type(type_void,              TYPE_QUALIFIER_RESTRICT);
-	type_const_void_ptr_restrict = make_pointer_type(type_const_void,        TYPE_QUALIFIER_RESTRICT);
-	type_char_ptr                = make_pointer_type(type_char,              TYPE_QUALIFIER_NONE);
-	type_char_ptr_restrict       = make_pointer_type(type_char,              TYPE_QUALIFIER_RESTRICT);
-	type_signed_char_ptr         = make_pointer_type(type_signed_char,       TYPE_QUALIFIER_NONE);
-	type_short_ptr               = make_pointer_type(type_short,             TYPE_QUALIFIER_NONE);
-	type_int_ptr                 = make_pointer_type(type_int,               TYPE_QUALIFIER_NONE);
-	type_long_ptr                = make_pointer_type(type_long,              TYPE_QUALIFIER_NONE);
-	type_unsigned_char_ptr       = make_pointer_type(type_unsigned_char,     TYPE_QUALIFIER_NONE);
-	type_unsigned_short_ptr      = make_pointer_type(type_unsigned_short,    TYPE_QUALIFIER_NONE);
-	type_unsigned_int_ptr        = make_pointer_type(type_unsigned_int,      TYPE_QUALIFIER_NONE);
-	type_unsigned_long_ptr       = make_pointer_type(type_unsigned_long,     TYPE_QUALIFIER_NONE);
-	type_unsigned_long_long_ptr  = make_pointer_type(type_unsigned_long,     TYPE_QUALIFIER_NONE);
-	type_long_long_ptr           = make_pointer_type(type_long_long,         TYPE_QUALIFIER_NONE);
-	type_long_double_ptr         = make_pointer_type(type_long_double,       TYPE_QUALIFIER_NONE);
-	type_double_ptr              = make_pointer_type(type_double,            TYPE_QUALIFIER_NONE);
-	type_float_ptr               = make_pointer_type(type_float,             TYPE_QUALIFIER_NONE);
+    type_void_ptr                = make_pointer_type0(type_void,              TYPE_QUALIFIER_NONE);
+    type_const_void_ptr          = make_pointer_type0(type_const_void,        TYPE_QUALIFIER_NONE);
+    type_void_ptr_restrict       = make_pointer_type0(type_void,              TYPE_QUALIFIER_RESTRICT);
+    type_const_void_ptr_restrict = make_pointer_type0(type_const_void,        TYPE_QUALIFIER_RESTRICT);
+    type_char_ptr                = make_pointer_type0(type_char,              TYPE_QUALIFIER_NONE);
+    type_char_ptr_restrict       = make_pointer_type0(type_char,              TYPE_QUALIFIER_RESTRICT);
+    type_signed_char_ptr         = make_pointer_type0(type_signed_char,       TYPE_QUALIFIER_NONE);
+    type_short_ptr               = make_pointer_type0(type_short,             TYPE_QUALIFIER_NONE);
+    type_int_ptr                 = make_pointer_type0(type_int,               TYPE_QUALIFIER_NONE);
+    type_long_ptr                = make_pointer_type0(type_long,              TYPE_QUALIFIER_NONE);
+    type_unsigned_char_ptr       = make_pointer_type0(type_unsigned_char,     TYPE_QUALIFIER_NONE);
+    type_unsigned_short_ptr      = make_pointer_type0(type_unsigned_short,    TYPE_QUALIFIER_NONE);
+    type_unsigned_int_ptr        = make_pointer_type0(type_unsigned_int,      TYPE_QUALIFIER_NONE);
+    type_unsigned_long_ptr       = make_pointer_type0(type_unsigned_long,     TYPE_QUALIFIER_NONE);
+    type_unsigned_long_long_ptr  = make_pointer_type0(type_unsigned_long,     TYPE_QUALIFIER_NONE);
+    type_long_long_ptr           = make_pointer_type0(type_long_long,         TYPE_QUALIFIER_NONE);
+    type_long_double_ptr         = make_pointer_type0(type_long_double,       TYPE_QUALIFIER_NONE);
+    type_double_ptr              = make_pointer_type0(type_double,            TYPE_QUALIFIER_NONE);
+    type_float_ptr               = make_pointer_type0(type_float,             TYPE_QUALIFIER_NONE);
 
-	type_char_ptr_ptr            = make_pointer_type(type_char_ptr,          TYPE_QUALIFIER_NONE);
+    type_char_ptr_ptr            = make_pointer_type0(type_char_ptr,          TYPE_QUALIFIER_NONE);
 
-	type_builtin_template_ptr    = make_pointer_type(type_builtin_template,  TYPE_QUALIFIER_NONE);
+    type_builtin_template_ptr    = make_pointer_type0(type_builtin_template,  TYPE_QUALIFIER_NONE);
 
 #if 0
     // TODO RK
@@ -234,30 +239,30 @@ void init_predefined_types(void)
 
 	/* const character types */
 	type_const_char         = make_atomic_type(ATOMIC_TYPE_CHAR,        TYPE_QUALIFIER_CONST);
-	type_const_char_ptr     = make_pointer_type(type_const_char,        TYPE_QUALIFIER_NONE);
-	type_const_char_ptr_restrict = make_pointer_type(type_const_char,        TYPE_QUALIFIER_RESTRICT);
+    type_const_char_ptr     = make_pointer_type0(type_const_char,        TYPE_QUALIFIER_NONE);
+    type_const_char_ptr_restrict = make_pointer_type0(type_const_char,        TYPE_QUALIFIER_RESTRICT);
 
 	type_intmax_t  = type_long_long;
 	type_uintmax_t = type_unsigned_long_long;
 	type_wint_t    = type_unsigned_int;
-	type_intmax_t_ptr   = make_pointer_type(type_intmax_t,   TYPE_QUALIFIER_NONE);
-	type_uintmax_t_ptr  = make_pointer_type(type_uintmax_t,  TYPE_QUALIFIER_NONE);
-	type_ptrdiff_t_ptr  = make_pointer_type(type_ptrdiff_t,  TYPE_QUALIFIER_NONE);
-	type_uptrdiff_t_ptr = make_pointer_type(type_uptrdiff_t, TYPE_QUALIFIER_NONE);
-	type_ssize_t_ptr    = make_pointer_type(type_ssize_t,    TYPE_QUALIFIER_NONE);
-	type_size_t_ptr     = make_pointer_type(type_size_t,     TYPE_QUALIFIER_NONE);
+    type_intmax_t_ptr   = make_pointer_type0(type_intmax_t,   TYPE_QUALIFIER_NONE);
+    type_uintmax_t_ptr  = make_pointer_type0(type_uintmax_t,  TYPE_QUALIFIER_NONE);
+    type_ptrdiff_t_ptr  = make_pointer_type0(type_ptrdiff_t,  TYPE_QUALIFIER_NONE);
+    type_uptrdiff_t_ptr = make_pointer_type0(type_uptrdiff_t, TYPE_QUALIFIER_NONE);
+    type_ssize_t_ptr    = make_pointer_type0(type_ssize_t,    TYPE_QUALIFIER_NONE);
+    type_size_t_ptr     = make_pointer_type0(type_size_t,     TYPE_QUALIFIER_NONE);
 
 	atomic_type_kind_t const u2 = find_unsigned_int_atomic_type_kind_for_size(2);
 	type_char16_t           = make_atomic_type(u2, TYPE_QUALIFIER_NONE);
 	type_char16_t_const     = make_atomic_type(u2, TYPE_QUALIFIER_CONST);
-	type_char16_t_ptr       = make_pointer_type(type_char16_t,       TYPE_QUALIFIER_NONE);
-	type_char16_t_const_ptr = make_pointer_type(type_char16_t_const, TYPE_QUALIFIER_NONE);
+    type_char16_t_ptr       = make_pointer_type0(type_char16_t,       TYPE_QUALIFIER_NONE);
+    type_char16_t_const_ptr = make_pointer_type0(type_char16_t_const, TYPE_QUALIFIER_NONE);
 
 	atomic_type_kind_t const u4 = find_unsigned_int_atomic_type_kind_for_size(4);
 	type_char32_t           = make_atomic_type(u4, TYPE_QUALIFIER_NONE);
 	type_char32_t_const     = make_atomic_type(u4, TYPE_QUALIFIER_CONST);
-	type_char32_t_ptr       = make_pointer_type(type_char32_t,       TYPE_QUALIFIER_NONE);
-	type_char32_t_const_ptr = make_pointer_type(type_char32_t_const, TYPE_QUALIFIER_NONE);
+    type_char32_t_ptr       = make_pointer_type0(type_char32_t,       TYPE_QUALIFIER_NONE);
+    type_char32_t_const_ptr = make_pointer_type0(type_char32_t_const, TYPE_QUALIFIER_NONE);
 
 	if (dialect.ms)
 		init_ms_types();

@@ -11,7 +11,7 @@ main()
 	if(*p != 7)
 		return 1;
 	if(&x[1] - &x[0] != 1)
-		return 1;
+		return 2;
 	
 	return 0;
 }

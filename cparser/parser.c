@@ -3514,7 +3514,7 @@ static type_t *construct_declarator_type(construct_type_t *construct_list,
 				errorf(pos, "cannot declare a pointer to reference");
 
 			parsed_pointer_t *pointer = &iter->pointer;
-			type = make_pointer_type(type, pointer->type_qualifiers);
+            type = make_pointer_type(type, pointer->type_qualifiers,0);
 			continue;
 		}
 
@@ -5966,14 +5966,12 @@ type_t *automatic_type_conversion(type_t *orig_type)
 		type_t       *element_type = array_type->element_type;
 		unsigned      qualifiers   = array_type->base.qualifiers;
 
-        type_t * pointer = make_pointer_type(element_type, qualifiers);
-        pointer->pointer.replacemen_of = type;
+        type_t * pointer = make_pointer_type(element_type, qualifiers, type);
         return pointer;
 	}
 
     if (is_type_function(type)) {
-        type_t * pointer = make_pointer_type(orig_type, TYPE_QUALIFIER_NONE);
-        pointer->pointer.replacemen_of = type;
+        type_t * pointer = make_pointer_type(orig_type, TYPE_QUALIFIER_NONE, type);
         return pointer;
     }
 
@@ -7130,7 +7128,7 @@ static type_t *check_generic_parameter(type_t **const replacement_ref,
 			old_points_to, argument_points_to);
 		if (old_points_to != new_points_to)
 			return make_pointer_type(new_points_to,
-			                         parameter_type->base.qualifiers);
+                                     parameter_type->base.qualifiers,0);
 	}
 
 	return parameter_type;
@@ -7524,7 +7522,7 @@ static expression_t *parse_conditional_expression(expression_t *expression)
 
 			type_t *const type =
 				get_qualified_type(to, to1->base.qualifiers | to2->base.qualifiers);
-			result_type = make_pointer_type(type, TYPE_QUALIFIER_NONE);
+            result_type = make_pointer_type(type, TYPE_QUALIFIER_NONE,0);
 		} else if (is_type_integer(other_type)) {
 			warningf(WARN_OTHER, pos,
 			         "pointer/integer type mismatch in conditional expression ('%T' and '%T')",
@@ -7859,7 +7857,7 @@ static void semantic_take_addr(unary_expression_t *expression)
 
 	set_address_taken(value, false);
 
-	expression->base.type = make_pointer_type(orig_type, TYPE_QUALIFIER_NONE);
+    expression->base.type = make_pointer_type(orig_type, TYPE_QUALIFIER_NONE,0);
 }
 
 #define CREATE_UNARY_EXPRESSION_PARSER(token_kind, unexpression_type, sfunc) \
@@ -11090,7 +11088,7 @@ static void prepare_main_collect2(entity_t *const entity)
 	expression_t *ref     = allocate_expression_zero(EXPR_REFERENCE);
 	type_t       *ftype   = subsubmain_ent->declaration.type;
 	ref->base.pos         = builtin_position;
-	ref->base.type        = make_pointer_type(ftype, TYPE_QUALIFIER_NONE);
+    ref->base.type        = make_pointer_type(ftype, TYPE_QUALIFIER_NONE,0);
 	ref->reference.entity = subsubmain_ent;
 
 	expression_t *call  = allocate_expression_zero(EXPR_CALL);

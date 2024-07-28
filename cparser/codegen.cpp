@@ -334,7 +334,38 @@ static void store(type_t *ty, const Smop& lhs, const Smop& rhs) {
     e->Move(e->MakeMemory(type,lhs),rhs);
 }
 
-static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs)
+static int scale_for_pointer_arith(expression_kind_t op, Smop& lhs, type_t* lhsT, Smop& rhs, type_t* rhsT )
+{
+    lhsT = skip_typeref(lhsT);
+    rhsT = skip_typeref(rhsT);
+    switch(op)
+    {
+    case EXPR_BINARY_ADD:
+    case EXPR_BINARY_ADD_ASSIGN:
+    case EXPR_BINARY_SUB:
+    case EXPR_BINARY_SUB_ASSIGN:
+        if( lhsT->kind != TYPE_POINTER && rhsT->kind != TYPE_POINTER )
+            return 0;
+        break;
+    default:
+        return 0;
+    }
+    int res = 0;
+    if(lhsT->kind != TYPE_POINTER) {
+        res = get_ctype_size(rhsT->pointer.points_to);
+        lhs = e->Multiply(lhs, Code::Imm(types[ptr],res));
+    }
+    if(rhsT->kind != TYPE_POINTER) {
+        res = get_ctype_size(lhsT->pointer.points_to);
+        rhs = e->Multiply(rhs, Code::Imm(types[ptr],res));
+    }
+    if( res == 0 ) // apparently both sides are pointers
+        res = get_ctype_size(rhsT->pointer.points_to);
+    return res;
+}
+
+
+static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs, int baseTypeSize)
 {
     switch (op) {
     case EXPR_BINARY_ADD:
@@ -346,8 +377,12 @@ static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs)
         }else
             return e->Add(lhs,rhs);
     case EXPR_BINARY_SUB:
-    case EXPR_BINARY_SUB_ASSIGN:
-        return e->Subtract(lhs,rhs);
+    case EXPR_BINARY_SUB_ASSIGN: {
+        Smop res = e->Subtract(lhs,rhs);
+        if( baseTypeSize )
+            res = e->Divide(res, Code::Imm(types[ptr],baseTypeSize));
+        return res;
+    }
     case EXPR_BINARY_MUL:
     case EXPR_BINARY_MUL_ASSIGN:
         return e->Multiply(lhs,rhs);
@@ -471,21 +506,25 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
         return 0;
 }
 
-Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc )
+Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc, int returnOldVal )
 {
     Smop rhs = e->Move(lhs); // TODO do we need this move, or is a plain '=' enough?
     load(expr->base.type,rhs);
     fetch_bitfield(expr, rhs);
+    Smop oldVal = returnOldVal ? e->Move(rhs) : rhs;
     int off = inc ? 1 : -1;
     if( expr->base.type->kind == TYPE_POINTER )
         off *= get_ctype_size(expr->base.type->pointer.points_to);
     rhs = e->Add(rhs, Code::Imm(rhs.type,off));
     if( store_bitfield(expr, lhs, rhs) ) {
-        fetch_bitfield(expr, rhs);
-        return rhs;
+        if( !returnOldVal )
+            fetch_bitfield(expr, oldVal);
+        return oldVal;
     } else {
         store(expr->base.type, lhs, rhs);
-        return rhs;
+        if( !returnOldVal )
+            oldVal = rhs;
+        return oldVal;
     }
 }
 
@@ -759,7 +798,9 @@ static Smop expression(expression_t const *const expr)
             Smop lhs2 = e->Move(lhs); // TODO do we need this move, or is a plain '=' enough?
             load(expr->binary.left->base.type,lhs2);
             fetch_bitfield(expr->binary.left, lhs2);
-            rhs = binary_ops(expr->kind,lhs2,rhs);
+            const int baseSize = scale_for_pointer_arith(expr->kind,lhs2,expr->binary.left->base.type,
+                                    rhs, expr->binary.right->base.type);
+            rhs = binary_ops(expr->kind,lhs2,rhs, baseSize);
         }
 
         if( store_bitfield(expr->binary.left, lhs, rhs) ) {
@@ -775,7 +816,7 @@ static Smop expression(expression_t const *const expr)
     case EXPR_UNARY_PREFIX_DECREMENT:
     case EXPR_UNARY_PREFIX_INCREMENT: {
         Smop lhs = lvalue(expr->unary.value);
-        return prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_PREFIX_INCREMENT);
+        return prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_PREFIX_INCREMENT, 0);
     }
     case EXPR_UNARY_POSTFIX_DECREMENT:
     case EXPR_UNARY_POSTFIX_INCREMENT: {
@@ -786,9 +827,8 @@ static Smop expression(expression_t const *const expr)
                             expr->unary.value->select.compound_entry->compound_member.bitfield) )
         {
             // for pointers and normal integers, we just keep the original value
-            Smop ret = lhs;
-            load(expr->unary.value->base.type,ret); // keep the old value for returning
-            prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_PREFIX_INCREMENT);
+            // keep the old value for returning
+            Smop ret = prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_POSTFIX_INCREMENT, 1);
             return ret;
         }else
         {
@@ -796,7 +836,7 @@ static Smop expression(expression_t const *const expr)
             // operation on this value (because it over or underflows differently than a normal int).
             assert(expr->unary.value->kind == EXPR_SELECT &&
                    expr->unary.value->select.compound_entry->compound_member.bitfield);
-            lhs = prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_PREFIX_INCREMENT);
+            lhs = prefix_inc_dec(expr->unary.value,lhs,expr->kind == EXPR_UNARY_PREFIX_INCREMENT, 0);
             fetch_bitfield(expr->unary.value, lhs);
             const int off = expr->kind == EXPR_UNARY_PREFIX_INCREMENT ? -1 : 1;
             lhs = e->Add(lhs, Code::Imm(lhs.type,off));
@@ -904,7 +944,9 @@ static Smop expression(expression_t const *const expr)
     rhs = e->Convert(lhsT,rhs);
     lhs = e->Convert(lhsT,lhs);
 
-    return binary_ops(expr->kind,lhs,rhs);
+    const int baseSize = scale_for_pointer_arith(expr->kind,lhs,expr->binary.left->base.type,
+                            rhs, expr->binary.right->base.type);
+    return binary_ops(expr->kind,lhs,rhs,baseSize);
 }
 
 static void statement(statement_t *const stmt);
@@ -1350,6 +1392,56 @@ static bool is_decl_necessary(entity_t const *const entity)
          (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
 }
 
+static void initialize_variable(entity_t * entity)
+{
+    assert(entity->variable.initializer);
+    if( entity->variable.is_local )
+    {
+        // add code right here
+        assert( return_label != 0 ); // this happens in a function
+
+    }else
+    {
+        // initialize global or (local) static variable
+        assert( return_label == 0 ); // this cannot happen in a function
+        // we already called e->Begin(Code::Section::Data
+        // just reserve space here and initialize it using an .initdata section (TODO: consider constant
+        e->Reserve(get_ctype_size(entity->variable.base.type));
+        e->Require(rename(entity) + "##init");
+
+        // .initdata name
+        e->Begin(Code::Section::InitData, rename(entity) + "##init",
+                 0,
+                 true, // required
+                 false, // duplicable
+                 false // replaceable
+                 );
+
+        switch(entity->variable.initializer->kind)
+        {
+        case INITIALIZER_VALUE: {
+            type_t* type = skip_typeref(entity->variable.base.type);
+            if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER )
+                e->Move(Code::Mem(getCodeType(type),rename(entity)),
+                        expression(entity->variable.initializer->value.value));
+            else
+                panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
+            break;
+        }
+        case INITIALIZER_LIST:
+            panic("INITIALIZER_LIST not yet implemented");
+            break;
+        case INITIALIZER_STRING:
+            panic("INITIALIZER_STRING not yet implemented");
+            break;
+        case INITIALIZER_DESIGNATOR:
+            panic("INITIALIZER_DESIGNATOR not yet implemented");
+            break;
+        }
+    }
+    entity->variable.initializer->kind;
+}
+
 static void scope_to_ir(scope_t *scope)
 {
     for (entity_t *entity = scope->first_entity; entity != NULL; entity = entity->base.next) {
@@ -1381,12 +1473,10 @@ static void scope_to_ir(scope_t *scope)
                      );
             if( entity->variable.initializer )
             {
-                // TODO
-                e->Reserve(get_ctype_size(entity->variable.base.type));
-
+                initialize_variable(entity);
             }else
             {
-                if( entity->variable.base.storage_class == STORAGE_CLASS_STATIC )
+                if( entity->variable.base.storage_class == STORAGE_CLASS_STATIC || !entity->variable.is_local )
                 {
                     for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
                         e->Define(Code::Imm(types[s1],0));

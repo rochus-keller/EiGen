@@ -200,9 +200,9 @@ void init_types(unsigned int_size, unsigned long_size, unsigned pointer_size,
 		= dialect.cpp ? ATOMIC_TYPE_WCHAR_T : wchar_atomic_kind;
 	type_wchar_t       = make_atomic_type(akind, TYPE_QUALIFIER_NONE);
 	type_const_wchar_t = make_atomic_type(akind, TYPE_QUALIFIER_CONST);
-	type_wchar_t_ptr   = make_pointer_type(type_wchar_t, TYPE_QUALIFIER_NONE);
+    type_wchar_t_ptr   = make_pointer_type(type_wchar_t, TYPE_QUALIFIER_NONE,0);
 	type_const_wchar_t_ptr
-		= make_pointer_type(type_const_wchar_t, TYPE_QUALIFIER_NONE);
+        = make_pointer_type(type_const_wchar_t, TYPE_QUALIFIER_NONE,0);
 	props[ATOMIC_TYPE_WCHAR_T]     = props[wchar_atomic_kind];
 }
 
@@ -1479,11 +1479,12 @@ type_t *make_imaginary_type(atomic_type_kind_t akind,
  * @param points_to   The points-to type for the new type.
  * @param qualifiers  Type qualifiers for the new type.
  */
-type_t *make_pointer_type(type_t *points_to, type_qualifiers_t qualifiers)
+type_t *make_pointer_type(type_t *points_to, type_qualifiers_t qualifiers, type_t* replacement_of)
 {
 	type_t *const type = allocate_type_zero(TYPE_POINTER);
 	type->base.qualifiers   = qualifiers;
 	type->pointer.points_to = points_to;
+    type->pointer.replacemen_of = replacement_of;
 
 	return identify_new_type(type);
 }

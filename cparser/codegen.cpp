@@ -33,6 +33,7 @@ extern "C" {
 #include "symbol_t.h"
 #include "walk.h"
 #include "libfirm/tv.h"
+#include "constfold.h"
 }
 
 class MyEmitter : public Code::Emitter
@@ -61,6 +62,7 @@ static Label* return_label = 0;
 static Code::Type return_type;
 //static std::set<Type*> to_declare;
 static std::unordered_map<std::string,string_t*> string_decls;
+static std::deque<expression_t*> compound_literal_decls;
 static translation_unit_t* current_translation_unit = 0;
 static const char* current_source_file = "";
 
@@ -195,6 +197,16 @@ void name_hash(const char* path, char* buf, int buflen )
     }
 }
 
+static std::string file_hash()
+{
+    const int len = 10;
+    char buf[len];
+    name_hash(current_source_file,buf,len);
+    std::string res = buf;
+    res += '#';
+    return res;
+}
+
 static std::string rename(entity_t* var)
 {
     const bool is_static = var->variable.base.storage_class == STORAGE_CLASS_STATIC;
@@ -207,19 +219,16 @@ static std::string rename(entity_t* var)
     if( is_static )
     {
         // prefix with file path hash
-        const int len = 10;
-        char buf[len];
-        name_hash(current_source_file,buf,len);
-        name = buf + '#' + name;
+        name = file_hash() + name;
     }
     return name;
 }
 
-static Smop expression(expression_t const *const expr);
+static Smop expression(expression_t * expr);
 
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
-static Smop lvalue(expression_t const *const expr) {
+static Smop lvalue(expression_t * expr) {
     switch (expr->kind)
     {
     case EXPR_REFERENCE: {
@@ -242,7 +251,7 @@ static Smop lvalue(expression_t const *const expr) {
     case EXPR_ARRAY_ACCESS:  {
         Smop arr = expression(expr->array_access.array_ref); // TODO
         Smop idx = expression(expr->array_access.index);
-        type_t    *const elem_type = skip_typeref(expr->array_access.array_ref->base.type);
+        type_t    *const elem_type = skip_typeref(expr->base.type);
         idx = e->Multiply(idx, Code::Imm(idx.type,get_ctype_size(elem_type)));
         return e->Add(arr,e->Convert(types[ptr],idx));
     }
@@ -273,6 +282,15 @@ static Smop lvalue(expression_t const *const expr) {
             return expression(expr);
         }
         break;
+    case EXPR_COMPOUND_LITERAL:  {
+        assert( expr->compound_literal.id == 0 );
+        compound_literal_decls.push_back(expr);
+        expr->compound_literal.id = compound_literal_decls.size();
+        char buf[10];
+        sprintf(buf,"%d",expr->compound_literal.id);
+        return Code::Adr(types[ptr],file_hash() + buf );
+    }
+
     }
     panic("not an lvalue");
     return Smop();
@@ -637,7 +655,7 @@ static int getParamCount(function_type_t* fn)
 
 static void statement(statement_t *const stmt);
 
-static Smop expression(expression_t const *const expr)
+static Smop expression(expression_t * expr)
 {
 #if 0
 #ifndef NDEBUG
@@ -666,6 +684,11 @@ static Smop expression(expression_t const *const expr)
         name[0] = '.';
         string_decls[name] = expr->string_literal.value;
         return Code::Adr(types[ptr],name);
+    }
+    case EXPR_ENUM_CONSTANT: {
+        ir_tarval* v = expr->reference.entity->enum_value.tv;
+        assert(v);
+        return Code::Imm(getCodeType(expr->base.type),get_tarval_long(v));
     }
     case EXPR_BINARY_LOGICAL_AND: {
         Smop lhs = expression(expr->binary.left);
@@ -879,11 +902,6 @@ static Smop expression(expression_t const *const expr)
         return res;
     }
 
-#if 0
-
-    case :                       return call_expression_to_ir(         &expr->call);
-    case EXPR_COMPOUND_LITERAL:           return compound_literal_to_ir(        &expr->compound_literal);
-#endif
     case EXPR_LABEL_ADDRESS:
     case EXPR_FUNCNAME: // expr->funcname, __func__
     case EXPR_VA_ARG:   // expr->va_arge
@@ -896,7 +914,6 @@ static Smop expression(expression_t const *const expr)
     case EXPR_BUILTIN_CONSTANT_P:
     case EXPR_BUILTIN_TYPES_COMPATIBLE_P:
     case EXPR_CLASSIFY_TYPE:
-    case EXPR_ENUM_CONSTANT:
     case EXPR_OFFSETOF:
     case EXPR_ERROR:
 
@@ -1135,7 +1152,12 @@ static void statement(statement_t *const stmt)
         }
         return;
     }
-    case STATEMENT_ASM: // stmt->asms
+    case STATEMENT_ASM: {
+        try {
+            e->AssembleInlineCode(current_source_file,stmt->base.pos.lineno,stmt->asms.asm_text->begin);
+        }catch(...) {}
+        return;
+    }
     case STATEMENT_COMPUTED_GOTO: // stmt->computed_goto
     case STATEMENT_ERROR:
     default:
@@ -1392,6 +1414,124 @@ static bool is_decl_necessary(entity_t const *const entity)
          (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
 }
 
+static entity_t* get_compound_member_n(compound_t* compound, int n)
+{
+    int i = 0;
+    for (entity_t *mem = compound->members.first_entity; mem != NULL; mem = mem->base.next, i++)
+    {
+        if( i == n )
+            return mem;
+    }
+    return 0;
+}
+
+static int get_idx_of_member(compound_t* compound, entity_t* m)
+{
+    int i = 0;
+    for (entity_t *mem = compound->members.first_entity; mem != NULL; mem = mem->base.next, i++)
+    {
+        if( m == mem )
+            return i;
+    }
+    return -1;
+}
+
+static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer)
+{
+    switch(initializer->kind)
+    {
+    case INITIALIZER_VALUE: {
+        if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER )
+            e->Move(Code::Mem(getCodeType(type),name,offset), expression(initializer->value.value));
+        else if( type->kind == TYPE_COMPOUND_UNION ) {
+            entity_t* mem = get_compound_member_n(type->compound.compound,0);
+            assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+            e->Move(Code::Mem(getCodeType(mem->declaration.type),name,offset), expression(initializer->value.value));
+        }
+
+        //else if( type->kind == TYPE_COMPOUND_STRUCT )
+        //    run_initializer(type,name,offset,initializer->value);
+        else
+            panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
+        break;
+    }
+    case INITIALIZER_LIST: {
+        switch(type->kind)
+        {
+        case TYPE_ARRAY: {
+            type_t* et = skip_typeref(type->array.element_type);
+            const int elsz = get_ctype_size(et);
+            int idx = 0;
+            for( int i = 0; i < initializer->list.len; i++ )
+            {
+                initializer_t* cur = initializer->list.initializers[i];
+                if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
+                {
+                    run_initializer(et, name, offset + idx * elsz, cur);
+                }else if( cur->kind == INITIALIZER_DESIGNATOR )
+                {
+                    assert( cur->designator.designator->array_index );
+                    ir_tarval * v = fold_expression(cur->designator.designator->array_index);
+                    assert(v);
+                    idx = get_tarval_long(v);
+                    i++;
+                    assert(i < initializer->list.len);
+                    cur = initializer->list.initializers[i];
+                    run_initializer(et, name, offset + idx * elsz, cur);
+                }else
+                    panic("INITIALIZER_LIST not yet implemented for array element initializer %d", cur->kind);
+                idx++;
+            }
+            break;
+        }
+        case TYPE_COMPOUND_STRUCT:
+        case TYPE_COMPOUND_UNION: {
+            int idx = 0;
+            for( int i = 0; i < initializer->list.len; i++ )
+            {
+                initializer_t* cur = initializer->list.initializers[i];
+                if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
+                {
+                    entity_t* mem = get_compound_member_n(type->compound.compound,idx);
+                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+                    run_initializer(skip_typeref(mem->declaration.type), name,
+                                    offset + mem->compound_member.offset, cur);
+                }else if( cur->kind == INITIALIZER_DESIGNATOR )
+                {
+                    entity_t* mem = find_compound_entry(type->compound.compound,cur->designator.designator->symbol);
+                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+                    idx = get_idx_of_member(type->compound.compound,mem);
+                    i++;
+                    assert(i < initializer->list.len);
+                    cur = initializer->list.initializers[i];
+                    run_initializer(skip_typeref(mem->declaration.type), name,
+                                    offset + mem->compound_member.offset, cur);
+                }else
+                    panic("INITIALIZER_LIST not yet implemented for compound member %d", cur->kind);
+                idx++;
+            }
+            break;
+        }
+        default:
+            panic("INITIALIZER_LIST not yet implemented for lhs type %d", type->kind);
+        }
+
+        break;
+    }
+    case INITIALIZER_STRING: {
+        assert( type->kind == TYPE_ARRAY && type->array.size );
+        assert( initializer->value.value->kind == EXPR_STRING_LITERAL );
+        Smop str = expression(initializer->value.value);
+        e->Copy(Code::Adr(types[ptr],name,offset), str, Code::Imm(types[ptr],type->array.size));
+        // not necessary e->Require(str.address);
+        break;
+    }
+    case INITIALIZER_DESIGNATOR:
+        panic("INITIALIZER_DESIGNATOR not yet implemented");
+        break;
+    }
+}
+
 static void initialize_variable(entity_t * entity)
 {
     assert(entity->variable.initializer);
@@ -1406,40 +1546,39 @@ static void initialize_variable(entity_t * entity)
         assert( return_label == 0 ); // this cannot happen in a function
         // we already called e->Begin(Code::Section::Data
         // just reserve space here and initialize it using an .initdata section (TODO: consider constant
-        e->Reserve(get_ctype_size(entity->variable.base.type));
-        e->Require(rename(entity) + "##init");
+        const std::string name = rename(entity);
+        // e->Reserve(get_ctype_size(entity->variable.base.type));
+
+        type_t* type = skip_typeref(entity->declaration.type);
+#if 1
+        // directly initialize section with string data, without extra initializer
+        if( entity->variable.initializer->kind == INITIALIZER_STRING )
+        {
+            assert( type->kind == TYPE_ARRAY && type->array.size );
+            assert( entity->variable.initializer->value.value->kind == EXPR_STRING_LITERAL );
+            string_t* str = entity->variable.initializer->value.value->string_literal.value;
+            for( int i = 0; i < type->array.size; i++ ) {
+                if( i <= str->size )
+                    e->Define(Code::Imm(types[s1],str->begin[i]));
+                else
+                    e->Define(Code::Imm(types[s1],0));
+            }
+            return;
+        }else
+#endif
+            for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
+                e->Define(Code::Imm(types[s1],0));
+        e->Require(name + "##init");
 
         // .initdata name
-        e->Begin(Code::Section::InitData, rename(entity) + "##init",
+        e->Begin(Code::Section::InitData, name + "##init",
                  0,
                  true, // required
                  false, // duplicable
                  false // replaceable
                  );
-
-        switch(entity->variable.initializer->kind)
-        {
-        case INITIALIZER_VALUE: {
-            type_t* type = skip_typeref(entity->variable.base.type);
-            if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER )
-                e->Move(Code::Mem(getCodeType(type),rename(entity)),
-                        expression(entity->variable.initializer->value.value));
-            else
-                panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
-            break;
-        }
-        case INITIALIZER_LIST:
-            panic("INITIALIZER_LIST not yet implemented");
-            break;
-        case INITIALIZER_STRING:
-            panic("INITIALIZER_STRING not yet implemented");
-            break;
-        case INITIALIZER_DESIGNATOR:
-            panic("INITIALIZER_DESIGNATOR not yet implemented");
-            break;
-        }
+        run_initializer(type, name, 0, entity->variable.initializer);
     }
-    entity->variable.initializer->kind;
 }
 
 static void scope_to_ir(scope_t *scope)
@@ -1548,6 +1687,7 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
     current_source_file = source_file;
     //to_declare.clear();
     string_decls.clear();
+    compound_literal_decls.clear();
 
     init_types();
 
@@ -1570,6 +1710,32 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
         e->Comment(str.c_str());
         for( int j = 0; j <= (*i).second->size; j++ )
             e->Define(Code::Imm(types[s1],(*i).second->begin[j]));
+    }
+
+    for( auto i = compound_literal_decls.begin(); i != compound_literal_decls.end(); ++i )
+    {
+        expression_t* expr = (*i);
+        char buf[10];
+        sprintf(buf,"%d",expr->compound_literal.id);
+        const std::string name = file_hash() + buf;
+        e->Begin(Code::Section::Data, name,
+                 get_ctype_alignment(expr->compound_literal.type),
+                 false, // required
+                 false, // duplicable
+                 false // replaceable
+                 );
+        assert(expr->compound_literal.initializer);
+        e->Reserve(get_ctype_size(expr->compound_literal.type));
+        e->Require(name + "##init");
+
+        // .initdata name
+        e->Begin(Code::Section::InitData, name + "##init",
+                 0,
+                 true, // required
+                 false, // duplicable
+                 false // replaceable
+                 );
+        run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
     }
 
     e = 0;

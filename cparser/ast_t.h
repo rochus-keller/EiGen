@@ -263,6 +263,7 @@ struct compound_literal_expression_t {
 	type_t            *type;
 	initializer_t     *initializer;
 	bool               global_scope;
+    unsigned short     id;
 };
 
 struct builtin_constant_expression_t {

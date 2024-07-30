@@ -518,7 +518,7 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
         rhs = e->And(e->Convert(mty,rhs), r9);
         rhs = e->Or(rhs, rdi);
 
-        store(expr->base.type, lhs, rhs);
+        store(mem->compound_member.base.type, lhs, rhs);
         return 1;
     }else
         return 0;
@@ -778,7 +778,7 @@ static Smop expression(expression_t * expr)
     }
     case EXPR_SELECT: {
         Smop tmp = lvalue(expr);
-        load(expr->base.type, tmp);
+        load(expr->select.compound_entry->declaration.type, tmp);
 
         fetch_bitfield(expr, tmp);
 
@@ -796,7 +796,7 @@ static Smop expression(expression_t * expr)
     case EXPR_UNARY_CAST: {
         Smop tmp = expression(expr->unary.value);
         type_t *const to_type = skip_typeref(expr->base.type);
-        type_t *const from_type  = skip_typeref(expr->unary.base.type);
+        type_t *const from_type  = skip_typeref(expr->unary.value->base.type);
         cast(from_type, to_type, tmp);
         return tmp;
     }
@@ -816,6 +816,7 @@ static Smop expression(expression_t * expr)
         Smop rhs = expression(expr->binary.right);
         e->RestoreRegister(lhs);
 
+        const Code::Type lhsT = getCodeType(expr->binary.left->base.type);
         if( expr->kind != EXPR_BINARY_ASSIGN )
         {
             Smop lhs2 = e->Move(lhs); // TODO do we need this move, or is a plain '=' enough?
@@ -823,6 +824,8 @@ static Smop expression(expression_t * expr)
             fetch_bitfield(expr->binary.left, lhs2);
             const int baseSize = scale_for_pointer_arith(expr->kind,lhs2,expr->binary.left->base.type,
                                     rhs, expr->binary.right->base.type);
+            rhs = e->Convert(lhsT,rhs);
+            lhs2 = e->Convert(lhsT,lhs2);
             rhs = binary_ops(expr->kind,lhs2,rhs, baseSize);
         }
 
@@ -832,7 +835,8 @@ static Smop expression(expression_t * expr)
             // NOTE: not orig rhs shall be returned according to the standard, but what was actually stored in lhs!
             // gcc effectively seems to consider sign and mem->bit_width; see bitfield-immediate-assign.c
         } else {
-            store(expr->base.type, lhs, rhs);
+            rhs = e->Convert(lhsT,rhs);
+            store(expr->binary.left->base.type, lhs, rhs);
             return rhs;
         }     
     }
@@ -881,7 +885,8 @@ static Smop expression(expression_t * expr)
         type_t* ret = 0;
         if( function_type->return_type ) {
             ret = skip_typeref(function_type->return_type);
-            assert( ret->kind != TYPE_VOID );
+            if( ret->kind == TYPE_VOID )
+                ret = 0;
         }
 
         const int aligned_size = push_args(expr,getParamCount(function_type));
@@ -977,6 +982,8 @@ static void compound_statement_to_ir(compound_statement_t *compound)
     }
 }
 
+static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer);
+
 static void statement(statement_t *const stmt)
 {
 #if 0
@@ -992,6 +999,16 @@ static void statement(statement_t *const stmt)
     case STATEMENT_EMPTY:
         return; /* nothing */
     case STATEMENT_DECLARATION:
+        for( entity_t* decl = stmt->declaration.declarations_begin; decl; decl = decl->base.next )
+        {
+            if( decl->kind == ENTITY_VARIABLE && decl->variable.is_local && decl->variable.initializer )
+            {
+                run_initializer(skip_typeref(decl->declaration.type), std::string(),
+                                decl->variable.offset, decl->variable.initializer);
+            }
+            if( decl == stmt->declaration.declarations_end )
+                break;
+        }
         return;
     case STATEMENT_EXPRESSION:
         expression(stmt->expression.expression);
@@ -1436,17 +1453,26 @@ static int get_idx_of_member(compound_t* compound, entity_t* m)
     return -1;
 }
 
+static Smop to(Code::Type type, const std::string& name, int offset)
+{
+    if( !name.empty() )
+        return Code::Mem(type,name,offset);
+    else
+        return e->MakeMemory(type, Code::Reg(types[ptr],Code::RFP, offset));
+}
+
 static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer)
 {
     switch(initializer->kind)
     {
     case INITIALIZER_VALUE: {
-        if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER )
-            e->Move(Code::Mem(getCodeType(type),name,offset), expression(initializer->value.value));
-        else if( type->kind == TYPE_COMPOUND_UNION ) {
+        if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER ) {
+            //Smop to = name.empty() ? Code::Mem()
+            e->Move(to(getCodeType(type),name,offset), expression(initializer->value.value));
+        }else if( type->kind == TYPE_COMPOUND_UNION ) {
             entity_t* mem = get_compound_member_n(type->compound.compound,0);
             assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
-            e->Move(Code::Mem(getCodeType(mem->declaration.type),name,offset), expression(initializer->value.value));
+            e->Move(to(getCodeType(mem->declaration.type),name,offset), expression(initializer->value.value));
         }
 
         //else if( type->kind == TYPE_COMPOUND_STRUCT )
@@ -1522,7 +1548,13 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
         assert( type->kind == TYPE_ARRAY && type->array.size );
         assert( initializer->value.value->kind == EXPR_STRING_LITERAL );
         Smop str = expression(initializer->value.value);
-        e->Copy(Code::Adr(types[ptr],name,offset), str, Code::Imm(types[ptr],type->array.size));
+        Smop to;
+        if( !name.empty() )
+            to = Code::Adr(types[ptr],name,offset);
+        else
+            to = Code::Reg(types[ptr],Code::RFP, offset);
+        e->Copy(to, str, Code::Imm(types[ptr],type->array.size));
+
         // not necessary e->Require(str.address);
         break;
     }

@@ -140,9 +140,10 @@ ir_tarval *new_tarval_from_str(const char *str, size_t len, ir_mode *mode)
 {
     if( mode_is_float(mode) )
         return new_float(atof(str), mode);
-    if( mode_is_signed(mode) )
-        return new_signed(atoll(str), mode);
-    return new_unsigned(atoll(str), mode);
+    //if( mode_is_signed(mode) )
+        return new_signed(strtol(str,0,0), mode);
+    //return
+    //    new_unsigned(strtol(str,0,0), mode);
 }
 
 ir_tarval *new_tarval_from_long(long l, ir_mode *mode)
@@ -360,6 +361,8 @@ ir_tarval *tarval_div(const ir_tarval *a, const ir_tarval *b)
     ir_mode* t = ir_common_mode(a->mode,b->mode);
     if( t == 0 )
         return tarval_bad;
+    if( b->u == 0 )
+        return tarval_bad;
     if( mode_is_float(t) )
         return new_float(a->d / b->d,t);
     if( mode_is_signed(t) )
@@ -372,6 +375,8 @@ ir_tarval *tarval_mod(const ir_tarval *a, const ir_tarval *b)
 {
     ir_mode* t = ir_common_mode(a->mode,b->mode);
     if( t == 0 )
+        return tarval_bad;
+    if( b->u == 0 )
         return tarval_bad;
     if( mode_is_float(t) )
         return new_float(fmod(a->d, b->d),t);

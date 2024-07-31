@@ -13,7 +13,7 @@ do
 		echo 0
 		succs+=1
 	else
-		echo $?
+		echo $? "#error"
 	fi 
 done
 

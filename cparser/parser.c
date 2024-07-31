@@ -3604,7 +3604,7 @@ static type_t *semantic_parameter(const position_t *pos, type_t *type,
 	 * §6.7.5.3:8  A declaration of a parameter as ``function returning
 	 *             type'' shall be adjusted to ``pointer to function
 	 *             returning type'', as in 6.3.2.1. */
-	type = automatic_type_conversion(type);
+    type = automatic_type_conversion(type, true);
 
 	if (specifiers->is_inline && is_type_valid(type))
 		errorf(pos, "%N declared 'inline'", param);
@@ -5401,7 +5401,7 @@ static expression_t *create_select(const position_t *pos, expression_t *addr,
 
 	/* we always do the auto-type conversions; the & and sizeof parser contains
 	 * code to revert this! */
-	selecte->base.type = automatic_type_conversion(res_type);
+    selecte->base.type = automatic_type_conversion(res_type, false);
 	return selecte;
 }
 
@@ -5958,7 +5958,7 @@ static entity_t *create_implicit_function(symbol_t *symbol,
 	return entity;
 }
 
-type_t *automatic_type_conversion(type_t *orig_type)
+type_t *automatic_type_conversion(type_t *orig_type, bool type_of_param)
 {
 	type_t *type = skip_typeref(orig_type);
 	if (is_type_array(type)) {
@@ -5966,7 +5966,7 @@ type_t *automatic_type_conversion(type_t *orig_type)
 		type_t       *element_type = array_type->element_type;
 		unsigned      qualifiers   = array_type->base.qualifiers;
 
-        type_t * pointer = make_pointer_type(element_type, qualifiers, type);
+        type_t * pointer = make_pointer_type(element_type, qualifiers, type_of_param ? 0 : type);
         return pointer;
 	}
 
@@ -6077,7 +6077,7 @@ static expression_t *parse_reference(void)
 	expression->base.pos         = pos;
 	/* We always do the auto-type conversions; the & and sizeof parser contains
 	 * code to revert this! */
-	expression->base.type        = automatic_type_conversion(orig_type);
+    expression->base.type        = automatic_type_conversion(orig_type, false);
 	expression->reference.entity = entity;
 
 	if (entity->base.parent_scope != file_scope
@@ -6190,7 +6190,7 @@ static expression_t *parse_compound_literal(position_t const *const pos,
 	initializer_t *initializer = parse_initializer(&env);
 	type = env.type;
 
-	expression->base.type                     = automatic_type_conversion(type);
+    expression->base.type                     = automatic_type_conversion(type, false);
 	expression->compound_literal.initializer  = initializer;
 	expression->compound_literal.type         = type;
 	expression->compound_literal.global_scope = global_scope;
@@ -6808,7 +6808,7 @@ static expression_t *parse_array_expression(expression_t *left)
 		idx_type = type_left;
 		res_type = type_inside->pointer.points_to;
 check_idx:
-		res_type = automatic_type_conversion(res_type);
+        res_type = automatic_type_conversion(res_type, false);
 		if (!is_type_integer(idx_type)) {
 			if (is_type_valid(idx_type))
 				errorf(&idx->base.pos,
@@ -7807,7 +7807,7 @@ static void semantic_dereference(unary_expression_t *expression)
 	}
 
 	type_t *result_type   = type->pointer.points_to;
-	result_type           = automatic_type_conversion(result_type);
+    result_type           = automatic_type_conversion(result_type, false);
 	expression->base.type = result_type;
 }
 

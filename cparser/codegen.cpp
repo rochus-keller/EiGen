@@ -266,7 +266,8 @@ static Smop lvalue(expression_t * expr) {
         return lvalue(expr->binary.right);
     }
     case EXPR_UNARY_DEREFERENCE: {
-        return expression(expr->unary.value);
+        Smop tmp = expression(expr->unary.value);
+        return tmp;
     }
 #if 0
         // TODO
@@ -312,9 +313,11 @@ static void load(type_t * ty, Smop& tmp) {
         return;
     }
 
+#if 1
     if( ty->kind == TYPE_POINTER && ty->pointer.replacemen_of != 0 &&
             ( ty->pointer.replacemen_of->kind == TYPE_ARRAY || ty->pointer.replacemen_of->kind == TYPE_FUNCTION) )
         return; // not really a pointer, but actually an array or function
+#endif
 
     const Code::Type type = getCodeType(ty);
     tmp = e->MakeMemory(type,tmp);
@@ -379,6 +382,8 @@ static int scale_for_pointer_arith(expression_kind_t op, Smop& lhs, type_t* lhsT
     }
     if( res == 0 ) // apparently both sides are pointers
         res = get_ctype_size(rhsT->pointer.points_to);
+    else
+        res = 0; // only divide by with for pointer sub pointer
     return res;
 }
 
@@ -666,8 +671,7 @@ static Smop expression(expression_t * expr)
 #endif
     switch (expr->kind) {
     case EXPR_LITERAL_FLOATINGPOINT: {
-        double d;
-        sscanf(expr->literal.value->begin,"%f", &d);
+        const double d = strtod(expr->literal.value->begin, 0);
         return Code::FImm(getCodeType(expr->base.type),d);
     }
     case EXPR_LITERAL_INTEGER: {
@@ -784,7 +788,11 @@ static Smop expression(expression_t * expr)
 
         return tmp;
     }
-    case EXPR_REFERENCE:
+    case EXPR_REFERENCE: {
+        Smop tmp = lvalue(expr);
+        load(expr->reference.entity->declaration.type, tmp);
+        return tmp;
+    }
     case EXPR_ARRAY_ACCESS: {
         Smop tmp = lvalue(expr);
         load(expr->base.type, tmp);

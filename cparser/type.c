@@ -1193,7 +1193,10 @@ unsigned get_ctype_size(type_t const *const type)
 	case TYPE_VOID:
 		return 1; /* GCC extension. */
 	case TYPE_REFERENCE:
-	case TYPE_POINTER:
+        return pointer_properties.size;
+    case TYPE_POINTER:
+        if( type->pointer.replacemen_of && type->pointer.replacemen_of->kind == TYPE_ARRAY )
+            return get_ctype_size(type->pointer.replacemen_of);
 		return pointer_properties.size;
 	case TYPE_ARRAY: {
 		/* TODO: correct if element_type is aligned? */
@@ -1430,7 +1433,7 @@ type_t *identify_new_type(type_t *type)
  * Creates a new atomic type.
  *
  * @param akind       The kind of the atomic type.
- * @param qualifiers  Type qualifiers for the new type.
+ * @param qualifiers  Type qualifiers f1or the new type.
  */
 type_t *make_atomic_type(atomic_type_kind_t akind, type_qualifiers_t qualifiers)
 {

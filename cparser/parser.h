@@ -43,6 +43,6 @@ void set_default_visibility(elf_visibility_t visibility);
  *
  * @param orig_type  the original type
  */
-type_t *automatic_type_conversion(type_t *orig_type);
+type_t *automatic_type_conversion(type_t *orig_type, bool type_of_param);
 
 #endif

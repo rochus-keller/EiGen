@@ -212,7 +212,7 @@ static std::string rename(entity_t* var)
     const bool is_static = var->variable.base.storage_class == STORAGE_CLASS_STATIC;
 
     std::string name = var->base.symbol->string;
-    while( is_static && var->base.parent_entity->kind == ENTITY_FUNCTION ) {
+    while( is_static && var && var->base.parent_entity && var->base.parent_entity->kind == ENTITY_FUNCTION ) {
         var = var->base.parent_entity;
         name = std::string(var->base.symbol->string) + "#" + name;
     }
@@ -535,10 +535,13 @@ Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc, int
     load(expr->base.type,rhs);
     fetch_bitfield(expr, rhs);
     Smop oldVal = returnOldVal ? e->Move(rhs) : rhs;
-    int off = inc ? 1 : -1;
+    int off = 1;
     if( expr->base.type->kind == TYPE_POINTER )
         off *= get_ctype_size(expr->base.type->pointer.points_to);
-    rhs = e->Add(rhs, Code::Imm(rhs.type,off));
+    if( inc )
+        rhs = e->Add(rhs, Code::Imm(rhs.type,off));
+    else
+        rhs = e->Subtract(rhs, Code::Imm(rhs.type,off));
     if( store_bitfield(expr, lhs, rhs) ) {
         if( !returnOldVal )
             fetch_bitfield(expr, oldVal);
@@ -761,6 +764,7 @@ static Smop expression(expression_t * expr)
                 e->Unfix(res);
             res = rhs;
         } else {
+            rhs = e->Convert(res.type,rhs);
             e->Move(res,rhs);
             if( res.model == Code::Operand::Register )
                 e->Unfix(res);
@@ -1043,6 +1047,8 @@ static void statement(statement_t *const stmt)
 
         std::deque<Label> ll;
         for (case_label_statement_t *n = stmt->switchs.first_case; n; n = n->next) {
+            if( n == stmt->switchs.default_label )
+                continue;
             ll.push_back(e->CreateLabel());
             n->target = &ll.back();
             if (n->first_case == n->last_case) {

@@ -307,17 +307,17 @@ int ceil( float f )
 
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
 
-asm(R"(
+asm (R"(
 	.code longjmp
 	mov	ptr $0, ptr [$sp + !lnksize * retalign + stackdisp]
 	mov	int $res, int [$sp + !lnksize * retalign + ptralign + stackdisp]
 	mov	ptr $sp, ptr [$0 + ptrsize * 0]
 	mov	ptr $fp, ptr [$0 + ptrsize * 1]
 	jump	fun [$0 + ptrsize * 2]
-	)")
+	)");
 
 
-asm(R"(
+asm (R"(
 	.code setjmp
 	#if !lnksize
 		pop	fun $0
@@ -336,7 +336,7 @@ asm(R"(
 	#else
 		jump	fun $0
 	#endif
-	)")
+	)");
 
 #if 0
 // TODO: these crash, stdio and FILE not compatible with ECS runtime

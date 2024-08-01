@@ -605,6 +605,7 @@ struct asm_statement_t {
 	entity_t        *labels;
 	bool             has_arguments : 1;
 	bool             is_volatile   : 1;
+    bool             is_target   : 1;
 };
 
 union statement_t {

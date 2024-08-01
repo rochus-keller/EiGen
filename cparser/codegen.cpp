@@ -1778,6 +1778,19 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
         run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
     }
 
+    for( statement_t *stat = unit->global_asm; stat; stat = stat->base.next)
+    {
+        try {
+
+            if( stat->asms.is_target ){
+                // pass-through to machine code generator
+                e->BeginAssembly();
+                e->Assemble(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
+            }else
+                e->AssembleCode(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
+        }catch(...) {}
+    }
+
     e = 0;
 
     fdostream out_stream(cod_out);

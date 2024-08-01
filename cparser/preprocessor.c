@@ -800,6 +800,66 @@ static utf32 get_string_encoding_limit(string_encoding_t const enc)
 	panic("invalid string encoding");
 }
 
+static void parse_raw_string()
+{
+    const token_kind_t const kind = T_STRING_LITERAL;
+    const utf32 const delimiter = '"';
+    const string_encoding_t const enc = STRING_ENCODING_CHAR;
+
+    eat(delimiter);
+
+#define maxmatch 16
+    char match[maxmatch] = {0};
+    int matchlen = 0;
+
+    while( input.c != '(' && input.c != UTF32_EOF ) {
+        match[matchlen++] = input.c;
+        if( matchlen >= maxmatch )
+            errorf(&pp_token.base.pos,"raw string match section exceeds maximum length");
+        next_char();
+    }
+    if( input.c!= '(' )
+        errorf(&pp_token.base.pos,"invalid raw string literal");
+    eat('(');
+
+    begin_string_construction();
+    int hit = -1;
+    while (true) {
+        switch (input.c) {
+        case UTF32_EOF:
+            warningf(WARN_OTHER, &pp_token.base.pos, "EOF while parsing raw string literal");
+            goto end_of_string;
+        default:
+            if (hit == -1 && input.c == ')') {
+                eat(')');
+                hit = 0;
+            }else if(hit >= 0 && (matchlen == 0 || (hit < matchlen && input.c == match[hit++]) ) ) {
+                if( hit == matchlen ) {
+                    if( input.c != delimiter )
+                        errorf(&pp_token.base.pos,"missing end delimiter of raw string literal");
+                    eat(delimiter);
+                    goto end_of_string;
+                }
+                next_char();
+            } else {
+                if(hit >= 0)
+                    obstack_grow_utf8(&string_obst, ')');
+                for(int i = 0; i < hit; i++)
+                    obstack_grow_utf8(&string_obst, match[i]);
+                hit = -1;
+                obstack_grow_utf8(&string_obst, input.c);
+                next_char();
+                break;
+            }
+        }
+    }
+
+end_of_string:
+    pp_token.kind           = kind;
+    pp_token.literal.string = finish_string_construction(enc);
+}
+
+
 static void parse_string(utf32 const delimiter, token_kind_t const kind,
                          string_encoding_t const enc,
                          char const *const context)
@@ -2093,6 +2153,16 @@ restart:
 		goto restart;
 
 	case SYMBOL_CASES:
+        if( input.c == 'R' )
+        {
+            next_char();
+            if( input.c == '"' )
+            {
+                parse_raw_string();
+                return;
+            }else
+                put_back('R');
+        }
 		parse_symbol();
 		return;
 

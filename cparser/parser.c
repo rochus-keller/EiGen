@@ -10830,6 +10830,21 @@ static void parse_global_asm(void)
 	add_anchor_token(';');
 	add_anchor_token(')');
 	add_anchor_token(T_STRING_LITERAL);
+
+    bool asm_target = false;
+
+    if (peek(T_IDENTIFIER)) {
+        symbol_t* symbol = token.base.symbol;
+        eat(T_IDENTIFIER);
+
+        if( strcmp(symbol->string,"target") == 0 )
+            asm_target = true;
+        else
+            warningf(WARN_OTHER, HERE, "unknown asm qualifier %K", &token);
+    }
+
+    statement->asms.is_target = asm_target;
+
 	expect('(');
 
 	rem_anchor_token(T_STRING_LITERAL);

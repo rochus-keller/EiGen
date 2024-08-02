@@ -26,6 +26,7 @@ let libfirm : SourceSet {
     ./libfirm/timing.c
     ./libfirm/timing.h
     ./libfirm/typerep.h
+    ./libfirm/obstack.h
     ]
 }
 

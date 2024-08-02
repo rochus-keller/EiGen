@@ -59,10 +59,11 @@ static MyEmitter::Context* e = 0;
 static std::deque<Label*> breaks, continues;
 static std::deque<Label> clabels;
 static Label* return_label = 0;
-static Code::Type return_type;
+static type_t* return_type = 0;
 //static std::set<Type*> to_declare;
 static std::unordered_map<std::string,string_t*> string_decls;
 static std::deque<expression_t*> compound_literal_decls;
+static std::deque<entity_t*> static_locals;
 static translation_unit_t* current_translation_unit = 0;
 static const char* current_source_file = "";
 
@@ -224,6 +225,23 @@ static std::string rename(entity_t* var)
     return name;
 }
 
+static Smop var_address(entity_t* var)
+{
+    // Local variable
+    if ( (var->kind == ENTITY_VARIABLE && var->variable.is_local) ||
+         var->kind == ENTITY_PARAMETER ) {
+        return (Code::Reg(types[ptr],Code::RFP, var->variable.offset));
+    }
+
+    // Function
+    if (var->kind == ENTITY_FUNCTION) {
+        return (Code::Adr(types[fun],rename(var)));
+    }
+
+    // Global variable (includes local static)
+    return (Code::Adr(types[ptr],rename(var)));
+}
+
 static Smop expression(expression_t * expr);
 
 // Compute the absolute address of a given node.
@@ -234,22 +252,10 @@ static Smop lvalue(expression_t * expr) {
     case EXPR_REFERENCE: {
         entity_t* var = expr->reference.entity;
 
-        // Local variable
-        if ( (var->kind == ENTITY_VARIABLE && var->variable.is_local) ||
-             var->kind == ENTITY_PARAMETER ) {
-            return (Code::Reg(types[ptr],Code::RFP, var->variable.offset));
-        }
-
-        // Function
-        if (var->kind == ENTITY_FUNCTION) {
-            return (Code::Adr(types[fun],rename(var)));
-        }
-
-        // Global variable (includes local static)
-        return (Code::Adr(types[ptr],rename(var)));
+        return var_address(var);
     }
     case EXPR_ARRAY_ACCESS:  {
-        Smop arr = expression(expr->array_access.array_ref); // TODO
+        Smop arr = expression(expr->array_access.array_ref);
         Smop idx = expression(expr->array_access.index);
         type_t    *const elem_type = skip_typeref(expr->base.type);
         idx = e->Multiply(idx, Code::Imm(idx.type,get_ctype_size(elem_type)));
@@ -269,17 +275,14 @@ static Smop lvalue(expression_t * expr) {
         Smop tmp = expression(expr->unary.value);
         return tmp;
     }
-#if 0
-        // TODO
-    case ND_FUNCALL:
-        if (node->ret_buffer) {
-            return gen_expr(node);
+    case EXPR_CALL:
+        if (expr->call.return_buffer) {
+            return expression(expr);
         }
         break;
-#endif
     case EXPR_BINARY_ASSIGN:
     case EXPR_CONDITIONAL:
-        if (expr->base.type->kind == TYPE_COMPOUND_STRUCT || expr->base.type->kind == TYPE_COMPOUND_UNION) {
+        if (is_type_compound(skip_typeref(expr->base.type))) {
             return expression(expr);
         }
         break;
@@ -352,7 +355,8 @@ static void store(type_t *ty, const Smop& lhs, const Smop& rhs) {
     }
 
     const Code::Type type = getCodeType(ty);
-    e->Move(e->MakeMemory(type,lhs),rhs);
+    Smop rhs2 = e->Convert(type,rhs);
+    e->Move(e->MakeMemory(type,lhs),rhs2);
 }
 
 static int scale_for_pointer_arith(expression_kind_t op, Smop& lhs, type_t* lhsT, Smop& rhs, type_t* rhsT )
@@ -531,13 +535,14 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
 
 Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc, int returnOldVal )
 {
-    Smop rhs = e->Move(lhs); // TODO do we need this move, or is a plain '=' enough?
+    Smop rhs = e->Move(lhs);
     load(expr->base.type,rhs);
     fetch_bitfield(expr, rhs);
     Smop oldVal = returnOldVal ? e->Move(rhs) : rhs;
     int off = 1;
-    if( expr->base.type->kind == TYPE_POINTER )
-        off *= get_ctype_size(expr->base.type->pointer.points_to);
+    type_t* type = skip_typeref(expr->base.type);
+    if( type->kind == TYPE_POINTER )
+        off *= get_ctype_size(type->pointer.points_to);
     if( inc )
         rhs = e->Add(rhs, Code::Imm(rhs.type,off));
     else
@@ -565,8 +570,8 @@ static int push_struct(type_t *ty, const Smop& reg) {
 
     const int sz = align_to(get_ctype_size(ty), target_stack_align());
     e->Subtract(Code::Reg(types[ptr],Code::RSP), Code::Reg(types[ptr],Code::RSP),
-                Code::Imm(types[ptr],sz)); // sub	ptr $sp, ptr $sp, ptr %d
-    e->Copy(Code::Reg(types[ptr],Code::RSP), reg, Code::Imm(types[ptr],sz)); // copy	ptr $sp, ptr $0, ptr %d"
+                Code::Imm(types[ptr],sz));
+    e->Copy(Code::Reg(types[ptr],Code::RSP), reg, Code::Imm(types[ptr],sz));
     return sz;
 }
 
@@ -587,7 +592,7 @@ static int push_args2(call_argument_t *args, int param_count) {
 
     Smop arg = expression(args->expression);
 
-    type_t* ty = args->expression->base.type;
+    type_t* ty = skip_typeref(args->expression->base.type);
     switch (ty->kind) {
     case TYPE_COMPOUND_STRUCT:
     case TYPE_COMPOUND_UNION:
@@ -635,16 +640,16 @@ static int push_args(expression_t const * const expr, int param_count) {
 
     aligned_size += push_args2(expr->call.arguments, param_count);
 
-#if 0
-    // TODO
-
     // If the return type is a large struct/union, the caller passes
     // a pointer to a buffer as if it were the first argument.
-    if (node->ret_buffer) {
-        Smop res = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
+    if (expr->call.return_buffer) {
+        Smop res;
+        if( expr->call.return_buffer->lhs )
+            res = var_address(expr->call.return_buffer->lhs);
+        else
+            res = Code::Reg(types[ptr], Code::RFP,expr->call.return_buffer->offset);
         aligned_size += pushRes(types[ptr], res);
     }
-#endif
 
     return aligned_size;
 }
@@ -828,14 +833,14 @@ static Smop expression(expression_t * expr)
         Smop rhs = expression(expr->binary.right);
         e->RestoreRegister(lhs);
 
-        const Code::Type lhsT = getCodeType(expr->binary.left->base.type);
         if( expr->kind != EXPR_BINARY_ASSIGN )
         {
-            Smop lhs2 = e->Move(lhs); // TODO do we need this move, or is a plain '=' enough?
+            Smop lhs2 = e->Move(lhs);
             load(expr->binary.left->base.type,lhs2);
             fetch_bitfield(expr->binary.left, lhs2);
             const int baseSize = scale_for_pointer_arith(expr->kind,lhs2,expr->binary.left->base.type,
                                     rhs, expr->binary.right->base.type);
+            const Code::Type lhsT = getCodeType(expr->binary.left->base.type);
             rhs = e->Convert(lhsT,rhs);
             lhs2 = e->Convert(lhsT,lhs2);
             rhs = binary_ops(expr->kind,lhs2,rhs, baseSize);
@@ -847,7 +852,6 @@ static Smop expression(expression_t * expr)
             // NOTE: not orig rhs shall be returned according to the standard, but what was actually stored in lhs!
             // gcc effectively seems to consider sign and mem->bit_width; see bitfield-immediate-assign.c
         } else {
-            rhs = e->Convert(lhsT,rhs);
             store(expr->binary.left->base.type, lhs, rhs);
             return rhs;
         }     
@@ -861,7 +865,7 @@ static Smop expression(expression_t * expr)
     case EXPR_UNARY_POSTFIX_INCREMENT: {
         // Convert i++ to `(typeof i)((i += 1) - 1)`
         Smop lhs = lvalue(expr->unary.value);
-        if( expr->unary.value->base.type->kind == TYPE_POINTER ||
+        if( skip_typeref(expr->unary.value->base.type)->kind == TYPE_POINTER ||
                 !(expr->unary.value->kind == EXPR_SELECT &&
                             expr->unary.value->select.compound_entry->compound_member.bitfield) )
         {
@@ -905,16 +909,19 @@ static Smop expression(expression_t * expr)
         Smop fun = expression(expr->call.function);
 
         Smop res;
-        if( false ) // TODO node->ret_buffer )
+        if( expr->call.return_buffer )
         {
-            e->Call(fun,aligned_size); // call fun $0, %d
-            //res = Code::Reg(types[ptr], Code::RFP,node->ret_buffer->offset); // mov ptr $0, ptr $fp%+d
+            e->Call(fun,aligned_size);
+            if( expr->call.return_buffer->lhs )
+                res = var_address(expr->call.return_buffer->lhs);
+            else
+                res = Code::Reg(types[ptr], Code::RFP,expr->call.return_buffer->offset);
         }else if( ret )
         {
-            res = e->Call(getCodeType(ret), fun,aligned_size); // call fun $0, %d
+            res = e->Call(getCodeType(ret), fun,aligned_size);
 
         }else
-            e->Call(fun,aligned_size); // call fun $0, %d
+            e->Call(fun,aligned_size);
 
         return res;
     }
@@ -992,6 +999,17 @@ static void compound_statement_to_ir(compound_statement_t *compound)
     for ( ; stmt != NULL; stmt = stmt->base.next) {
         statement(stmt);
     }
+}
+
+static int firstParamOffset();
+
+// copy struct pointed to by $0 to the local var at offset
+static void copy_struct_mem(const Smop& reg) {
+    assert( return_type != 0 );
+
+    e->Copy(Code::Mem(types[ptr],Code::RFP, firstParamOffset() ),
+                                            // the pointer to result is the first (invisible) param
+            reg,Code::Imm(types[ptr],get_ctype_size(return_type)));
 }
 
 static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer);
@@ -1137,20 +1155,20 @@ static void statement(statement_t *const stmt)
     case STATEMENT_RETURN: {
         if (stmt->returns.value) {
             Smop lhs = expression(stmt->returns.value);
-            Code::Type lhsT = getCodeType(stmt->returns.value->base.type);
-
-            switch (stmt->returns.value->base.type->kind) {
+            type_t* type = skip_typeref(stmt->returns.value->base.type);
+            switch (type->kind) {
             case TYPE_COMPOUND_STRUCT:
             case TYPE_COMPOUND_UNION:
-                // TODO copy_struct_mem(lhs);
+                copy_struct_mem(lhs);
                 break;
             case TYPE_VOID:
                 break;
-            default:
-                e->Move (Code::Reg {lhsT, Code::RRes}, e->Convert(lhsT,lhs));
+            default: {
+                Code::Type lhsT = getCodeType(stmt->returns.value->base.type);
+                e->Move (Code::Reg(lhsT, Code::RRes), e->Convert(lhsT,lhs));
                 break;
             }
-            return_type = lhsT;
+            }
         }
         assert( return_label != nullptr );
         e->Branch(*return_label);
@@ -1219,29 +1237,26 @@ static bool is_main(entity_t const *const entity)
 
 static void assign_local_variable_offsets2(entity_t *entity, entity_t * last, void* payload )
 {
-    struct Payload {
-        int* bottom;
-        std::deque<entity_t*>* statics;
-    };
-    Payload* res = (Payload*)payload;
+    int* bottom = (int*)payload;
 
     entity_t * end = last != NULL ? last->base.next : NULL;
     for (; entity != end; entity = entity->base.next) {
         if ( entity->kind == ENTITY_VARIABLE && entity->variable.base.storage_class != STORAGE_CLASS_STATIC ) {
             type_t *type = skip_typeref(entity->declaration.type);
 
-            *res->bottom += get_ctype_size(type);
-            *res->bottom = align_to(*res->bottom, get_ctype_alignment(type));
-            entity->variable.offset = -(*res->bottom);
+            *bottom += get_ctype_size(type);
+            *bottom = align_to(*bottom, get_ctype_alignment(type));
+            entity->variable.offset = -(*bottom);
             entity->variable.is_local = true;
         }
         if ( entity->kind == ENTITY_VARIABLE && entity->variable.base.storage_class == STORAGE_CLASS_STATIC )
-            res->statics->push_back(entity);
+            static_locals.push_back(entity);
     }
 }
 
 static void assign_local_variable_offsets(statement_t *stmt, void * payload)
 {
+    // TODO: check for return_buffers and possible lhs entities to avoid copying
     switch (stmt->kind) {
     case STATEMENT_DECLARATION: {
         const declaration_statement_t *const decl_stmt = &stmt->declaration;
@@ -1260,7 +1275,7 @@ static void assign_local_variable_offsets(statement_t *stmt, void * payload)
 }
 
 // Assign offsets to local variables and collect static variables.
-static void assign_lvar_offsets(function_t *const function, std::deque<entity_t*>* statics) {
+static void assign_lvar_offsets(function_t *const function) {
 
     int top = firstParamOffset();
     int bottom = 0;
@@ -1273,7 +1288,6 @@ static void assign_lvar_offsets(function_t *const function, std::deque<entity_t*
         top += MAX(target_stack_align(), target_pointer_width());
         // if fn has struct return, the first param is a pointer to result
 
-    // TODO: provide for storage space for union/struct return type
 
     if( is_main((entity_t const*)function) )
     {
@@ -1301,20 +1315,26 @@ static void assign_lvar_offsets(function_t *const function, std::deque<entity_t*
         }
     }
 
-    struct {
-        int* bottom;
-        std::deque<entity_t*>* statics;
-    } payload;
-    payload.bottom = &bottom;
-    payload.statics = statics;
-
     // Assign offsets to local variables.
-    walk_statements(function->body, assign_local_variable_offsets, &payload);
+    walk_statements(function->body, assign_local_variable_offsets, &bottom);
 
-    function->stack_size = align_to(bottom, target_stack_align()); // TODO: orig was 16, i.e. 2 * codegen_StackAlign
+    // provide for storage space for union/struct return types
+    return_buffer_t* return_buffer = function->return_buffers;
+    while(return_buffer)
+    {
+        if( return_buffer->lhs == 0 )
+        {
+            bottom += get_ctype_size(return_buffer->type);
+            bottom = align_to(bottom, get_ctype_alignment(return_buffer->type));
+            return_buffer->offset = -bottom;
+        }
+        return_buffer = return_buffer->next;
+    }
+
+    function->stack_size = align_to(bottom, target_stack_align());
 }
 
-static void create_function(function_t *const function)
+static void create_function(function_t * function)
 {
     if (function->body == NULL)
         return;
@@ -1324,13 +1344,9 @@ static void create_function(function_t *const function)
     if (!function->base.used && function->base.storage_class == STORAGE_CLASS_STATIC)
         return;
 
-    return_type = Code::Type();
+    return_type = 0;
 
-
-    std::deque<entity_t*> statics;
-    assign_lvar_offsets(function, &statics);
-
-    // TODO: allocate statics and consider initializers
+    assign_lvar_offsets(function);
 
     // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
     e->Begin(Code::Section::Code, rename((entity_t*)function) );
@@ -1349,11 +1365,13 @@ static void create_function(function_t *const function)
     type_t* ft = function->base.type;
     assert(is_type_function(ft));
 
+    if( ft->function.return_type && ft->function.return_type->kind != TYPE_VOID )
+        return_type = skip_typeref(ft->function.return_type);
     if( ismain )
     {
-        if( ft->function.return_type->kind != TYPE_VOID &&
-                ft->function.return_type->kind != TYPE_ATOMIC &&
-                ft->atomic.akind != ATOMIC_TYPE_INT )
+        if( return_type && return_type->kind != TYPE_VOID &&
+                return_type->kind != TYPE_ATOMIC &&
+                return_type->atomic.akind != ATOMIC_TYPE_INT )
             panic("return type of function main must be void or int");
         int p = 0;
         // initialize the parameter substitutes with the corresponding global var
@@ -1388,23 +1406,19 @@ static void create_function(function_t *const function)
 
     // Epilogue
     lret();
-    if( ft->function.return_type && ft->function.return_type->kind != TYPE_VOID )
-    {
-        if( return_type.model == Code::Type::Void )
-            e->Move(Code::Reg(types[s4],Code::RRes),Code::Imm(types[s4],0));
-    }
+    if( return_type && is_type_compound(return_type) )
+        e->Move(Code::Reg(types[s4],Code::RRes),Code::Imm(types[s4],0));
+
     e->Leave();
     if( ismain )
     {
-        if( return_type.model == Code::Type::Void )
-            e->Push(Code::Reg {types[s4], Code::RRes});
-        else
-            e->Push(Code::Reg {return_type, Code::RRes});
+        e->Push(Code::Reg(types[s4], Code::RRes));
         e->Call(Code::Adr(types[fun],"_Exit"),0);
     }else
         e->Return();
     return_label = 0;
     clabels.clear();
+    return_type = 0;
 }
 
 static bool declaration_is_definition(const entity_t *entity)
@@ -1627,6 +1641,33 @@ static void initialize_variable(entity_t * entity)
     }
 }
 
+static void allocate_variable(entity_t* entity)
+{
+    if( !declaration_is_definition(entity) )
+        return;
+
+    e->Begin(Code::Section::Data, rename(entity),
+             get_ctype_alignment(entity->variable.base.type),
+             false, // required
+             false, // duplicable
+             false // replaceable
+             );
+    if( entity->variable.initializer )
+    {
+        initialize_variable(entity);
+    }else
+    {
+        if( entity->variable.base.storage_class == STORAGE_CLASS_STATIC || !entity->variable.is_local )
+        {
+            for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
+                e->Define(Code::Imm(types[s1],0));
+        }else
+        {
+            e->Reserve(get_ctype_size(entity->variable.base.type));
+        }
+    }
+}
+
 static void scope_to_ir(scope_t *scope)
 {
     for (entity_t *entity = scope->first_entity; entity != NULL; entity = entity->base.next) {
@@ -1647,29 +1688,7 @@ static void scope_to_ir(scope_t *scope)
             break;
         }
         case ENTITY_VARIABLE: {
-            if( !declaration_is_definition(entity) )
-                continue;
-
-            e->Begin(Code::Section::Data, rename(entity),
-                     get_ctype_alignment(entity->variable.base.type),
-                     false, // required
-                     false, // duplicable
-                     false // replaceable
-                     );
-            if( entity->variable.initializer )
-            {
-                initialize_variable(entity);
-            }else
-            {
-                if( entity->variable.base.storage_class == STORAGE_CLASS_STATIC || !entity->variable.is_local )
-                {
-                    for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
-                        e->Define(Code::Imm(types[s1],0));
-                }else
-                {
-                    e->Reserve(get_ctype_size(entity->variable.base.type));
-                }
-            }
+            allocate_variable(entity);
             break;
         }
         case ENTITY_NAMESPACE:
@@ -1734,6 +1753,7 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
     //to_declare.clear();
     string_decls.clear();
     compound_literal_decls.clear();
+    static_locals.clear();
 
     init_types();
 
@@ -1782,6 +1802,12 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
                  false // replaceable
                  );
         run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
+    }
+
+    for( auto i = static_locals.begin(); i != static_locals.end(); ++i )
+    {
+        entity_t* var = (*i);
+        allocate_variable(var);
     }
 
     for( statement_t *stat = unit->global_asm; stat; stat = stat->base.next)

@@ -227,6 +227,7 @@ struct function_t {
         unsigned        chk_arg_pos;
     } b;
     int stack_size;
+    return_buffer_t* return_buffers;
 };
 
 struct asm_operand_t {

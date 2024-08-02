@@ -290,6 +290,13 @@ struct call_argument_t {
 	call_argument_t *next;       /**< Links to the next argument of this call. */
 };
 
+struct return_buffer_t {
+    struct return_buffer_t* next;
+    type_t* type;
+    call_expression_t* call;
+    int offset;      // in case an extra space is reserved on the stack of the surrounding function
+    entity_t* lhs; // in case the lhs of an assig can be reused
+};
 
 struct call_expression_t {
 	expression_base_t  base;
@@ -297,6 +304,7 @@ struct call_expression_t {
 	call_argument_t   *arguments; /**< List of arguments of this call. */
 	function_type_t   *concrete_type; /**< concrete type in case of a generic
 	                                       builtin function */
+    return_buffer_t* return_buffer;
 };
 
 

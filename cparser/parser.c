@@ -7307,9 +7307,17 @@ static void semantic_call(call_expression_t *call)
 	check_format(call);
 	check_library_call_ctype(call);
 
-	if (is_type_compound(skip_typeref(function_type->return_type)))
-		warningf(WARN_AGGREGATE_RETURN, &call->base.pos,
-		         "function call has aggregate value");
+    type_t* return_deref = skip_typeref(function_type->return_type);
+    if (is_type_compound(return_deref)) {
+        warningf(WARN_AGGREGATE_RETURN, &call->base.pos, "function call has aggregate value");
+
+        return_buffer_t* rb = allocate_ast_zero(sizeof(return_buffer_t));
+        rb->call = call;
+        rb->type = return_deref;
+        rb->next = current_function->return_buffers;
+        current_function->return_buffers = rb;
+        call->return_buffer = rb;
+    }
 
 	if (function->kind == EXPR_REFERENCE) {
 		entity_t *entity = function->reference.entity;

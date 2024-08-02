@@ -15,9 +15,11 @@ do
     ./compiler $t -w -I../../include libc.lib -L/home/me/Programme/ecs/lib/ecs/runtime -o ${t%.*}
     ./${t%.*}
     if [ $? -eq 0 ]; then
+    	echo -e
 		echo 0
 		succs+=1
 	else
+		echo -e
 		echo $? "#error"
 	fi 
 done

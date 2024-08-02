@@ -162,7 +162,7 @@ void run_linker(compilation_unit_t* inputs, const char *output)
     std::deque<std::string> libs;
     bool linkLib = false;
 
-    for( struct _obstack_chunk* c = ldflags_obst.chunk; c; c = c->prev )
+    for( struct _obstack_chunk* c = ldflags_obst.chunk; c; c = c->prev ) // RISK: not sure whether this is legal
     {
         const std::string data(c->contents + 1);
         if( data == "-lib" )

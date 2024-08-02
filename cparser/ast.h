@@ -63,6 +63,8 @@ typedef struct ms_try_statement_t                    ms_try_statement_t;
 typedef struct leave_statement_t                     leave_statement_t;
 typedef union  statement_t                           statement_t;
 
+typedef struct return_buffer_t                       return_buffer_t;
+
 typedef struct translation_unit_t                    translation_unit_t;
 
 /**

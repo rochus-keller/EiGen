@@ -97,7 +97,8 @@ static void set_unused_after(compile_mode_t mode)
 		set_unit_handler(COMPILATION_UNIT_PREPROCESSED_ASSEMBLER,
 		                 warn_unused_input, true);
 		set_unit_handler(COMPILATION_UNIT_OBJECT, warn_unused_input, true);
-		break;
+        set_unit_handler(COMPILATION_UNIT_LIBRARY, warn_unused_input, true);
+        break;
 	default:
 		panic("invalid argument to set_unused_after");
 	}
@@ -240,6 +241,7 @@ int action_compile(const char *argv0)
 int main(int argc, char **argv)
 {
     init_temp_files();
+    atexit(exit_temp_files);
 	init_driver();
 	init_default_driver();
     init_preprocessor();
@@ -278,8 +280,6 @@ int main(int argc, char **argv)
 
 	/* Initialize firm now that we know the target machine */
 	init_firm_target();
-//	init_firm_opt();
-    // set_optimization_level(opt_level);
 
 	/* parse rest of options */
 	for (state.i = 1; state.i < argc; ++state.i) {
@@ -310,13 +310,11 @@ int main(int argc, char **argv)
 	assert(state.action != NULL);
 	int ret = state.action(argv[0]);
 
-    // TODO exit_firm_opt();
 	exit_ast2ir();
     exit_parser();
     exit_ast();
     exit_preprocessor();
     exit_driver();
 	exit_default_driver();
-	exit_temp_files();
 	return ret;
 }

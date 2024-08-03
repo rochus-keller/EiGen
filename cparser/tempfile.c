@@ -137,3 +137,13 @@ void exit_temp_files(void)
 
 	obstack_free(&file_obst, NULL);
 }
+
+void register_temp_file(const char *name)
+{
+    assert(obstack_object_size(&file_obst) == 0);
+    obstack_printf(&file_obst, "%s", name);
+
+    char *const name2 = obstack_nul_finish(&file_obst);
+
+    ARR_APP1(char*, temp_files, name2);
+}

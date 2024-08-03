@@ -436,14 +436,14 @@ static bool run_external_preprocessor(compilation_env_t *env,
 	return true;
 }
 
-extern void run_codegen(const char *input, const char *output);
+extern int run_codegen(const char *input, const char *output, bool final);
 
-static bool assemble(compilation_unit_t *unit, const char *o_name)
+static bool assemble(compilation_unit_t *unit, const char *o_name, bool final)
 {
-    run_codegen(unit->name,o_name);
+    const int res = run_codegen(unit->name,o_name, final);
 	unit->type = COMPILATION_UNIT_OBJECT;
 	unit->name = o_name;
-    return true;
+    return res == 0;
 }
 
 bool assemble_final(compilation_env_t *env, compilation_unit_t *unit)
@@ -452,7 +452,7 @@ bool assemble_final(compilation_env_t *env, compilation_unit_t *unit)
 	if (outname == NULL) {
         outname = get_output_name(unit->original_name, ".obf");
 	}
-	return assemble(unit, outname);
+    return assemble(unit, outname, true);
 }
 
 bool assemble_intermediate(compilation_env_t *env, compilation_unit_t *unit)
@@ -464,7 +464,7 @@ bool assemble_intermediate(compilation_env_t *env, compilation_unit_t *unit)
 		return NULL;
 	/* hackish... */
 	fclose(tempf);
-	return assemble(unit, o_name);
+    return assemble(unit, o_name, false);
 }
 
 static void append_standard_include_paths(void)
@@ -956,7 +956,8 @@ int action_print_file_name(const char *argv0)
 void set_default_handlers(void)
 {
 	set_unit_handler(COMPILATION_UNIT_OBJECT,  do_nothing, true);
-	set_unit_handler(COMPILATION_UNIT_UNKNOWN, do_nothing, true);
+    set_unit_handler(COMPILATION_UNIT_LIBRARY,  do_nothing, true);
+    set_unit_handler(COMPILATION_UNIT_UNKNOWN, do_nothing, true);
 
 	set_unit_handler(COMPILATION_UNIT_IR,        read_ir_file, false);
 	set_unit_handler(COMPILATION_UNIT_C,         preprocess,   false);

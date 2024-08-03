@@ -13,5 +13,5 @@ void (panic)(char const *const file, int const line, char const *const func, cha
 	vfprintf(out, msg, ap);
 	va_end(ap);
 	fputc('\n', out);
-	abort();
+    exit(-1);
 }

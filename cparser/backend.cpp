@@ -16,11 +16,17 @@
 #include <deque>
 #include <string.h>
 
+extern "C" {
+#include "target.h"
+#include "tempfile.h"
+}
+
 using namespace ECS;
 
 static ASCIICharset charset;
 static StringPool stringPool;
 static StreamDiagnostics diagnostics {std::cerr};
+static bool final_codegen = false;
 
 static std::string extensionOf(const std::string& path)
 {
@@ -44,8 +50,6 @@ static void generate(const Assembly::Program& program, Assembly::Generator& gene
 
     std::string path(output);
 
-#if 0
-    // TODO
     if( target.debug_info )
     {
         Debugging::DWARFConverter converter(diagnostics, charset);
@@ -53,9 +57,9 @@ static void generate(const Assembly::Program& program, Assembly::Generator& gene
         converter.Convert (information, program.source, dbfobj);
         ECS::File dbf_file {path, ".dbf"};
         dbf_file << dbfobj;
-        // TODO register_for_cleanup(dbf_file.getPath().c_str(),1);
+        if( !final_codegen )
+            register_temp_file(dbf_file.getPath().c_str());
     }
-#endif
 
     ECS::File object( path, extensionOf(path) ); // File constructor wants to replace the extension of path in any case, even if empty
     object << binaries;
@@ -111,7 +115,7 @@ extern "C" {
 #include "driver_t.h"
 #include "hostdetect.h"
 
-void run_codegen(const char *input, const char *output)
+int run_codegen(const char *input, const char *output, bool final)
 {
     try
     {
@@ -123,6 +127,7 @@ void run_codegen(const char *input, const char *output)
         std::cerr << "failed to open input file " << input << std::endl, throw "";
     parser.Parse (file, GetLine (Position(file, input, 1, 1)), program);
 
+    final_codegen = final;
     const char* backend = target_data[target.target].backend;
     if( strcmp(backend,"amd16") == 0 )
         generate_amd16(program,output);
@@ -139,12 +144,14 @@ void run_codegen(const char *input, const char *output)
     else if( strcmp(backend,"armt32fpe") == 0 )
         generate_armt32fpe(program,output);
     else
-        std::cerr << "no generator available for " << backend << std::endl;
+        panic("no generator available for %s", backend );
     }catch(...)
     {
         // already reported
         std::cerr << "error generating code for " << input << std::endl;
+        return -1;
     }
+    return 0;
 }
 
 #if defined Q_OS_LINUX || defined Q_OS_UNIX
@@ -162,10 +169,16 @@ void run_linker(compilation_unit_t* inputs, const char *output)
     std::deque<std::string> libs;
     bool linkLib = false;
 
-    for( struct _obstack_chunk* c = ldflags_obst.chunk; c; c = c->prev ) // RISK: not sure whether this is legal
+    const char* flags = (const char*)obstack_nul_finish(&ldflags_obst);
+
+    while( *flags )
     {
-        const std::string data(c->contents + 1);
-        if( data == "-lib" )
+        const char* to = flags;
+        while( *to != '\t' && *to != 0 )
+            to++;
+        const std::string data(flags, to - flags);
+        flags = to+1;
+        if( data == "-ar" || data == "-lib" )
         {
             linkLib = true;
             continue;
@@ -193,7 +206,7 @@ void run_linker(compilation_unit_t* inputs, const char *output)
     }
 
     for (compilation_unit_t *unit = units; unit != NULL; unit = unit->next) {
-        if (unit->type != COMPILATION_UNIT_OBJECT)
+        if (unit->type != COMPILATION_UNIT_OBJECT && unit->type != COMPILATION_UNIT_LIBRARY)
             continue;
 
         std::ifstream file;
@@ -205,24 +218,21 @@ void run_linker(compilation_unit_t* inputs, const char *output)
             panic("invalid object file: %s", unit->name);
     }
 
-#if 0
-    // TODO
     if( target.debug_info )
     {
-        for (int i = 0; i < inputs->len; i++)
-        {
+        for (compilation_unit_t *unit = units; unit != NULL; unit = unit->next) {
+            if (unit->type != COMPILATION_UNIT_OBJECT)
+                continue;
           std::ifstream dbfin;
-          const std::string dbf = ECS::File::replace_extension(inputs->data[i],".dbf");
+          const std::string dbf = ECS::File::replace_extension(unit->name,".dbf");
           dbfin.open (dbf, dbfin.binary);
           if (!dbfin.is_open ())
-              error("failed to open input file '%s'", dbf.c_str());
+              panic("failed to open input file '%s'", dbf.c_str());
           dbfin >> binaries;
-          const int s = binaries.size();
           if (!dbfin)
-              error("invalid object file: %s", dbf.c_str());
+              panic("invalid object file: %s", dbf.c_str());
         }
     }
-#endif
 
     for( int i = 0; i < libs.size(); i++ )
     {

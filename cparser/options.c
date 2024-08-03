@@ -372,7 +372,7 @@ bool options_parse_linker(options_state_t *s)
 	        || simple_arg("shared-libgcc", s)
 	        || simple_arg("static-libgcc", s)
 	        || simple_arg("symbolic", s)
-            || simple_arg("lib", s) // RK -lib
+            || simple_arg("ar", s) || simple_arg("lib", s)
             || accept_prefix(s, "-Wl,", true, &arg)) {
 	    driver_add_flag(&ldflags_obst, full_option);
 	} else if ((arg = spaced_arg("Xlinker", s)) != NULL) {

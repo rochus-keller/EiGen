@@ -56,11 +56,11 @@ using Label = MyEmitter::Label;
 using RestoreRegisterState = MyEmitter::RestoreRegisterState;
 
 static MyEmitter::Context* e = 0;
-static std::deque<Label*> breaks, continues;
-static std::deque<Label> clabels;
-static Label* return_label = 0;
+static std::deque<Label*> break_target_labels, continue_target_label;
+static std::deque<Label> goto_target_labels;
+static Label* end_of_function_label = 0;
 static type_t* return_type = 0;
-//static std::set<Type*> to_declare;
+static std::set<type_t*> to_declare;
 static std::unordered_map<std::string,string_t*> string_decls;
 static std::deque<expression_t*> compound_literal_decls;
 static std::deque<entity_t*> static_locals;
@@ -115,10 +115,14 @@ static uint8_t getTypeId(type_t *ty) {
     if( ty->kind == TYPE_ATOMIC ) {
         switch (ty->atomic.akind) {
         case ATOMIC_TYPE_BOOL:
+            return u1;
         case ATOMIC_TYPE_CHAR:
+            // return is_type_signed(ty) ? s1 : u1;
+            return s1; // TODO: is_type_signed renders false for ATOMIC_TYPE_CHAR
         case ATOMIC_TYPE_SCHAR:
+            return s1;
         case ATOMIC_TYPE_UCHAR:
-            return !is_type_signed(ty) ? u1 : s1;
+            return u1;
         case ATOMIC_TYPE_WCHAR_T:
         case ATOMIC_TYPE_USHORT:
         case ATOMIC_TYPE_SHORT:
@@ -208,14 +212,12 @@ static std::string file_hash()
     return res;
 }
 
-static std::string rename(entity_t* var)
+static std::string rename2(entity_base_t* var,bool is_static)
 {
-    const bool is_static = var->variable.base.storage_class == STORAGE_CLASS_STATIC;
-
-    std::string name = var->base.symbol->string;
-    while( is_static && var && var->base.parent_entity && var->base.parent_entity->kind == ENTITY_FUNCTION ) {
-        var = var->base.parent_entity;
-        name = std::string(var->base.symbol->string) + "#" + name;
+    std::string name = var->symbol->string;
+    while( is_static && var && var->parent_entity && var->parent_entity->kind == ENTITY_FUNCTION ) {
+        var = &var->parent_entity->base;
+        name = std::string(var->symbol->string) + "#" + name;
     }
     if( is_static )
     {
@@ -223,6 +225,48 @@ static std::string rename(entity_t* var)
         name = file_hash() + name;
     }
     return name;
+}
+
+static std::string rename(entity_t* var)
+{
+    const bool is_static = var->variable.base.storage_class == STORAGE_CLASS_STATIC;
+    return rename2(&var->base, is_static);
+}
+
+const char* file_name(const char* path)
+{
+    const char* pos = strrchr(path, '/');
+    if( pos == 0 )
+        pos = strrchr(path, '\\');
+    if( pos == 0 )
+        return path;
+    else
+        return pos+1;
+}
+
+static void loc( const position_t& pos, bool force = false )
+{
+    static const char* input_name = "";
+    static int line_no = 0, col_no = 0;
+
+    if( pos.input_name != input_name || pos.lineno != line_no || pos.colno != col_no || force )
+    {
+        if( target.debug_info )
+        {
+            if( end_of_function_label )
+                e->Break(pos.input_name,ECS::Position(pos.lineno,pos.colno));
+            else
+                e->Locate(pos.input_name,ECS::Position(pos.lineno,pos.colno));
+        }//else
+        {
+            std::ostringstream s;
+            s << "line " << file_name(pos.input_name) << ":" << pos.lineno << ":" << pos.colno;
+            e->Comment(s.str().c_str());
+        }
+        input_name = pos.input_name;
+        line_no = pos.lineno;
+        col_no = pos.colno;
+    }
 }
 
 static Smop var_address(entity_t* var)
@@ -247,6 +291,7 @@ static Smop expression(expression_t * expr);
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
 static Smop lvalue(expression_t * expr) {
+
     switch (expr->kind)
     {
     case EXPR_REFERENCE: {
@@ -259,12 +304,14 @@ static Smop lvalue(expression_t * expr) {
         Smop idx = expression(expr->array_access.index);
         type_t    *const elem_type = skip_typeref(expr->base.type);
         idx = e->Multiply(idx, Code::Imm(idx.type,get_ctype_size(elem_type)));
+        loc(expr->base.pos);
         return e->Add(arr,e->Convert(types[ptr],idx));
     }
     case EXPR_SELECT: {
         Smop tmp = expression(expr->select.compound);
         entity_t* mem = expr->select.compound_entry;
         assert(mem->kind == ENTITY_COMPOUND_MEMBER);
+        loc(expr->base.pos);
         return e->Add(e->Convert(types[ptr],tmp), Code::Imm(types[ptr],mem->compound_member.offset));
     }
     case EXPR_BINARY_COMMA: {
@@ -300,7 +347,7 @@ static Smop lvalue(expression_t * expr) {
     return Smop();
 }
 
-static void load(type_t * ty, Smop& tmp) {
+static void load(type_t * ty, Smop& tmp, const position_t& pos) {
     ty = skip_typeref(ty);
     switch (ty->kind) {
     case TYPE_ARRAY:
@@ -322,6 +369,7 @@ static void load(type_t * ty, Smop& tmp) {
         return; // not really a pointer, but actually an array or function
 #endif
 
+    loc(pos);
     const Code::Type type = getCodeType(ty);
     tmp = e->MakeMemory(type,tmp);
 }
@@ -345,17 +393,19 @@ static void cast(type_t *from, type_t *to, Smop& reg) {
         reg = e->Convert(toType,reg);
 }
 
-static void store(type_t *ty, const Smop& lhs, const Smop& rhs) {
+static void store(type_t *ty, const Smop& lhs, const Smop& rhs, const position_t& pos) {
     ty = skip_typeref(ty);
     switch (ty->kind) {
     case TYPE_COMPOUND_STRUCT:
     case TYPE_COMPOUND_UNION:
+        loc(pos);
         e->Copy(lhs, rhs, Code::Imm(types[ptr],get_ctype_size(ty)));
         return;
     }
 
     const Code::Type type = getCodeType(ty);
     Smop rhs2 = e->Convert(type,rhs);
+    loc(pos);
     e->Move(e->MakeMemory(type,lhs),rhs2);
 }
 
@@ -486,6 +536,9 @@ static void fetch_bitfield(expression_t const *const expr, Smop& val)
     assert(mem->kind == ENTITY_COMPOUND_MEMBER);
 
     if (mem->compound_member.bitfield) {
+
+        loc(expr->base.pos);
+
         const unsigned char w = getTypeWidth(mem->compound_member.base.type);
         const Code::Type nm = getCodeType(mem->compound_member.base.type);
         // align the bitfield to the msb of the underlying type
@@ -499,6 +552,8 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
 {
     if (expr->kind == EXPR_SELECT &&
             expr->select.compound_entry->compound_member.bitfield) {
+
+        loc(expr->base.pos);
 
         const Code::Type rty = rhs.type;
 
@@ -527,7 +582,7 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
         rhs = e->And(e->Convert(mty,rhs), r9);
         rhs = e->Or(rhs, rdi);
 
-        store(mem->compound_member.base.type, lhs, rhs);
+        store(mem->compound_member.base.type, lhs, rhs, expr->base.pos);
         return 1;
     }else
         return 0;
@@ -535,8 +590,10 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
 
 Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc, int returnOldVal )
 {
+    loc(expr->base.pos);
+
     Smop rhs = e->Move(lhs);
-    load(expr->base.type,rhs);
+    load(expr->base.type,rhs,expr->base.pos);
     fetch_bitfield(expr, rhs);
     Smop oldVal = returnOldVal ? e->Move(rhs) : rhs;
     int off = 1;
@@ -552,7 +609,7 @@ Smop prefix_inc_dec(expression_t const*const expr, const Smop& lhs, int inc, int
             fetch_bitfield(expr, oldVal);
         return oldVal;
     } else {
-        store(expr->base.type, lhs, rhs);
+        store(expr->base.type, lhs, rhs, expr->base.pos);
         if( !returnOldVal )
             oldVal = rhs;
         return oldVal;
@@ -665,18 +722,10 @@ static int getParamCount(function_type_t* fn)
     return res;
 }
 
-
 static void statement(statement_t *const stmt);
 
 static Smop expression(expression_t * expr)
 {
-#if 0
-#ifndef NDEBUG
-    assert(!expr->base.transformed);
-    ((expression_t*)expr)->base.transformed = true;
-    assert(!is_type_complex(skip_typeref(expr->base.type)));
-#endif
-#endif
     switch (expr->kind) {
     case EXPR_LITERAL_FLOATINGPOINT: {
         const double d = strtod(expr->literal.value->begin, 0);
@@ -706,25 +755,32 @@ static Smop expression(expression_t * expr)
         Smop lhs = expression(expr->binary.left);
         Code::Type type = getCodeType(expr->binary.left->base.type);
         Label lfalse = e->CreateLabel();
+        loc(expr->base.pos);
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,lhs));
         Smop rhs = expression(expr->binary.right);
         type = getCodeType(expr->binary.right->base.type);
+        loc(expr->base.pos);
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,rhs));
+        loc(expr->base.pos);
         return e->Set(lfalse,Code::Imm(types[s4],1),Code::Imm(types[s4],0));
     }
     case EXPR_BINARY_LOGICAL_OR: {
         Smop lhs = expression(expr->binary.left);
         Code::Type type = getCodeType(expr->binary.left->base.type);
         Label ltrue = e->CreateLabel();
+        loc(expr->base.pos);
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,lhs));
         Smop rhs = expression(expr->binary.right);
         type = getCodeType(expr->binary.right->base.type);
+        loc(expr->base.pos);
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,rhs));
+        loc(expr->base.pos);
         return e->Set(ltrue,Code::Imm(types[s4],0),Code::Imm(types[s4],1));
     }
     case EXPR_UNARY_COMPLEMENT: {
         Smop tmp = expression(expr->binary.left);
         const Code::Type type = getCodeType(expr->binary.left->base.type);
+        loc(expr->base.pos);
         tmp = e->Complement(e->Convert(type,tmp));
         return tmp;
     }
@@ -733,13 +789,16 @@ static Smop expression(expression_t * expr)
         const Code::Type type = getCodeType(expr->binary.left->base.type);
 
         Label label = e->CreateLabel();
+        loc(expr->base.pos);
         e->BranchEqual(label,Code::Imm(type,0),e->Convert(type,tmp));
+        loc(expr->base.pos);
         tmp = e->Set(label,Code::Imm(type,0), Code::Imm(type,1));
         return tmp;
     }
     case EXPR_UNARY_NEGATE: {
         Smop tmp = expression(expr->binary.left);
         const Code::Type type = getCodeType(expr->binary.left->base.type);
+        loc(expr->base.pos);
         return e->Negate(e->Convert(type,tmp));
     }
     case EXPR_UNARY_PLUS:
@@ -753,6 +812,7 @@ static Smop expression(expression_t * expr)
         const Code::Type type = getCodeType(expr->conditional.condition->base.type);
         Label lelse = e->CreateLabel();
         Label lend = e->CreateLabel();
+        loc(expr->base.pos);
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond));
         Smop res;
         Smop lhs = expression(expr->conditional.true_expression);
@@ -761,6 +821,7 @@ static Smop expression(expression_t * expr)
             res = e->MakeRegister(lhs);
             e->Fix(res);
         }
+        loc(expr->base.pos);
         e->Branch(lend);
         lelse();
         Smop rhs = expression(expr->conditional.false_expression);
@@ -770,6 +831,7 @@ static Smop expression(expression_t * expr)
             res = rhs;
         } else {
             rhs = e->Convert(res.type,rhs);
+            loc(expr->base.pos);
             e->Move(res,rhs);
             if( res.model == Code::Operand::Register )
                 e->Unfix(res);
@@ -786,12 +848,12 @@ static Smop expression(expression_t * expr)
     }
     case EXPR_UNARY_DEREFERENCE: {
         Smop tmp = expression(expr->unary.value);
-        load(expr->base.type, tmp);
+        load(expr->base.type, tmp,expr->base.pos);
         return tmp;
     }
     case EXPR_SELECT: {
         Smop tmp = lvalue(expr);
-        load(expr->select.compound_entry->declaration.type, tmp);
+        load(expr->select.compound_entry->declaration.type, tmp, expr->base.pos);
 
         fetch_bitfield(expr, tmp);
 
@@ -799,12 +861,12 @@ static Smop expression(expression_t * expr)
     }
     case EXPR_REFERENCE: {
         Smop tmp = lvalue(expr);
-        load(expr->reference.entity->declaration.type, tmp);
+        load(expr->reference.entity->declaration.type, tmp, expr->base.pos);
         return tmp;
     }
     case EXPR_ARRAY_ACCESS: {
         Smop tmp = lvalue(expr);
-        load(expr->base.type, tmp);
+        load(expr->base.type, tmp,expr->base.pos);
         return tmp;
     }
     case EXPR_STATEMENT: {
@@ -836,13 +898,14 @@ static Smop expression(expression_t * expr)
         if( expr->kind != EXPR_BINARY_ASSIGN )
         {
             Smop lhs2 = e->Move(lhs);
-            load(expr->binary.left->base.type,lhs2);
+            load(expr->binary.left->base.type,lhs2,expr->binary.left->base.pos);
             fetch_bitfield(expr->binary.left, lhs2);
             const int baseSize = scale_for_pointer_arith(expr->kind,lhs2,expr->binary.left->base.type,
                                     rhs, expr->binary.right->base.type);
             const Code::Type lhsT = getCodeType(expr->binary.left->base.type);
             rhs = e->Convert(lhsT,rhs);
             lhs2 = e->Convert(lhsT,lhs2);
+            loc(expr->base.pos);
             rhs = binary_ops(expr->kind,lhs2,rhs, baseSize);
         }
 
@@ -852,7 +915,8 @@ static Smop expression(expression_t * expr)
             // NOTE: not orig rhs shall be returned according to the standard, but what was actually stored in lhs!
             // gcc effectively seems to consider sign and mem->bit_width; see bitfield-immediate-assign.c
         } else {
-            store(expr->binary.left->base.type, lhs, rhs);
+            loc(expr->base.pos);
+            store(expr->binary.left->base.type, lhs, rhs, expr->binary.left->base.pos);
             return rhs;
         }     
     }
@@ -909,6 +973,7 @@ static Smop expression(expression_t * expr)
         Smop fun = expression(expr->call.function);
 
         Smop res;
+        loc(expr->base.pos);
         if( expr->call.return_buffer )
         {
             e->Call(fun,aligned_size);
@@ -987,6 +1052,7 @@ static Smop expression(expression_t * expr)
 
     const int baseSize = scale_for_pointer_arith(expr->kind,lhs,expr->binary.left->base.type,
                             rhs, expr->binary.right->base.type);
+    loc(expr->base.pos);
     return binary_ops(expr->kind,lhs,rhs,baseSize);
 }
 
@@ -1016,12 +1082,6 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
 
 static void statement(statement_t *const stmt)
 {
-#if 0
-#ifndef NDEBUG
-    assert(!stmt->base.transformed);
-    stmt->base.transformed = true;
-#endif
-#endif
     switch (stmt->kind) {
     case STATEMENT_COMPOUND:
         compound_statement_to_ir(&stmt->compound);
@@ -1033,6 +1093,7 @@ static void statement(statement_t *const stmt)
         {
             if( decl->kind == ENTITY_VARIABLE && decl->variable.is_local && decl->variable.initializer )
             {
+                loc(stmt->base.pos);
                 run_initializer(skip_typeref(decl->declaration.type), std::string(),
                                 decl->variable.offset, decl->variable.initializer);
             }
@@ -1063,37 +1124,40 @@ static void statement(statement_t *const stmt)
 
         const Code::Type cond_type = getCodeType(stmt->switchs.expression->base.type);
 
-        std::deque<Label> ll;
+        std::deque<Label> case_target_labels; // marks the statement to be executed when a case is hit
         for (case_label_statement_t *n = stmt->switchs.first_case; n; n = n->next) {
             if( n == stmt->switchs.default_label )
                 continue;
-            ll.push_back(e->CreateLabel());
-            n->target = &ll.back();
+            case_target_labels.push_back(e->CreateLabel());
+            n->target = &case_target_labels.back();
             if (n->first_case == n->last_case) {
-                e->BranchEqual(ll.back(),Code::Imm(cond_type,get_tarval_long(n->first_case)),
+                // normal case, there is only one value (n->first_case) for the case.
+                e->BranchEqual(case_target_labels.back(),Code::Imm(cond_type,get_tarval_long(n->first_case)),
                                e->Convert(cond_type,cond));
                 continue;
             }
 
-            // [GNU] Case ranges
+            // [GNU] Case ranges; special case
             cond = e->Convert(cond_type,cond);
             cond = e->Subtract(cond, Code::Imm(cond_type,get_tarval_long(n->first_case)));
-            e->BranchGreaterEqual(ll.back(),cond, Code::Imm(cond_type,
+            e->BranchGreaterEqual(case_target_labels.back(),cond, Code::Imm(cond_type,
                                  get_tarval_long(n->last_case) - get_tarval_long(n->first_case)));
         }
         cond = Smop(); // release register
 
         if (stmt->switchs.default_label)
         {
-            ll.push_back(e->CreateLabel());
-            stmt->switchs.default_label->target = &ll.back();
-            e->Branch(ll.back());
+            case_target_labels.push_back(e->CreateLabel());
+            stmt->switchs.default_label->target = &case_target_labels.back();
+            e->Branch(case_target_labels.back());
         }
 
-        clabels.push_back(e->CreateLabel());
-        e->Branch(clabels.back());
+        Label lbreak = e->CreateLabel();
+        break_target_labels.push_back(&lbreak);
+        e->Branch(lbreak);
         statement(stmt->switchs.body);
-        clabels.back()();
+        lbreak();
+        break_target_labels.pop_back();
         return;
     }
     case STATEMENT_CASE_LABEL: {
@@ -1106,9 +1170,9 @@ static void statement(statement_t *const stmt)
     case STATEMENT_DO_WHILE: {
         Label lbegin = e->CreateLabel();
         Label lbreak = e->CreateLabel();
-        breaks.push_back(&lbreak);
+        break_target_labels.push_back(&lbreak);
         Label lcont = e->CreateLabel();
-        continues.push_back(&lcont);
+        continue_target_label.push_back(&lcont);
         lbegin();
         statement(stmt->do_while.body);
         lcont();
@@ -1116,8 +1180,8 @@ static void statement(statement_t *const stmt)
         const Code::Type type = getCodeType(stmt->do_while.condition->base.type);
         e->BranchNotEqual(lbegin,Code::Imm(type,0),e->Convert(type,cond));
         lbreak();
-        breaks.pop_back();
-        continues.pop_back();
+        break_target_labels.pop_back();
+        continue_target_label.pop_back();
         return;
     }
     case STATEMENT_FOR: {
@@ -1125,9 +1189,9 @@ static void statement(statement_t *const stmt)
             expression(stmt->fors.initialisation);
         Label lbegin = e->CreateLabel();
         Label lbreak = e->CreateLabel();
-        breaks.push_back(&lbreak);
+        break_target_labels.push_back(&lbreak);
         Label lcont = e->CreateLabel();
-        continues.push_back(&lcont);
+        continue_target_label.push_back(&lcont);
         lbegin();
         if (stmt->fors.condition) {
             Smop cond = expression(stmt->fors.condition);
@@ -1140,16 +1204,18 @@ static void statement(statement_t *const stmt)
             expression(stmt->fors.step);
         e->Branch(lbegin);
         lbreak();
-        breaks.pop_back();
-        continues.pop_back();
+        break_target_labels.pop_back();
+        continue_target_label.pop_back();
         return;
     }
     case STATEMENT_BREAK: {
-        e->Branch(*breaks.back());
+        loc(stmt->base.pos);
+        e->Branch(*break_target_labels.back());
         return;
     }
     case STATEMENT_CONTINUE: {
-        e->Branch(*continues.back());
+        loc(stmt->base.pos);
+        e->Branch(*continue_target_label.back());
         return;
     }
     case STATEMENT_RETURN: {
@@ -1159,28 +1225,31 @@ static void statement(statement_t *const stmt)
             switch (type->kind) {
             case TYPE_COMPOUND_STRUCT:
             case TYPE_COMPOUND_UNION:
+                loc(stmt->base.pos);
                 copy_struct_mem(lhs);
                 break;
             case TYPE_VOID:
                 break;
             default: {
                 Code::Type lhsT = getCodeType(stmt->returns.value->base.type);
+                loc(stmt->base.pos);
                 e->Move (Code::Reg(lhsT, Code::RRes), e->Convert(lhsT,lhs));
                 break;
             }
             }
         }
-        assert( return_label != nullptr );
-        e->Branch(*return_label);
+        assert( end_of_function_label != nullptr );
+        loc(stmt->base.pos);
+        e->Branch(*end_of_function_label);
         return;
     }
     case STATEMENT_LABEL: {
         label_t* lbl = stmt->label.label;
         if(lbl->target == 0)
         {
-            clabels.push_back(e->CreateLabel());
-            lbl->target = &clabels.back();
-            clabels.back()();
+            goto_target_labels.push_back(e->CreateLabel());
+            lbl->target = &goto_target_labels.back();
+            goto_target_labels.back()();
         }else {
             Label* l = (Label*)lbl->target;
             (*l)();
@@ -1192,16 +1261,19 @@ static void statement(statement_t *const stmt)
         label_t* lbl = stmt->gotos.label;
         if(lbl->target == 0)
         {
-            clabels.push_back(e->CreateLabel());
-            lbl->target = &clabels.back();
-            e->Branch(clabels.back());
+            goto_target_labels.push_back(e->CreateLabel());
+            lbl->target = &goto_target_labels.back();
+            loc(stmt->base.pos);
+            e->Branch(goto_target_labels.back());
         }else {
             Label* l = (Label*)lbl->target;
+            loc(stmt->base.pos);
             e->Branch(*l);
         }
         return;
     }
     case STATEMENT_ASM: {
+        loc(stmt->base.pos);
         try {
             e->AssembleInlineCode(current_source_file,stmt->base.pos.lineno,stmt->asms.asm_text->begin);
         }catch(...) {}
@@ -1334,6 +1406,139 @@ static void assign_lvar_offsets(function_t *const function) {
     function->stack_size = align_to(bottom, target_stack_align());
 }
 
+static void print_type_decl(type_t* ty, bool type_section);
+
+static void print_member(entity_t* m)
+{
+    assert(m && m->kind == ENTITY_COMPOUND_MEMBER);
+
+    type_t* type = skip_typeref(m->declaration.type);
+    if( m->base.symbol == 0 && (is_type_compound(type)) )
+    {
+        // anonymous struct or union
+        for (entity_t *mem = type->compound.compound->members.first_entity;
+             mem != NULL; mem = type->compound.compound->base.next)
+        {
+            print_member(mem);
+        }
+        return;
+    }
+    if( m->base.symbol == 0 )
+    {
+        return; // anonymous member of basic type, apparently legal
+    }
+    std::string name(m->base.symbol->string);
+    if( m->compound_member.bitfield )
+    {
+        int64_t pat = 0;
+        for( int i = 0; i < m->compound_member.bit_size; i++ )
+        {
+            if( i != 0 )
+                pat <<= 1;
+            pat |=  1;
+        }
+        pat <<= m->compound_member.bit_offset;
+        e->DeclareField(name,m->compound_member.offset,Code::Imm(getCodeType(m->compound_member.base.type),pat));
+    }else
+        e->DeclareField(name,m->compound_member.offset,Code::Imm(types[ptr],0));
+    e->Locate(m->base.pos.input_name,ECS::Position(m->base.pos.lineno,m->base.pos.colno));
+    print_type_decl(type,false);
+}
+
+static void print_type_decl(type_t* ty, bool type_section)
+{
+    ty = skip_typeref(ty);
+    switch(ty->kind)
+    {
+    case TYPE_VOID:
+        e->DeclareVoid();
+        break;
+    case TYPE_ATOMIC:
+    case TYPE_ENUM:
+        e->DeclareType(std::string(ecsTypes[getTypeId(ty)].dbgname));
+        break;
+    case TYPE_POINTER:
+        e->DeclarePointer();
+        print_type_decl(ty->pointer.points_to,false);
+       break;
+    case TYPE_FUNCTION: {
+        Label ext = e->CreateLabel();
+        e->DeclareFunction(ext);
+        print_type_decl(ty->function.return_type,0);
+        function_parameter_t* param = ty->function.parameters;
+        while(param)
+        {
+            print_type_decl(param->type,false);
+            param = param->next;
+        }
+        ext();
+        break;
+    }
+    case TYPE_ARRAY:
+        e->DeclareArray(0,ty->array.size);
+        print_type_decl(ty->array.element_type,false);
+        break;
+    case TYPE_COMPOUND_STRUCT:
+    case TYPE_COMPOUND_UNION: {
+        if( type_section || ty->compound.compound->base.symbol == 0 )
+        {
+            Label ext = e->CreateLabel();
+            e->DeclareRecord(ext,get_ctype_size(ty));
+            for (entity_t *mem = ty->compound.compound->members.first_entity;
+                 mem != NULL; mem = ty->compound.compound->base.next)
+            {
+                print_member(mem);
+            }
+            ext();
+        }else
+        {
+            to_declare.insert(ty);
+            std::string name = rename2(&ty->compound.compound->base,false);
+            e->DeclareType(name);
+        }
+        break;
+    }
+    default:
+        assert(0);
+    }
+}
+
+static void print_var_name(entity_t *var)
+{
+    e->DeclareSymbol(*end_of_function_label,var->base.symbol->string,
+                     Code::Mem(types[ptr],Code::RFP, var->variable.offset));
+    e->Locate(var->base.pos.input_name,ECS::Position(
+                  var->base.pos.lineno,var->base.pos.colno));
+    print_type_decl(var->declaration.type,false);
+}
+
+static void print_local_variable_names2(entity_t *entity, entity_t * last, void* payload )
+{
+    entity_t * end = last != NULL ? last->base.next : NULL;
+    for (; entity != end; entity = entity->base.next) {
+        if ( entity->kind == ENTITY_VARIABLE && entity->variable.is_local ) {
+            print_var_name(entity);
+        }
+    }
+}
+
+static void print_local_variable_names(statement_t *stmt, void * payload)
+{
+    switch (stmt->kind) {
+    case STATEMENT_DECLARATION: {
+        const declaration_statement_t *const decl_stmt = &stmt->declaration;
+        print_local_variable_names2(decl_stmt->declarations_begin,
+                                        decl_stmt->declarations_end, payload);
+        break;
+    }
+    case STATEMENT_FOR:
+        print_local_variable_names2(stmt->fors.scope.first_entity, NULL, payload);
+        break;
+    default:
+        break;
+    }
+}
+
 static void create_function(function_t * function)
 {
     if (function->body == NULL)
@@ -1351,9 +1556,36 @@ static void create_function(function_t * function)
     // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
     e->Begin(Code::Section::Code, rename((entity_t*)function) );
 
-    clabels.clear();
+    type_t* ft = function->base.type;
+    assert(is_type_function(ft));
+
+    if( ft->function.return_type && ft->function.return_type->kind != TYPE_VOID )
+        return_type = skip_typeref(ft->function.return_type);
+
+    goto_target_labels.clear();
     Label lret = e->CreateLabel();
-    return_label = &lret;
+    end_of_function_label = &lret;
+
+    if( target.debug_info )
+    {
+        e->Locate(function->base.base.pos.input_name,ECS::Position(
+                      function->base.base.pos.lineno,function->base.base.pos.colno));
+        if( return_type )
+        {
+            if( return_type->kind != TYPE_VOID )
+                e->DeclareType(getCodeType(return_type));
+            else
+                e->DeclareVoid();
+        }else
+            e->DeclareVoid();
+        for (entity_t *parameter = function->parameters.first_entity;
+             parameter != NULL; parameter = parameter->base.next) {
+            if (parameter->kind != ENTITY_PARAMETER)
+                continue;
+            print_var_name(parameter);
+        }
+        walk_statements(function->body, print_local_variable_names, 0);
+    }
 
     const bool ismain = is_main((entity_t*)function);
 
@@ -1362,11 +1594,6 @@ static void create_function(function_t * function)
         e->Push(Code::Reg(types[fun],Code::RLink));
     e->Enter(function->stack_size);
 
-    type_t* ft = function->base.type;
-    assert(is_type_function(ft));
-
-    if( ft->function.return_type && ft->function.return_type->kind != TYPE_VOID )
-        return_type = skip_typeref(ft->function.return_type);
     if( ismain )
     {
         if( return_type && return_type->kind != TYPE_VOID &&
@@ -1416,8 +1643,8 @@ static void create_function(function_t * function)
         e->Call(Code::Adr(types[fun],"_Exit"),0);
     }else
         e->Return();
-    return_label = 0;
-    clabels.clear();
+    end_of_function_label = 0;
+    goto_target_labels.clear();
     return_type = 0;
 }
 
@@ -1598,12 +1825,12 @@ static void initialize_variable(entity_t * entity)
     if( entity->variable.is_local )
     {
         // add code right here
-        assert( return_label != 0 ); // this happens in a function
+        assert( end_of_function_label != 0 ); // this happens in a function
 
     }else
     {
         // initialize global or (local) static variable
-        assert( return_label == 0 ); // this cannot happen in a function
+        assert( end_of_function_label == 0 ); // this cannot happen in a function
         // we already called e->Begin(Code::Section::Data
         // just reserve space here and initialize it using an .initdata section (TODO: consider constant
         const std::string name = rename(entity);
@@ -1637,6 +1864,11 @@ static void initialize_variable(entity_t * entity)
                  false, // duplicable
                  false // replaceable
                  );
+        if( target.debug_info )
+        {
+            e->Locate(entity->base.pos.input_name,ECS::Position(entity->base.pos.lineno,entity->base.pos.colno));
+            e->DeclareVoid();
+        }
         run_initializer(type, name, 0, entity->variable.initializer);
     }
 }
@@ -1652,6 +1884,14 @@ static void allocate_variable(entity_t* entity)
              false, // duplicable
              false // replaceable
              );
+
+    if( target.debug_info )
+    {
+        e->Locate(entity->base.pos.input_name,
+                  ECS::Position(entity->base.pos.lineno,entity->base.pos.colno));
+        print_type_decl(entity->declaration.type, false);
+    }
+
     if( entity->variable.initializer )
     {
         initialize_variable(entity);
@@ -1821,6 +2061,33 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
             }else
                 e->AssembleCode(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
         }catch(...) {}
+    }
+
+    if( target.debug_info )
+    {
+        std::set<type_t*> done;
+        while( !to_declare.empty() )
+        {
+            // during print_type_decl now entries may be added to to_declare!
+            std::set<type_t*>::iterator i = to_declare.begin();
+            type_t* t = (*i);
+            to_declare.erase(i);
+            if( done.find(t) != done.end() )
+                continue;
+            done.insert(t);
+            assert(is_type_compound(t) && t->compound.compound->base.symbol != 0);
+            std::string name = rename2(&t->compound.compound->base,false);
+            e->Begin(Code::Section::TypeSection,name);
+            e->Locate(t->compound.compound->base.pos.input_name,
+                      ECS::Position(t->compound.compound->base.pos.lineno,
+                                    t->compound.compound->base.pos.colno));
+            print_type_decl(t,true);
+        }
+        for( int i = 0; i < ptr; i++ )
+        {
+            e->Begin(Code::Section::TypeSection,ecsTypes[i].dbgname);
+            e->DeclareType(types[i]);
+        }
     }
 
     e = 0;

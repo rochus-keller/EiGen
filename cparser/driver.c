@@ -43,7 +43,7 @@ void driver_add_flag(struct obstack *obst, const char *format, ...)
 		vsnprintf(buf, sizeof(buf), format, ap);
 	va_end(ap);
 
-	obstack_1grow(obst, ' ');
+    obstack_1grow(obst, '\t'); // RK orig was ' '
 #ifdef _WIN32
 	obstack_1grow(obst, '"');
 	obstack_grow(obst, buf, len);
@@ -321,6 +321,7 @@ compilation_unit_type_t autodetect_input(char const *const path)
 		streq(suffix, "h")   ? COMPILATION_UNIT_C                      :
         streq(suffix, "cod")  ? COMPILATION_UNIT_IR                     :
         streq(suffix, "obf")   ? COMPILATION_UNIT_OBJECT                 :
+        streq(suffix,"lib") ? COMPILATION_UNIT_LIBRARY                   :
         //streq(suffix, "so")  ? COMPILATION_UNIT_OBJECT                 :
         //streq(suffix, "s")   ? COMPILATION_UNIT_PREPROCESSED_ASSEMBLER :
 		COMPILATION_UNIT_OBJECT; /* gcc behavior: unknown file extension means

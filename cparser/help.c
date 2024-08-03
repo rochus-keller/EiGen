@@ -255,8 +255,9 @@ static void print_help_linker(void)
 	help_prefix("-l", "LIBRARY",            "Link with specified library");
 	help_prefix("-L", "DIR",                "Append to library search path");
 	help_simple("-s",                       "Do not produce symbol table and relocation information");
-	help_simple("-shared",                  "Produce a shared library");
-	help_simple("-static",                  "Produce statically linked binary");
+    help_simple("-ar or -lib",                      "Combine the binaries (*.obf) into an archive (*.lib)");
+    help_simple("-shared",                  "Produce a shared library");
+    help_simple("-static",                  "Produce statically linked binary");
 	help_simple("-nodefaultlibs",           "Do not link compiler default libraries");
 	help_simple("-nostartfiles",            "Do not link startup files");
 	help_simple("-nostdlib",                "Do not link default language library");

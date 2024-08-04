@@ -259,7 +259,7 @@ ir_tarval *get_mode_min(const ir_mode *mode)
         if( mode_is_signed(mode) )
             return new_signed(-maxValueOfSigned(get_mode_size_bits(mode))-1,mode);
         else
-            return 0;
+            return new_unsigned(0,mode);
     }
     return tarval_bad;
 }
@@ -448,10 +448,15 @@ ir_tarval *tarval_shrs(const ir_tarval *a, const ir_tarval *b)
 
 ir_tarval *tarval_shr_unsigned(const ir_tarval *a, unsigned b)
 {
-    return tarval_shr(a,b); // TODO
+    if( a->mode == 0 ||  mode_is_float(a->mode) )
+        return tarval_bad;
+    if( mode_is_signed(a->mode) )
+        return new_signed(a->l >> b,a->mode);
+    else
+        return new_unsigned(a->u >> b,a->mode);
 }
 
 ir_tarval *tarval_shrs_unsigned(const ir_tarval *a, unsigned b)
 {
-    return tarval_shr(a,b); // TODO
+    return tarval_shr_unsigned(a,b); // TODO
 }

@@ -16,6 +16,7 @@
 #include <set>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "layout.hpp"
 #include "cdemitter.hpp"
 #include "cdemittercontext.hpp"
@@ -216,6 +217,13 @@ static std::string rename2(entity_base_t* var,bool is_static)
 {
     std::string name = var->symbol->string;
     while( is_static && var && var->parent_entity && var->parent_entity->kind == ENTITY_FUNCTION ) {
+        if( var->parent_scope->depth > 2 ) // depth 2 is on function level
+        {
+            char buf[20];
+            sprintf(buf,"%p#",var->parent_scope );
+            char* p = &buf[2]; // get rid of "0x"
+            name = p + name;
+        }
         var = &var->parent_entity->base;
         name = std::string(var->symbol->string) + "#" + name;
     }
@@ -244,6 +252,15 @@ const char* file_name(const char* path)
         return pos+1;
 }
 
+static inline ECS::Position toPos(int line, int column)
+{
+#ifdef CPARSER_SUPPORT_COLUMNS
+    return ECS::Position(line, column);
+#else
+    return ECS::Position(line, 1);
+#endif
+}
+
 static void loc( const position_t& pos, bool force = false )
 {
     static const char* input_name = "";
@@ -251,12 +268,9 @@ static void loc( const position_t& pos, bool force = false )
 
     if( pos.input_name != input_name || pos.lineno != line_no || pos.colno != col_no || force )
     {
-        if( target.debug_info )
+        if( target.debug_info && end_of_function_label )
         {
-            if( end_of_function_label )
-                e->Break(pos.input_name,ECS::Position(pos.lineno,pos.colno));
-            else
-                e->Locate(pos.input_name,ECS::Position(pos.lineno,pos.colno));
+            e->Break(pos.input_name,toPos(pos.lineno,pos.colno));
         }//else
         {
             std::ostringstream s;
@@ -573,7 +587,7 @@ static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& 
 
         const uint64_t mask = ((1L << mem->compound_member.bit_size) - 1) << mem->compound_member.bit_offset;
         Smop r9;
-        if( is_type_signed(mem->compound_member.base.type)) {
+        if( mty.model == Code::Type::Signed ) { // renders false results: is_type_signed(mem->compound_member.base.type)) {
             r9 = Code::Imm(mty, ~mask);
         }else {
             const uint64_t mask2 = (((uint64_t(1) << ((get_ctype_size(mem->compound_member.base.type)-1)*8)) - 1) << 8) | 255;
@@ -1417,8 +1431,10 @@ static void print_member(entity_t* m)
     {
         // anonymous struct or union
         for (entity_t *mem = type->compound.compound->members.first_entity;
-             mem != NULL; mem = type->compound.compound->base.next)
+             mem != NULL; mem = mem->base.next)
         {
+            if (mem->kind != ENTITY_COMPOUND_MEMBER)
+                continue;
             print_member(mem);
         }
         return;
@@ -1430,7 +1446,7 @@ static void print_member(entity_t* m)
     std::string name(m->base.symbol->string);
     if( m->compound_member.bitfield )
     {
-        int64_t pat = 0;
+        uint64_t pat = 0;
         for( int i = 0; i < m->compound_member.bit_size; i++ )
         {
             if( i != 0 )
@@ -1438,10 +1454,11 @@ static void print_member(entity_t* m)
             pat |=  1;
         }
         pat <<= m->compound_member.bit_offset;
-        e->DeclareField(name,m->compound_member.offset,Code::Imm(getCodeType(m->compound_member.base.type),pat));
+        // Code::Type t = getCodeType(m->compound_member.base.type);
+        e->DeclareField(name,m->compound_member.offset,Code::Imm(types[ptr],pat));
     }else
         e->DeclareField(name,m->compound_member.offset,Code::Imm(types[ptr],0));
-    e->Locate(m->base.pos.input_name,ECS::Position(m->base.pos.lineno,m->base.pos.colno));
+    e->Locate(m->base.pos.input_name,toPos(m->base.pos.lineno,m->base.pos.colno));
     print_type_decl(type,false);
 }
 
@@ -1485,15 +1502,20 @@ static void print_type_decl(type_t* ty, bool type_section)
             Label ext = e->CreateLabel();
             e->DeclareRecord(ext,get_ctype_size(ty));
             for (entity_t *mem = ty->compound.compound->members.first_entity;
-                 mem != NULL; mem = ty->compound.compound->base.next)
+                 mem != NULL; mem = mem->base.next)
             {
+                if (mem->kind != ENTITY_COMPOUND_MEMBER)
+                    continue;
                 print_member(mem);
             }
             ext();
         }else
         {
             to_declare.insert(ty);
-            std::string name = rename2(&ty->compound.compound->base,false);
+            entity_base_t* base = &ty->compound.compound->base;
+            // only global entities have base->parent_entity != 0
+            // otherwise we have to scope
+            const std::string name = rename2(base,base->parent_entity != 0);
             e->DeclareType(name);
         }
         break;
@@ -1507,7 +1529,7 @@ static void print_var_name(entity_t *var)
 {
     e->DeclareSymbol(*end_of_function_label,var->base.symbol->string,
                      Code::Mem(types[ptr],Code::RFP, var->variable.offset));
-    e->Locate(var->base.pos.input_name,ECS::Position(
+    e->Locate(var->base.pos.input_name,toPos(
                   var->base.pos.lineno,var->base.pos.colno));
     print_type_decl(var->declaration.type,false);
 }
@@ -1568,7 +1590,7 @@ static void create_function(function_t * function)
 
     if( target.debug_info )
     {
-        e->Locate(function->base.base.pos.input_name,ECS::Position(
+        e->Locate(function->base.base.pos.input_name,toPos(
                       function->base.base.pos.lineno,function->base.base.pos.colno));
         if( return_type )
         {
@@ -1728,11 +1750,11 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
             entity_t* mem = get_compound_member_n(type->compound.compound,0);
             assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
             e->Move(to(getCodeType(mem->declaration.type),name,offset), expression(initializer->value.value));
-        }
-
-        //else if( type->kind == TYPE_COMPOUND_STRUCT )
-        //    run_initializer(type,name,offset,initializer->value);
-        else
+        }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
+            // a list of records is initialized as if it was a list of scalars
+            Smop v = expression(initializer->value.value);
+            e->Move(to(v.type,name,offset), v);
+        }else
             panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
         break;
     }
@@ -1866,7 +1888,7 @@ static void initialize_variable(entity_t * entity)
                  );
         if( target.debug_info )
         {
-            e->Locate(entity->base.pos.input_name,ECS::Position(entity->base.pos.lineno,entity->base.pos.colno));
+            e->Locate(entity->base.pos.input_name,toPos(entity->base.pos.lineno,entity->base.pos.colno));
             e->DeclareVoid();
         }
         run_initializer(type, name, 0, entity->variable.initializer);
@@ -1888,7 +1910,7 @@ static void allocate_variable(entity_t* entity)
     if( target.debug_info )
     {
         e->Locate(entity->base.pos.input_name,
-                  ECS::Position(entity->base.pos.lineno,entity->base.pos.colno));
+                  toPos(entity->base.pos.lineno,entity->base.pos.colno));
         print_type_decl(entity->declaration.type, false);
     }
 
@@ -2041,6 +2063,12 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
                  false, // duplicable
                  false // replaceable
                  );
+        if(target.debug_info) {
+            e->Locate(expr->compound_literal.initializer->base.pos.input_name,
+                      toPos(expr->compound_literal.initializer->base.pos.lineno,
+                            expr->compound_literal.initializer->base.pos.colno));
+            e->DeclareVoid();
+        }
         run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
     }
 
@@ -2076,10 +2104,11 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
                 continue;
             done.insert(t);
             assert(is_type_compound(t) && t->compound.compound->base.symbol != 0);
-            std::string name = rename2(&t->compound.compound->base,false);
+            std::string name = rename2(&t->compound.compound->base,
+                                       t->compound.compound->base.parent_entity != 0);
             e->Begin(Code::Section::TypeSection,name);
             e->Locate(t->compound.compound->base.pos.input_name,
-                      ECS::Position(t->compound.compound->base.pos.lineno,
+                      toPos(t->compound.compound->base.pos.lineno,
                                     t->compound.compound->base.pos.colno));
             print_type_decl(t,true);
         }

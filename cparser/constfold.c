@@ -983,7 +983,7 @@ bool folded_expression_is_negative(const expression_t *expression)
 long fold_expression_to_int(const expression_t *expression)
 {
 	ir_tarval *tv = fold_expression(expression);
-	if (!tarval_is_long(tv)) {
+    if (!mode_is_int(get_tarval_mode(tv))) {
         panic("result of constant folding is not integer");
 	}
 

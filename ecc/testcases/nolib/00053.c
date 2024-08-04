@@ -1,3 +1,5 @@
+struct T { int z; } s0;
+
 int
 main()
 {

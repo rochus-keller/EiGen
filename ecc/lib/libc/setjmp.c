@@ -11,7 +11,7 @@ asm(R"(
 	mov	ptr $sp, ptr [$0 + ptrsize * 0]
 	mov	ptr $fp, ptr [$0 + ptrsize * 1]
 	jump	fun [$0 + ptrsize * 2]
-	)")
+	)");
 
 
 asm(R"(
@@ -33,7 +33,7 @@ asm(R"(
 	#else
 		jump	fun $0
 	#endif
-	)")
+	)");
 #else
 
 void longjmp(jmp_buf __jmpb, int __retval)

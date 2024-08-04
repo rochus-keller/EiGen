@@ -61,8 +61,9 @@ static std::deque<Label*> break_target_labels, continue_target_label;
 static std::deque<Label> goto_target_labels;
 static Label* end_of_function_label = 0;
 static type_t* return_type = 0;
+static symbol_t* func_name = 0;
 static std::set<type_t*> to_declare;
-static std::unordered_map<std::string,string_t*> string_decls;
+static std::unordered_map<std::string,const char*> string_decls;
 static std::deque<expression_t*> compound_literal_decls;
 static std::deque<entity_t*> static_locals;
 static translation_unit_t* current_translation_unit = 0;
@@ -442,11 +443,11 @@ static int scale_for_pointer_arith(expression_kind_t op, Smop& lhs, type_t* lhsT
     int res = 0;
     if(lhsT->kind != TYPE_POINTER) {
         res = get_ctype_size(rhsT->pointer.points_to);
-        lhs = e->Multiply(lhs, Code::Imm(types[ptr],res));
+        lhs = e->Multiply(lhs, Code::Imm(lhs.type,res));
     }
     if(rhsT->kind != TYPE_POINTER) {
         res = get_ctype_size(lhsT->pointer.points_to);
-        rhs = e->Multiply(rhs, Code::Imm(types[ptr],res));
+        rhs = e->Multiply(rhs, Code::Imm(rhs.type,res));
     }
     if( res == 0 ) // apparently both sides are pointers
         res = get_ctype_size(rhsT->pointer.points_to);
@@ -757,7 +758,7 @@ static Smop expression(expression_t * expr)
         name.resize(10);
         name_hash(expr->string_literal.value->begin, &name[1], name.size()-1);
         name[0] = '.';
-        string_decls[name] = expr->string_literal.value;
+        string_decls[name] = expr->string_literal.value->begin;
         return Code::Adr(types[ptr],name);
     }
     case EXPR_ENUM_CONSTANT: {
@@ -1004,9 +1005,19 @@ static Smop expression(expression_t * expr)
 
         return res;
     }
+    case EXPR_FUNCNAME: {
+        const char* in = "";
+        if( func_name )
+            in = func_name->string;
+        std::string name;
+        name.resize(10);
+        name_hash(in, &name[1], name.size()-1);
+        name[0] = '.';
+        string_decls[name] = in;
+        return Code::Adr(types[ptr],name);
+    }
 
     case EXPR_LABEL_ADDRESS:
-    case EXPR_FUNCNAME: // expr->funcname, __func__
     case EXPR_VA_ARG:   // expr->va_arge
     case EXPR_VA_COPY:  // expr->va_copye
     case EXPR_VA_START: // expr->va_starte
@@ -1572,6 +1583,7 @@ static void create_function(function_t * function)
         return;
 
     return_type = 0;
+    func_name = ((entity_t*)function)->declaration.base.symbol;
 
     assign_lvar_offsets(function);
 
@@ -1668,6 +1680,7 @@ static void create_function(function_t * function)
     end_of_function_label = 0;
     goto_target_labels.clear();
     return_type = 0;
+    func_name = 0;
 }
 
 static bool declaration_is_definition(const entity_t *entity)
@@ -1744,12 +1757,13 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
     {
     case INITIALIZER_VALUE: {
         if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER ) {
-            //Smop to = name.empty() ? Code::Mem()
-            e->Move(to(getCodeType(type),name,offset), expression(initializer->value.value));
+            Smop v = expression(initializer->value.value);
+            e->Move(to(v.type,name,offset), v);
         }else if( type->kind == TYPE_COMPOUND_UNION ) {
             entity_t* mem = get_compound_member_n(type->compound.compound,0);
             assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
-            e->Move(to(getCodeType(mem->declaration.type),name,offset), expression(initializer->value.value));
+            Smop v = expression(initializer->value.value);
+            e->Move(to(v.type,name,offset), v);
         }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
             // a list of records is initialized as if it was a list of scalars
             Smop v = expression(initializer->value.value);
@@ -2029,15 +2043,15 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
                  true, // duplicable
                  false // replaceable
                  );
-        std::string str = (*i).second->begin;
+        std::string str = (*i).second;
         for( int j = 0; j < str.size(); j++ )
         {
             if( str[j] == '\n' || str[j] == '\r' )
                 str[j] = ' ';
         }
         e->Comment(str.c_str());
-        for( int j = 0; j <= (*i).second->size; j++ )
-            e->Define(Code::Imm(types[s1],(*i).second->begin[j]));
+        for( int j = 0; j <= str.size(); j++ )
+            e->Define(Code::Imm(types[s1],(*i).second[j]));
     }
 
     for( auto i = compound_literal_decls.begin(); i != compound_literal_decls.end(); ++i )

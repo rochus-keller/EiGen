@@ -266,6 +266,80 @@ static bool is_ILP(unsigned const size_int, unsigned const size_long, unsigned c
 		get_ctype_size(type_void_ptr)          == size_pointer;
 }
 
+static void define_macro(const char* key, const char* val)
+{
+    add_define(key,val,false);
+}
+
+static void add_target_macros()
+{
+    switch(target_data[target.target].architecture)
+    {
+    case Amd16:
+        define_macro("__AS386_16__", "1");
+        define_macro("__amd16__", "1");
+        // ?
+        break;
+    case Amd32:
+        define_macro("i386", "1");
+        define_macro("__i386__", "1");
+        define_macro("__i386", "1");
+        define_macro("_M_IX86", "1");
+        define_macro("__amd32__", "1");
+        break;
+    case Amd64:
+        define_macro("__amd64", "1");
+        define_macro("__amd64__", "1");
+        define_macro("__x86_64", "1");
+        define_macro("__x86_64__", "1");
+        define_macro("_M_X64", "1");
+        break;
+    case Arma32:
+        define_macro("__ARM_ARCH_7__", "1");
+        define_macro("__arm__", "1");
+        define_macro("__arma32__", "1");
+        break;
+    case Armt32:
+        define_macro("__ARM_ARCH_7__", "1");
+        define_macro("__arm__", "1");
+        define_macro("__armt32__", "1");
+        break;
+    case Arma64:
+        define_macro("_M_ARM64", "1");
+        define_macro("__aarch64__", "1");
+        break;
+    }
+
+    if( target.target >= AMD32Linux && target.target <= ARMT32FPELinux )
+    {
+        define_macro("__unix", "1");
+        define_macro("__unix__", "1");
+        define_macro("__linux", "1");
+        define_macro("__linux__", "1");
+        define_macro("linux", "1");
+        define_macro("unix", "1");
+        if( target.target == AMD64Linux || target.target == ARMA64Linux )
+           define_macro("_LP64", "1");
+    }else if( target.target == OSX32 || target.target == OSX64 )
+    {
+        define_macro("__APPLE__", "1");
+        if( target.target == OSX64 )
+           define_macro("_LP64", "1");
+    }else if( target.target == Win32 || target.target == Win64 )
+    {
+        define_macro("WIN32", "1");
+        define_macro("_WIN32", "1");
+        define_macro("__WIN32__", "1");
+        define_macro("__NT__", "1");
+        if( target.target == Win64 )
+        {
+            define_macro("WIN64", "1");
+            define_macro("_WIN64", "1");
+            define_macro("__WIN64__", "1");
+        }
+    }
+}
+
 void add_predefined_macros(void)
 {
 	add_define("__STDC__", "1", true);
@@ -466,15 +540,5 @@ void add_predefined_macros(void)
     add_define("__STACK_ALIGNMENT__", "4", false); // TODO
 
 	/* Add target specific defines */
-#if 0
-    // TODO RK
-	for (ir_platform_define_t const *define = ir_platform_define_first();
-		 define != NULL; define = ir_platform_define_next(define)) {
-		char const *const name = ir_platform_define_name(define);
-		if (name[0] != '_' && !dialect.gnu)
-			continue;
-		char const *const value = ir_platform_define_value(define);
-		add_define(name, value, false);
-	}
-#endif
+    add_target_macros();
 }

@@ -70,7 +70,7 @@ static Header *freep = NULL;  // Free list starting point
 static Header *morecore(unsigned nblocks);
 void kandr_free(void *ptr);
 
-void *malloc(unsigned nbytes) {
+void *malloc(size_t nbytes) {
 
   Header *currp;
   Header *prevp;

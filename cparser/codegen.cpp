@@ -178,7 +178,19 @@ static unsigned char getTypeWidth(type_t *ty) {
     return ecsTypes[ getTypeId(ty) ].width;
 }
 
-void name_hash(const char* path, char* buf, int buflen )
+uint32_t MurmurOAAT_32(const char* str, uint32_t h)
+{
+    // One-byte-at-a-time hash based on Murmur's mix
+    // Source: https://github.com/aappleby/smhasher/blob/master/src/Hashes.cpp
+    for (; *str; ++str) {
+        h ^= *str;
+        h *= 0x5bd1e995;
+        h ^= h >> 15;
+    }
+    return h;
+}
+
+void name_hash(const char* in, char* out, int outlen )
 {
     const char* code = "0123456789"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -186,21 +198,30 @@ void name_hash(const char* path, char* buf, int buflen )
             //"$_#.";
     const int codelen = strlen(code);
 
-    const int len = strlen(path);
+    const int inlen = strlen(in);
     int i;
-    buf[buflen] = 0;
-    for( i = 0; i < buflen; i++ )
-        buf[i] = '_';
-    for( i = 0; i < len; i++ )
+    out[outlen] = 0;
+    for( i = 0; i < outlen; i++ )
+        out[i] = '_';
+    if( inlen < outlen )
+        for( i = 0; i < inlen; i++ )
+        {
+            union { uint32_t h; char s[4]; };
+            h = MurmurOAAT_32(in+i,0x12345678);
+            for( int j = 0; j < 4; j++ )
+                out[(i+j) % outlen] ^= s[j];
+        }
+    else
+        for( i = 0; i < inlen; i++ )
+        {
+            const int j = i % outlen;
+            out[j] ^= in[i];
+        }
+    for( i = 0; i < outlen; i++ )
     {
-        const int j = i % buflen;
-        buf[j] ^= path[i];
-    }
-    for( i = 0; i < buflen; i++ )
-    {
-        const uint8_t ch = (uint8_t)buf[i];
+        const uint8_t ch = (uint8_t)out[i];
         char c = code[ch % codelen];
-        buf[i] = c;
+        out[i] = c;
     }
 }
 
@@ -1016,6 +1037,8 @@ static Smop expression(expression_t * expr)
         string_decls[name] = in;
         return Code::Adr(types[ptr],name);
     }
+    case EXPR_COMPOUND_LITERAL:
+        return lvalue(expr);
 
     case EXPR_LABEL_ADDRESS:
     case EXPR_VA_ARG:   // expr->va_arge
@@ -1897,7 +1920,7 @@ static void initialize_variable(entity_t * entity)
         e->Begin(Code::Section::InitData, name + "##init",
                  0,
                  true, // required
-                 false, // duplicable
+                 true, // duplicable
                  false // replaceable
                  );
         if( target.debug_info )
@@ -1917,8 +1940,8 @@ static void allocate_variable(entity_t* entity)
     e->Begin(Code::Section::Data, rename(entity),
              get_ctype_alignment(entity->variable.base.type),
              false, // required
-             false, // duplicable
-             false // replaceable
+             true, // duplicable
+             entity->variable.initializer == 0 // replaceable
              );
 
     if( target.debug_info )
@@ -2035,6 +2058,38 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
 
     scope_to_ir(&unit->scope);
 
+    for( auto i = compound_literal_decls.begin(); i != compound_literal_decls.end(); ++i )
+    {
+        expression_t* expr = (*i);
+        char buf[10];
+        sprintf(buf,"%d",expr->compound_literal.id);
+        const std::string name = file_hash() + buf;
+        e->Begin(Code::Section::Data, name,
+                 get_ctype_alignment(expr->compound_literal.type),
+                 false, // required
+                 true, // duplicable
+                 false // replaceable
+                 );
+        assert(expr->compound_literal.initializer);
+        e->Reserve(get_ctype_size(expr->compound_literal.type));
+        e->Require(name + "##init");
+
+        // .initdata name
+        e->Begin(Code::Section::InitData, name + "##init",
+                 0,
+                 true, // required
+                 true, // duplicable
+                 false // replaceable
+                 );
+        if(target.debug_info) {
+            e->Locate(expr->compound_literal.initializer->base.pos.input_name,
+                      toPos(expr->compound_literal.initializer->base.pos.lineno,
+                            expr->compound_literal.initializer->base.pos.colno));
+            e->DeclareVoid();
+        }
+        run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
+    }
+
     for( auto i = string_decls.begin(); i != string_decls.end(); ++i )
     {
         e->Begin(Code::Section::Data, (*i).first,
@@ -2052,38 +2107,6 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
         e->Comment(str.c_str());
         for( int j = 0; j <= str.size(); j++ )
             e->Define(Code::Imm(types[s1],(*i).second[j]));
-    }
-
-    for( auto i = compound_literal_decls.begin(); i != compound_literal_decls.end(); ++i )
-    {
-        expression_t* expr = (*i);
-        char buf[10];
-        sprintf(buf,"%d",expr->compound_literal.id);
-        const std::string name = file_hash() + buf;
-        e->Begin(Code::Section::Data, name,
-                 get_ctype_alignment(expr->compound_literal.type),
-                 false, // required
-                 false, // duplicable
-                 false // replaceable
-                 );
-        assert(expr->compound_literal.initializer);
-        e->Reserve(get_ctype_size(expr->compound_literal.type));
-        e->Require(name + "##init");
-
-        // .initdata name
-        e->Begin(Code::Section::InitData, name + "##init",
-                 0,
-                 true, // required
-                 false, // duplicable
-                 false // replaceable
-                 );
-        if(target.debug_info) {
-            e->Locate(expr->compound_literal.initializer->base.pos.input_name,
-                      toPos(expr->compound_literal.initializer->base.pos.lineno,
-                            expr->compound_literal.initializer->base.pos.colno));
-            e->DeclareVoid();
-        }
-        run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
     }
 
     for( auto i = static_locals.begin(); i != static_locals.end(); ++i )

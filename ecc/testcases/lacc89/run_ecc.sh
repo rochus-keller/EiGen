@@ -3,6 +3,6 @@
 for t in *.c
 do
     echo "*** compiling $t"
-    ./compiler $t -I../../include libc.lib -L../../../runtime -o ${t%.*}
+    ./compiler $t -w -I../../include libc.lib -L../../../runtime -o ${t%.*}
     ./${t%.*}; echo $?
 done

@@ -1070,7 +1070,8 @@ static bool pop_expansion(void)
 
 	if (definition->is_parameter) {
 		pp_definition_t *function = definition->function_definition;
-		function->may_recurse = false;
+        if( function )
+            function->may_recurse = false;
 
 		/* stop further expanding once we expanded a parameter used in a
 		 * sub macro-call */
@@ -1208,7 +1209,8 @@ static void start_object_macro_expansion(pp_definition_t *definition)
 	expansion->previous_may_recurse  = definition->may_recurse;
 	definition->is_expanding         = true;
 	if (definition->is_parameter) {
-		definition->function_definition->may_recurse = true;
+        if( definition->function_definition )
+            definition->function_definition->may_recurse = true;
 		/* Special case: do not expand/return the last token in the list yet
 		 * if we are in front of an outer '##' token, the concat code will
 		 * handle it. */

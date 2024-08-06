@@ -32,7 +32,7 @@ extern void GC_free(void *);
 extern void * GC_malloc(size_t /* size_in_bytes */);
 
 #ifdef __ECS_C__
-#include <sys/linuxlib.hpp>
+#include <eigen/lib_adapter.h>
 
 LIBRARY(libgc, "libgc.so");
 FUNCTION(libgc, GC_malloc, 1);

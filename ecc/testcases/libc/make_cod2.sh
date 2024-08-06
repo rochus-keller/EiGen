@@ -4,6 +4,6 @@
 
 for t in *.c
 do
-    echo "compiling $t"
-    ./compiler -S  $t  -I../../include
+    echo "compiling $t" 
+    ./compiler -g -S  $t  -I../../include
 done

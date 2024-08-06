@@ -1,25 +1,16 @@
 # Author: Rochus Keller, 2024
 
-#./compiler ./lib/libc.c -I../../include -c
-./compiler ./lib/libc.c -I../../include -lib -w -o libc.lib
+flags="-g -w"
 
-declare -i count=0
-declare -i succs=0
+./compiler $(readlink -m ./lib/libc.c) -I../../include $flags -c 
+./compiler $(readlink -m ../../../runtime/runtime.c) -I../../include $flags -c
+./compiler libc.obf runtime.obf -lib $flags -o libc.lib
 
 for t in *.c
 do
     echo "compiling $t"
-	count+=1
-    #./compiler $t -I../../include -c
-    #./compiler ${t%.*}.obf lib/libc.obf -L/home/me/Programme/ecs/lib/ecs/runtime -o ${t%.*}
-    ./compiler $t -w -I../../include libc.lib -L/home/me/Programme/ecs/lib/ecs/runtime -o ${t%.*}
-    ./${t%.*}
-    if [ $? -eq 0 ]; then
-		echo 0
-		succs+=1
-	else
-		echo $? "#error"
-	fi 
+    ./compiler $(readlink -m $t) $flags -I../../include libc.lib -L../../../runtime -o ${t%.*}
+    ./${t%.*}; echo $?
 done
 
-echo "result: $succs of $count succeeded"
+

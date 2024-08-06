@@ -197,7 +197,7 @@ void run_linker(compilation_unit_t* inputs, const char *output)
         std::string lib = target_data[target.target].name;
         lib += "run.obf";
         libs.push_back(lib);
-#if 1
+#if 0
         // apparently not required, but includes things like floor, sqrt, putchar etc.
         lib = target_data[target.target].backend;
         lib += "run.obf";

@@ -1,9 +1,7 @@
 #include <stddef.h>
 #include <stdarg.h>
-//#include <lib_adapter.h>
-
-extern int putchar(int);
-extern void* malloc(size_t _size);
+#include <stdlib.h>
+#include <eigen/lib_adapter.h>
 
 static size_t __printstr(const char* str)
 {
@@ -147,15 +145,6 @@ char * strrchr(const char* s, int i)
   return (char *) last;
 }
 
-void *calloc(size_t n, size_t s)
-{
-	const int m = n*s;
-	char* res = malloc(m);
-	for( int i = 0; i < m; i++ )
-		res[i] = 0;
-	return res;
-}
-
 static void reverse(char str[], int length)
 {
     int start = 0;
@@ -180,7 +169,7 @@ int myitoa(int num, char* str, int base)
     if (num == 0) {
         str[i++] = '0';
         str[i] = '\0';
-        return str;
+        return 1;
     }
  
     // In standard itoa(), negative numbers are handled
@@ -300,9 +289,19 @@ int printf(const char* fmt, ... )
     return length;
 }
 
-int ceil( float f )
+double ceil( double f )
 {
 	return f + 1.0;
+}
+
+double floor( double f )
+{
+	return f;
+}
+
+void _Exit(int code)
+{
+	exit(code);
 }
 
 // source: https://github.com/EigenCompilerSuite/sources/blob/master/libraries/cpp/csetjmp.cpp
@@ -338,11 +337,25 @@ asm (R"(
 	#endif
 	)");
 
-#if 0
-// TODO: these crash, stdio and FILE not compatible with ECS runtime
-FUNCTION(libc,getc,1)
-FUNCTION(libc,putc,2)
-// this works:
-FUNCTION(libc,rand,0)
+#if defined(__unix__) || defined(__linux__)
+LIBRARY(libc, "libc.so.6");
+#elif defined(__APPLE__)
+LIBRARY(libc, "/usr/lib/libSystem.B.dylib");
+#else
+#error "no libc available for given OS"
 #endif
+FUNCTION(libc, malloc, 1);
+FUNCTION(libc, calloc, 1);
+FUNCTION(libc, realloc, 2);
+FUNCTION(libc, free, 2);
+FUNCTION(libc, rand,0);
+FUNCTION(libc, putchar,1);
+FUNCTION(libc, exit,1);
+FUNCTION(libc, strcmp, 2);
+FUNCTION(libc, fopen, 2);
+FUNCTION(libc, fgetc, 1);
+FUNCTION(libc, fwrite, 4);
+FUNCTION(libc, fread, 4);
+FUNCTION(libc, fclose, 1);
+
 

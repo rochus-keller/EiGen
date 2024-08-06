@@ -293,6 +293,8 @@ static void loc( const position_t& pos, bool force = false )
         if( target.debug_info && end_of_function_label )
         {
             e->Break(pos.input_name,toPos(pos.lineno,pos.colno));
+            // NOTE that pos.input_name is either an absolute or relative path, depending on what
+            // is fed to the compiler.
         }//else
         {
             std::ostringstream s;

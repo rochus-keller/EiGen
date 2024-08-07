@@ -344,6 +344,15 @@ let test ! : Executable {
         ]
 }
 
+let test2 ! : Executable {
+    .deps += [ libm libc ]
+    .configs += config;
+    .sources += [
+        ../testcases/lacc89/vararg-float.c
+        ../../runtime/runtime.c
+        ]
+}
+
 let lua ! : Executable {
     .deps += [ libm libc ]
     .configs += config;

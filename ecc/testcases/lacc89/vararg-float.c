@@ -12,6 +12,7 @@ int foo(float a, double b, ...) {
 	e = va_arg(args, double);
 
 	printf("a = %f, b = %f, c = %f, d = %f, e = %f\n", a, b, c, d, e);
+    // expect: a = 3.140000, b = 2.710000, c = 4.900000, d = 90.000000, e = 3.140000
 
 	va_end(args);
 	return d;

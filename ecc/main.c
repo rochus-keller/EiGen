@@ -386,6 +386,7 @@ static void parse_args(int argc, char **argv) {
       hashmap_test();
       exit(0);
     }
+#endif
 
     // These options are ignored for now.
     if (!strncmp(argv[i], "-O", 2) ||
@@ -401,7 +402,6 @@ static void parse_args(int argc, char **argv) {
         !strcmp(argv[i], "-mno-red-zone") ||
         !strcmp(argv[i], "-w"))
       continue;
-#endif
 
     if (argv[i][0] == '-' && argv[i][1] != '\0')
       error("unknown argument: %s", argv[i]);

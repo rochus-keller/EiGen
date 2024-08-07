@@ -35,7 +35,11 @@ extern "C" {
 #include "walk.h"
 #include "libfirm/tv.h"
 #include "constfold.h"
+#include "types.h"
 }
+
+// TODO
+#define __ECS_DUPLICATE_ISSUE__
 
 class MyEmitter : public Code::Emitter
 {
@@ -325,6 +329,7 @@ static Smop var_address(entity_t* var)
 }
 
 static Smop expression(expression_t * expr);
+static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer);
 
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
@@ -372,12 +377,19 @@ static Smop lvalue(expression_t * expr) {
         }
         break;
     case EXPR_COMPOUND_LITERAL:  {
-        assert( expr->compound_literal.id == 0 );
-        compound_literal_decls.push_back(expr);
-        expr->compound_literal.id = compound_literal_decls.size();
-        char buf[10];
-        sprintf(buf,"%d",expr->compound_literal.id);
-        return Code::Adr(types[ptr],file_hash() + buf );
+        if( expr->compound_literal.global_scope ) {
+            assert( expr->compound_literal.id == 0 );
+            compound_literal_decls.push_back(expr);
+            expr->compound_literal.id = compound_literal_decls.size();
+            char buf[10];
+            sprintf(buf,"%d",expr->compound_literal.id);
+            return Code::Adr(types[ptr],file_hash() + buf );
+        }else
+        {
+            run_initializer(skip_typeref(expr->compound_literal.type), "",
+                            expr->compound_literal.id, expr->compound_literal.initializer);
+            return (Code::Reg(types[ptr],Code::RFP, expr->compound_literal.id));
+        }
     }
 
     }
@@ -695,26 +707,29 @@ static int push_args2(call_argument_t *args, int param_count) {
         break;
     default:
 #if 0
-        // TODO do we still need that in cparser?
-        if( param_count <= 0 )
+        // NOTE: this no longer seems to be necessary with cparser
+        if( param_count <= 0 && ty->kind == TYPE_ATOMIC )
         {
             // this is one of the variable arguments
-            switch(ty->kind)
+            switch(ty->atomic.akind)
             {
-            case TY_CHAR:
-            case TY_BOOL:
-            case TY_SHORT: {
-                Type* to;
-                if( ty->is_unsigned )
-                    to = basic_utype(TY_INT);
+            case ATOMIC_TYPE_BOOL:
+            case ATOMIC_TYPE_CHAR:
+            case ATOMIC_TYPE_SCHAR:
+            case ATOMIC_TYPE_UCHAR:
+            case ATOMIC_TYPE_SHORT:
+            case ATOMIC_TYPE_USHORT: {
+                type_t* to;
+                if( is_type_signed(ty) )
+                    to = type_int;
                 else
-                    to = basic_type(TY_INT);
+                    to = type_unsigned_int;
                 cast(ty,to, arg);
                 ty = to;
                 break;
             }
-            case TY_FLOAT: {
-                Type* to = basic_type(TY_DOUBLE);
+            case ATOMIC_TYPE_FLOAT: {
+                type_t* to = type_double;
                 cast(ty,to, arg);
                 ty = to;
                 break;
@@ -770,9 +785,14 @@ static Smop expression(expression_t * expr)
         return Code::FImm(getCodeType(expr->base.type),d);
     }
     case EXPR_LITERAL_INTEGER: {
-        long long i;
-        sscanf(expr->literal.value->begin,"%lld", &i);
-        return Code::Imm(getCodeType(expr->base.type),i);
+        type_t* type = skip_typeref(expr->base.type);
+        if( is_type_signed(type) ) {
+            if( get_ctype_size(type) <= 4 )
+                return Code::Imm(getCodeType(expr->base.type),strtol(expr->literal.value->begin,0,0));
+            else
+                return Code::Imm(getCodeType(expr->base.type),strtoll(expr->literal.value->begin,0,0));
+        } else
+            return Code::UImm(getCodeType(expr->base.type),strtoull(expr->literal.value->begin,0,0));
     }
     case EXPR_LITERAL_CHARACTER:
         return Code::Imm(getCodeType(expr->base.type),expr->string_literal.value->begin[0]);
@@ -1128,8 +1148,6 @@ static void copy_struct_mem(const Smop& reg) {
             reg,Code::Imm(types[ptr],get_ctype_size(return_type)));
 }
 
-static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer);
-
 static void statement(statement_t *const stmt)
 {
     switch (stmt->kind) {
@@ -1376,6 +1394,20 @@ static void assign_local_variable_offsets2(entity_t *entity, entity_t * last, vo
     }
 }
 
+static void assign_compound_literal_offsets(expression_t* expr, void *payload)
+{
+    int* bottom = (int*)payload;
+
+    if( expr->kind == EXPR_COMPOUND_LITERAL && !expr->compound_literal.global_scope )
+    {
+        type_t *type = skip_typeref(expr->compound_literal.type);
+
+        *bottom += get_ctype_size(type);
+        *bottom = align_to(*bottom, get_ctype_alignment(type));
+        expr->compound_literal.id = -(*bottom);
+    }
+}
+
 static void assign_local_variable_offsets(statement_t *stmt, void * payload)
 {
     // TODO: check for return_buffers and possible lhs entities to avoid copying
@@ -1438,7 +1470,8 @@ static void assign_lvar_offsets(function_t *const function) {
     }
 
     // Assign offsets to local variables.
-    walk_statements(function->body, assign_local_variable_offsets, &bottom);
+    walk_statements_and_expressions(function->body, assign_local_variable_offsets,
+                                    assign_compound_literal_offsets, &bottom);
 
     // provide for storage space for union/struct return types
     return_buffer_t* return_buffer = function->return_buffers;
@@ -1551,7 +1584,11 @@ static void print_type_decl(type_t* ty, bool type_section)
             entity_base_t* base = &ty->compound.compound->base;
             // only global entities have base->parent_entity != 0
             // otherwise we have to scope
+#ifdef __ECS_DUPLICATE_ISSUE__
+            const std::string name = rename2(base,1);
+#else
             const std::string name = rename2(base,base->parent_entity != 0);
+#endif
             e->DeclareType(name);
         }
         break;
@@ -1946,15 +1983,25 @@ static void allocate_variable(entity_t* entity)
              entity->variable.initializer == 0 // replaceable
              );
 
+#ifndef __ECS_DUPLICATE_ISSUE__
     if( target.debug_info )
     {
         e->Locate(entity->base.pos.input_name,
                   toPos(entity->base.pos.lineno,entity->base.pos.colno));
         print_type_decl(entity->declaration.type, false);
     }
+#endif
 
     if( entity->variable.initializer )
     {
+#ifdef __ECS_DUPLICATE_ISSUE__
+        if( target.debug_info )
+        {
+            e->Locate(entity->base.pos.input_name,
+                      toPos(entity->base.pos.lineno,entity->base.pos.colno));
+            print_type_decl(entity->declaration.type, false);
+        }
+#endif
         initialize_variable(entity);
     }else
     {
@@ -2144,7 +2191,11 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
             done.insert(t);
             assert(is_type_compound(t) && t->compound.compound->base.symbol != 0);
             std::string name = rename2(&t->compound.compound->base,
+#ifdef __ECS_DUPLICATE_ISSUE__
+                                       1);
+#else
                                        t->compound.compound->base.parent_entity != 0);
+#endif
             e->Begin(Code::Section::TypeSection,name);
             e->Locate(t->compound.compound->base.pos.input_name,
                       toPos(t->compound.compound->base.pos.lineno,

@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv) {
 
-    printf("Hello!\n");
+    printf("Hello %f!\n", 3.14159);
 
     int i, n;
     

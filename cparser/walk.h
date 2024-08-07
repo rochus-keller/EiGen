@@ -18,5 +18,6 @@ void walk_translation_unit(translation_unit_t *unit,
 						   void *env);
 
 void walk_statements(statement_t*, statement_callback, void *env);
+void walk_statements_and_expressions(statement_t*, statement_callback, expression_callback, void *env);
 
 #endif

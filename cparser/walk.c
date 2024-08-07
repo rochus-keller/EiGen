@@ -407,3 +407,12 @@ void walk_statements(statement_t *statement, statement_callback func, void *env)
 	walk_statement(statement, &walk_env);
 	del_pset(walk_env.visited_types);
 }
+
+void walk_statements_and_expressions(statement_t * statement, statement_callback f1, expression_callback f2, void *env)
+{
+    walk_env_t walk_env
+        = { pset_new_ptr_default(),
+            null_declaration_func, f1, f2, env };
+    walk_statement(statement, &walk_env);
+    del_pset(walk_env.visited_types);
+}

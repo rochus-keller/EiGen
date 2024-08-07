@@ -1,6 +1,6 @@
 # Author: Rochus Keller, 2024
 
-flags="-w"
+flags="-g -w"
 
 for t in libm/*.c
 do

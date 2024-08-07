@@ -139,11 +139,14 @@ int get_tarval_highest_bit(const ir_tarval *tv)
 ir_tarval *new_tarval_from_str(const char *str, size_t len, ir_mode *mode)
 {
     if( mode_is_float(mode) )
-        return new_float(atof(str), mode);
-    //if( mode_is_signed(mode) )
-        return new_signed(strtol(str,0,0), mode);
-    //return
-    //    new_unsigned(strtol(str,0,0), mode);
+        return new_float(strtod(str,0), mode);
+    if( mode_is_signed(mode) ) {
+        if( get_mode_size_bytes(mode) <= 4 )
+            return new_signed(strtol(str,0,0), mode);
+        else
+            return new_signed(strtoll(str,0,0), mode);
+    }else
+        return new_unsigned(strtoull(str,0,0), mode);
 }
 
 ir_tarval *new_tarval_from_long(long l, ir_mode *mode)

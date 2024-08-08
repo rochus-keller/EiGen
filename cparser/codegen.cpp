@@ -414,9 +414,15 @@ static void load(type_t * ty, Smop& tmp, const position_t& pos) {
     }
 
 #if 1
-    if( ty->kind == TYPE_POINTER && ty->pointer.replacemen_of != 0 &&
-            ( ty->pointer.replacemen_of->kind == TYPE_ARRAY || ty->pointer.replacemen_of->kind == TYPE_FUNCTION) )
-        return; // not really a pointer, but actually an array or function
+    if( ty->kind == TYPE_POINTER && ty->pointer.replacemen_of != 0 ) {
+        type_t* t = skip_typeref(ty->pointer.replacemen_of);
+        if( t->kind == TYPE_ARRAY)
+            return; // not really a pointer, but actually an array
+        if( t->kind == TYPE_FUNCTION ) {
+            tmp = e->Convert(types[fun], tmp);
+            return; // actually or function
+        }
+    }
 #endif
 
     loc(pos);
@@ -797,6 +803,7 @@ static Smop expression(expression_t * expr)
     case EXPR_LITERAL_CHARACTER:
         return Code::Imm(getCodeType(expr->base.type),expr->string_literal.value->begin[0]);
     case EXPR_STRING_LITERAL: {
+        // NOTE: the type of a EXPR_STRING_LITERAL is POINTER TO CHAR
         std::string name;
         name.resize(10);
         name_hash(expr->string_literal.value->begin, &name[1], name.size()-1);
@@ -1028,23 +1035,24 @@ static Smop expression(expression_t * expr)
         }
 
         const int aligned_size = push_args(expr,getParamCount(function_type));
-        Smop fun = expression(expr->call.function);
+        Smop f = expression(expr->call.function);
+        f = e->Convert(types[fun],f);
 
         Smop res;
         loc(expr->base.pos);
         if( expr->call.return_buffer )
         {
-            e->Call(fun,aligned_size);
+            e->Call(f,aligned_size);
             if( expr->call.return_buffer->lhs )
                 res = var_address(expr->call.return_buffer->lhs);
             else
                 res = Code::Reg(types[ptr], Code::RFP,expr->call.return_buffer->offset);
         }else if( ret )
         {
-            res = e->Call(getCodeType(ret), fun,aligned_size);
+            res = e->Call(getCodeType(ret), f,aligned_size);
 
         }else
-            e->Call(fun,aligned_size);
+            e->Call(f,aligned_size);
 
         return res;
     }
@@ -1783,15 +1791,90 @@ static bool is_decl_necessary(entity_t const *const entity)
          (decl->storage_class != STORAGE_CLASS_STATIC || decl->modifiers & DM_USED));
 }
 
-static entity_t* get_compound_member_n(compound_t* compound, int n)
+static std::pair<entity_t*,int> find_next_member_imp(bool lhs_is_compound, type_t* compound, entity_t *cur, bool& active)
 {
-    int i = 0;
-    for (entity_t *mem = compound->members.first_entity; mem != NULL; mem = mem->base.next, i++)
+    assert(is_type_compound(compound));
+    if( cur == 0 )
+        active = true;
+    for(entity_t *mem = compound->compound.compound->members.first_entity; mem != NULL; mem = mem->base.next)
     {
-        if( i == n )
+        if (mem->kind != ENTITY_COMPOUND_MEMBER)
+            continue;
+        if( mem == cur )
+        {
+            active = true;
+            if( compound->kind == TYPE_COMPOUND_UNION )
+                return std::pair<entity_t*,int>(0,0); // we only want to see the first element of a union
+            continue;
+        }
+        type_t* memtype = skip_typeref(mem->declaration.type);
+        if( active && mem->base.symbol != 0 && ( !is_type_compound(memtype) || lhs_is_compound ) )
+            return std::pair<entity_t*,int>(mem,0);
+        if( is_type_compound(memtype) )
+        {
+            std::pair<entity_t*,int> mem2 = find_next_member_imp(lhs_is_compound, memtype, cur, active);
+            if( mem2.first )
+                return std::pair<entity_t*,int>(mem2.first, mem2.second + mem->compound_member.offset);
+        }
+    }
+    return std::pair<entity_t*,int>(0,0);
+}
+
+static std::pair<entity_t*,int> find_next_member(bool lhs_is_compound, type_t* compound, entity_t *cur)
+{
+    bool active = false;
+    return find_next_member_imp(lhs_is_compound, compound, cur, active);
+}
+
+#ifdef ECS_MEMBER_BY_INDEX
+static entity_t* find_member_by_idx_imp(compound_t* compound, int n, int& i)
+{
+    for(entity_t *mem = compound->members.first_entity; mem != NULL; mem = mem->base.next)
+    {
+        if (mem->kind != ENTITY_COMPOUND_MEMBER)
+            continue;
+        type_t* memtype = skip_typeref(mem->declaration.type);
+        if( i == n && mem->base.symbol != 0 && !is_type_compound(memtype) )
             return mem;
+        if( is_type_compound(memtype) )
+        {
+            entity_t *mem2 = find_member_by_idx_imp(memtype->compound.compound, n, i);
+            if( mem2 )
+                return mem2;
+        }
+        if( mem->base.symbol != 0 && !is_type_compound(memtype) )
+            i++; // only count passing valid candidates
     }
     return 0;
+}
+
+static entity_t* find_member_by_idx(compound_t* compound, int n)
+{
+    int i = 0;
+    return find_member_by_idx_imp(compound, n, i);
+}
+#endif
+
+std::pair<entity_t*,int> find_member_by_name(compound_t *compound, symbol_t *symbol)
+{
+    for (entity_t *iter = compound->members.first_entity; iter != NULL;
+         iter = iter->base.next) {
+        if (iter->kind != ENTITY_COMPOUND_MEMBER)
+            continue;
+
+        if (iter->base.symbol == symbol) {
+            return std::pair<entity_t*,int>(iter,0);
+        } else if (iter->base.symbol == NULL) {
+            /* search in anonymous structs and unions */
+            type_t *type = skip_typeref(iter->declaration.type);
+            if (is_type_compound(type)) {
+                std::pair<entity_t*,int> iter2 = find_member_by_name(type->compound.compound, symbol);
+                if( iter2.first )
+                    return std::pair<entity_t*,int>(iter2.first,iter2.second + iter->compound_member.offset);
+            }
+        }
+    }
+    return std::pair<entity_t*,int>(0,0);
 }
 
 static int get_idx_of_member(compound_t* compound, entity_t* m)
@@ -1818,34 +1901,44 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
     switch(initializer->kind)
     {
     case INITIALIZER_VALUE: {
+        // a single expression can initialize a scalar, an char array or a struct/union
         if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER ) {
+            // NOTE char str[] = "..."; is handled in INITIALIZER_STRING
             Smop v = expression(initializer->value.value);
             e->Move(to(v.type,name,offset), v);
         }else if( type->kind == TYPE_COMPOUND_UNION ) {
-            entity_t* mem = get_compound_member_n(type->compound.compound,0);
-            assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+            std::pair<entity_t*,int> mem = find_member_by_name(type->compound.compound,0);
+            assert(mem.first && mem.first->kind == ENTITY_COMPOUND_MEMBER);
             Smop v = expression(initializer->value.value);
-            e->Move(to(v.type,name,offset), v);
+            e->Move(to(v.type,name,offset + mem.first->compound_member.offset + mem.second), v);
         }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
-            // a list of records is initialized as if it was a list of scalars
-            Smop v = expression(initializer->value.value);
-            e->Move(to(v.type,name,offset), v);
+            // a single expression that has compatible structure or union type, e.g. *struct_ptr
+            Smop rhs = expression(initializer->value.value);
+
+            store(type, to(rhs.type,name,offset), rhs, initializer->base.pos);
+            // instead of e->Move(to(v.type,name,offset), v);
         }else
             panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
         break;
     }
     case INITIALIZER_LIST: {
+        // a list of len 1 can be used to initialize a scalar or a char array
         switch(type->kind)
         {
         case TYPE_ARRAY: {
+            // NOTE that char str[] = {"..."} is covered by INITIALIZER_STRING
             type_t* et = skip_typeref(type->array.element_type);
             const int elsz = get_ctype_size(et);
             int idx = 0;
             for( int i = 0; i < initializer->list.len; i++ )
             {
+                // TODO: the array element could be a struct whose members are resolved here and consume
+                // one element per member of the initializer list! See nolib 205
                 initializer_t* cur = initializer->list.initializers[i];
                 if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
                 {
+                    if( cur->kind == INITIALIZER_VALUE && is_type_array(et) )
+                        et = get_array_element_type(et); // apparently only a single list for an multidim array, so flatten
                     run_initializer(et, name, offset + idx * elsz, cur);
                 }else if( cur->kind == INITIALIZER_DESIGNATOR )
                 {
@@ -1865,29 +1958,55 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
         }
         case TYPE_COMPOUND_STRUCT:
         case TYPE_COMPOUND_UNION: {
+            // a struct or union is initialized by a list
+#ifdef ECS_MEMBER_BY_INDEX
             int idx = 0;
+#else
+            entity_t* mem = 0;
+#endif
             for( int i = 0; i < initializer->list.len; i++ )
             {
+                // TODO: mem could be an array which consumes more than one places of the initializer list! nolib 205
                 initializer_t* cur = initializer->list.initializers[i];
                 if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
                 {
-                    entity_t* mem = get_compound_member_n(type->compound.compound,idx);
+#ifdef ECS_MEMBER_BY_INDEX
+                    entity_t* mem = find_member_by_idx(type->compound.compound,idx);
+#else
+                    bool lhs_is_compound = false;
+                    if( cur->kind == INITIALIZER_LIST )
+                        lhs_is_compound = true;
+                    else {
+                        lhs_is_compound = is_type_compound(skip_typeref(cur->value.value->base.type));
+                    }
+                    std::pair<entity_t*,int> res = find_next_member(lhs_is_compound, type, mem);
+                    mem = res.first;
+#endif
                     assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
                     run_initializer(skip_typeref(mem->declaration.type), name,
-                                    offset + mem->compound_member.offset, cur);
+                                    offset + mem->compound_member.offset + res.second, cur);
                 }else if( cur->kind == INITIALIZER_DESIGNATOR )
                 {
-                    entity_t* mem = find_compound_entry(type->compound.compound,cur->designator.designator->symbol);
+#ifdef ECS_MEMBER_BY_INDEX
+                    entity_t* mem = find_member_by_name(type->compound.compound,cur->designator.designator->symbol);
                     assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
                     idx = get_idx_of_member(type->compound.compound,mem);
+#else
+                    std::pair<entity_t*,int> res = find_member_by_name(type->compound.compound,
+                                                                       cur->designator.designator->symbol);
+                    mem = res.first;
+                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+#endif
                     i++;
                     assert(i < initializer->list.len);
                     cur = initializer->list.initializers[i];
                     run_initializer(skip_typeref(mem->declaration.type), name,
-                                    offset + mem->compound_member.offset, cur);
+                                    offset + mem->compound_member.offset + res.second, cur);
                 }else
                     panic("INITIALIZER_LIST not yet implemented for compound member %d", cur->kind);
+#ifdef ECS_MEMBER_BY_INDEX
                 idx++;
+#endif
             }
             break;
         }
@@ -1939,6 +2058,7 @@ static void initialize_variable(entity_t * entity)
         // directly initialize section with string data, without extra initializer
         if( entity->variable.initializer->kind == INITIALIZER_STRING )
         {
+            // covers both char str1[] = "abcd"; and char str2[] = {"abcd"};
             assert( type->kind == TYPE_ARRAY && type->array.size );
             assert( entity->variable.initializer->value.value->kind == EXPR_STRING_LITERAL );
             string_t* str = entity->variable.initializer->value.value->string_literal.value;

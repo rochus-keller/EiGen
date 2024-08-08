@@ -127,6 +127,9 @@ void inc_type_visited(void);
  */
 bool is_type_integer(const type_t *type);
 
+
+bool is_type_char(const type_t* type);
+
 /**
  * Returns true if the given type is an enum type.
  *

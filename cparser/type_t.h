@@ -244,6 +244,14 @@ static inline bool is_type_array(const type_t *type)
 	return type->kind == TYPE_ARRAY;
 }
 
+static inline type_t* get_array_element_type(type_t *type)
+{
+    assert(!is_typeref(type) && type->kind == TYPE_ARRAY);
+    while( type && type->kind == TYPE_ARRAY)
+        type = skip_typeref(type->array.element_type);
+    return type;
+}
+
 static inline bool is_type_function(const type_t *type)
 {
 	assert(!is_typeref(type));

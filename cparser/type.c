@@ -1722,3 +1722,12 @@ void dbg_type(const type_t *type)
 	print_char('\n');
 	fflush(stderr);
 }
+
+bool is_type_char(const type_t *type)
+{
+    assert(!is_typeref(type));
+    if (type->kind != TYPE_ATOMIC)
+        return false;
+    return type->atomic.akind == ATOMIC_TYPE_CHAR || type->atomic.akind == ATOMIC_TYPE_SCHAR ||
+            type->atomic.akind == ATOMIC_TYPE_UCHAR;
+}

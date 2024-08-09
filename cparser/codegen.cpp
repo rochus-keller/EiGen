@@ -793,12 +793,18 @@ static Smop expression(expression_t * expr)
     case EXPR_LITERAL_INTEGER: {
         type_t* type = skip_typeref(expr->base.type);
         if( is_type_signed(type) ) {
+            const long long ll = strtoll(expr->literal.value->begin,0,0);
             if( get_ctype_size(type) <= 4 )
-                return Code::Imm(getCodeType(expr->base.type),strtol(expr->literal.value->begin,0,0));
+                return Code::Imm(getCodeType(expr->base.type),(int)ll);
             else
-                return Code::Imm(getCodeType(expr->base.type),strtoll(expr->literal.value->begin,0,0));
-        } else
-            return Code::UImm(getCodeType(expr->base.type),strtoull(expr->literal.value->begin,0,0));
+                return Code::Imm(getCodeType(expr->base.type),ll);
+        } else {
+            const unsigned long long ull = strtoull(expr->literal.value->begin,0,0);
+            if( get_ctype_size(type) <= 4 )
+                return Code::UImm(getCodeType(expr->base.type), (unsigned int) ull);
+            else
+                return Code::UImm(getCodeType(expr->base.type), ull);
+        }
     }
     case EXPR_LITERAL_CHARACTER:
         return Code::Imm(getCodeType(expr->base.type),expr->string_literal.value->begin[0]);
@@ -1896,140 +1902,200 @@ static Smop to(Code::Type type, const std::string& name, int offset)
         return e->MakeMemory(type, Code::Reg(types[ptr],Code::RFP, offset));
 }
 
+static void run_value(type_t* type, const std::string& name, int offset, initializer_t *initializer)
+{
+    assert(initializer->kind == INITIALIZER_VALUE);
+    // a single expression can initialize a scalar, an char array or a struct/union
+    if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER || type->kind == TYPE_ENUM ) {
+        // NOTE char str[] = "..."; is handled in INITIALIZER_STRING
+        Smop v = expression(initializer->value.value);
+        e->Move(to(v.type,name,offset), v);
+    }else if( type->kind == TYPE_COMPOUND_UNION ) {
+        std::pair<entity_t*,int> mem = find_member_by_name(type->compound.compound,0);
+        assert(mem.first && mem.first->kind == ENTITY_COMPOUND_MEMBER);
+        Smop v = expression(initializer->value.value);
+        e->Move(to(v.type,name,offset + mem.first->compound_member.offset + mem.second), v);
+    }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
+        // a single expression that has compatible structure or union type, e.g. *struct_ptr
+        Smop rhs = expression(initializer->value.value);
+
+        store(type, to(rhs.type,name,offset), rhs, initializer->base.pos);
+        // instead of e->Move(to(v.type,name,offset), v);
+    }else
+        panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
+}
+
+static void run_string(type_t* type, const std::string& name, int offset, initializer_t *initializer)
+{
+    assert(initializer->kind == INITIALIZER_STRING);
+    assert( type->kind == TYPE_ARRAY && type->array.size );
+    assert( initializer->value.value->kind == EXPR_STRING_LITERAL );
+    Smop str = expression(initializer->value.value);
+    Smop to;
+    if( !name.empty() )
+        to = Code::Adr(types[ptr],name,offset);
+    else
+        to = Code::Reg(types[ptr],Code::RFP, offset);
+    e->Copy(to, str, Code::Imm(types[ptr],type->array.size));
+    // not necessary e->Require(str.address);
+}
+
+static void run_list_compound_init(type_t* type, const std::string& name, int& offset, initializer_t *list, int& lIdx);
+
+static void run_list_array_init(type_t* type, const std::string& name, int& offset, initializer_t *list, int& lIdx, int max)
+{
+    assert( type->kind == TYPE_ARRAY );
+    assert( list->kind == INITIALIZER_LIST );
+
+    type_t* et = skip_typeref(type->array.element_type);
+    int arrIdx = 0;
+    int off = offset;
+    while( lIdx < list->list.len )
+    {
+        if( max && arrIdx >= max ) {
+            offset += get_ctype_size(type);
+            return;
+        }
+
+        initializer_t* cur = list->list.initializers[lIdx];
+        if( cur->kind == INITIALIZER_VALUE )
+        {
+            if( is_type_array(et) )
+            {
+                run_list_array_init(et,name,off,list,lIdx, et->array.size);
+            }else if( is_type_compound(et) )
+            {
+                run_list_compound_init(et,name, off, list, lIdx);
+            }else
+            {
+                run_initializer(et, name, off, cur);
+                off += get_ctype_size(et);
+                lIdx++;
+            }
+        }else if( cur->kind == INITIALIZER_LIST || cur->kind == INITIALIZER_STRING )
+        {
+            run_initializer(et, name, off, cur);
+            off += get_ctype_size(et);
+            lIdx++; // this consumes exactly one element of list
+        }else if( cur->kind == INITIALIZER_DESIGNATOR )
+        {
+            assert( cur->designator.designator->array_index );
+            ir_tarval * v = fold_expression(cur->designator.designator->array_index);
+            assert(v);
+            arrIdx = get_tarval_long(v);
+            lIdx++;
+            assert(lIdx < list->list.len);
+            cur = list->list.initializers[lIdx];
+            const int sz = get_ctype_size(et);
+            off = offset + arrIdx * sz;
+            run_initializer(et, name, off, cur);
+            off += sz;
+            lIdx++;
+        }else
+            panic("INITIALIZER_LIST not yet implemented for array element initializer %d", cur->kind);
+        arrIdx++;
+    }
+    offset += get_ctype_size(type);
+}
+
+static void run_list_compound_init(type_t* type, const std::string& name, int& offset, initializer_t *list, int& lIdx)
+{
+    assert( type->kind == TYPE_COMPOUND_STRUCT || type->kind == TYPE_COMPOUND_UNION );
+    assert( list->kind == INITIALIZER_LIST );
+
+    // a struct or union is initialized by a list
+    entity_t* mem = 0;
+    while( lIdx < list->list.len )
+    {
+        initializer_t* cur = list->list.initializers[lIdx];
+        if( cur->kind == INITIALIZER_VALUE )
+        {
+            bool lhs_is_compound = is_type_compound(skip_typeref(cur->value.value->base.type));
+            std::pair<entity_t*,int> res = find_next_member(lhs_is_compound, type, mem);
+            mem = res.first;
+            if( mem == 0 ) {
+                offset += get_ctype_size(type);
+                return; // we reached the end of the struct and don't need more list elements
+            }
+            assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+            type_t* mt = skip_typeref(mem->declaration.type);
+            int off = offset + mem->compound_member.offset + res.second;
+            if( is_type_array(mt) )
+            {
+                run_list_array_init(mt,name,off,list,lIdx, mt->array.size);
+            }else if( is_type_compound(mt) )
+            {
+                run_list_compound_init(mt,name, off, list, lIdx);
+            }else
+            {
+                run_initializer(mt, name, off, cur);
+                lIdx++;
+            }
+        }else if(cur->kind == INITIALIZER_LIST)
+        {
+            std::pair<entity_t*,int> res = find_next_member(true, type, mem);
+            mem = res.first;
+            if( mem == 0 ) {
+                offset += get_ctype_size(type);
+                return; // we reached the end of the struct and don't need more list elements
+            }
+            assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+            run_initializer(skip_typeref(mem->declaration.type), name,
+                            offset + mem->compound_member.offset + res.second, cur);
+            lIdx++;
+        }else if( cur->kind == INITIALIZER_DESIGNATOR )
+        {
+            std::pair<entity_t*,int> res = find_member_by_name(type->compound.compound,
+                                                               cur->designator.designator->symbol);
+            mem = res.first;
+            assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
+            lIdx++;
+            assert(lIdx < list->list.len);
+            cur = list->list.initializers[lIdx];
+            run_initializer(skip_typeref(mem->declaration.type), name,
+                            offset + mem->compound_member.offset + res.second, cur);
+            lIdx++;
+        }else
+            panic("INITIALIZER_LIST not yet implemented for compound member %d", cur->kind);
+    }
+    offset += get_ctype_size(type);
+}
+
+static void run_list(type_t* type, const std::string& name, int offset, initializer_t *initializer)
+{
+    assert(initializer->kind == INITIALIZER_LIST);
+    // a list of len 1 can be used to initialize a scalar or a char array
+    int off = offset;
+    int lIdx = 0;
+    switch(type->kind)
+    {
+    case TYPE_ARRAY: {
+        run_list_array_init(type, name, off, initializer, lIdx, 0);
+        break;
+    }
+    case TYPE_COMPOUND_STRUCT:
+    case TYPE_COMPOUND_UNION: {
+        run_list_compound_init(type, name, off, initializer, lIdx);
+        break;
+    }
+    default:
+        panic("INITIALIZER_LIST not yet implemented for lhs type %d", type->kind);
+    }
+}
+
 static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer)
 {
     switch(initializer->kind)
     {
-    case INITIALIZER_VALUE: {
-        // a single expression can initialize a scalar, an char array or a struct/union
-        if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER ) {
-            // NOTE char str[] = "..."; is handled in INITIALIZER_STRING
-            Smop v = expression(initializer->value.value);
-            e->Move(to(v.type,name,offset), v);
-        }else if( type->kind == TYPE_COMPOUND_UNION ) {
-            std::pair<entity_t*,int> mem = find_member_by_name(type->compound.compound,0);
-            assert(mem.first && mem.first->kind == ENTITY_COMPOUND_MEMBER);
-            Smop v = expression(initializer->value.value);
-            e->Move(to(v.type,name,offset + mem.first->compound_member.offset + mem.second), v);
-        }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
-            // a single expression that has compatible structure or union type, e.g. *struct_ptr
-            Smop rhs = expression(initializer->value.value);
-
-            store(type, to(rhs.type,name,offset), rhs, initializer->base.pos);
-            // instead of e->Move(to(v.type,name,offset), v);
-        }else
-            panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
+    case INITIALIZER_VALUE:
+        run_value(type,name,offset,initializer);
         break;
-    }
-    case INITIALIZER_LIST: {
-        // a list of len 1 can be used to initialize a scalar or a char array
-        switch(type->kind)
-        {
-        case TYPE_ARRAY: {
-            // NOTE that char str[] = {"..."} is covered by INITIALIZER_STRING
-            type_t* et = skip_typeref(type->array.element_type);
-            const int elsz = get_ctype_size(et);
-            int idx = 0;
-            for( int i = 0; i < initializer->list.len; i++ )
-            {
-                // TODO: the array element could be a struct whose members are resolved here and consume
-                // one element per member of the initializer list! See nolib 205
-                initializer_t* cur = initializer->list.initializers[i];
-                if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
-                {
-                    if( cur->kind == INITIALIZER_VALUE && is_type_array(et) )
-                        et = get_array_element_type(et); // apparently only a single list for an multidim array, so flatten
-                    run_initializer(et, name, offset + idx * elsz, cur);
-                }else if( cur->kind == INITIALIZER_DESIGNATOR )
-                {
-                    assert( cur->designator.designator->array_index );
-                    ir_tarval * v = fold_expression(cur->designator.designator->array_index);
-                    assert(v);
-                    idx = get_tarval_long(v);
-                    i++;
-                    assert(i < initializer->list.len);
-                    cur = initializer->list.initializers[i];
-                    run_initializer(et, name, offset + idx * elsz, cur);
-                }else
-                    panic("INITIALIZER_LIST not yet implemented for array element initializer %d", cur->kind);
-                idx++;
-            }
-            break;
-        }
-        case TYPE_COMPOUND_STRUCT:
-        case TYPE_COMPOUND_UNION: {
-            // a struct or union is initialized by a list
-#ifdef ECS_MEMBER_BY_INDEX
-            int idx = 0;
-#else
-            entity_t* mem = 0;
-#endif
-            for( int i = 0; i < initializer->list.len; i++ )
-            {
-                // TODO: mem could be an array which consumes more than one places of the initializer list! nolib 205
-                initializer_t* cur = initializer->list.initializers[i];
-                if( cur->kind == INITIALIZER_VALUE || cur->kind == INITIALIZER_LIST )
-                {
-#ifdef ECS_MEMBER_BY_INDEX
-                    entity_t* mem = find_member_by_idx(type->compound.compound,idx);
-#else
-                    bool lhs_is_compound = false;
-                    if( cur->kind == INITIALIZER_LIST )
-                        lhs_is_compound = true;
-                    else {
-                        lhs_is_compound = is_type_compound(skip_typeref(cur->value.value->base.type));
-                    }
-                    std::pair<entity_t*,int> res = find_next_member(lhs_is_compound, type, mem);
-                    mem = res.first;
-#endif
-                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
-                    run_initializer(skip_typeref(mem->declaration.type), name,
-                                    offset + mem->compound_member.offset + res.second, cur);
-                }else if( cur->kind == INITIALIZER_DESIGNATOR )
-                {
-#ifdef ECS_MEMBER_BY_INDEX
-                    entity_t* mem = find_member_by_name(type->compound.compound,cur->designator.designator->symbol);
-                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
-                    idx = get_idx_of_member(type->compound.compound,mem);
-#else
-                    std::pair<entity_t*,int> res = find_member_by_name(type->compound.compound,
-                                                                       cur->designator.designator->symbol);
-                    mem = res.first;
-                    assert(mem && mem->kind == ENTITY_COMPOUND_MEMBER);
-#endif
-                    i++;
-                    assert(i < initializer->list.len);
-                    cur = initializer->list.initializers[i];
-                    run_initializer(skip_typeref(mem->declaration.type), name,
-                                    offset + mem->compound_member.offset + res.second, cur);
-                }else
-                    panic("INITIALIZER_LIST not yet implemented for compound member %d", cur->kind);
-#ifdef ECS_MEMBER_BY_INDEX
-                idx++;
-#endif
-            }
-            break;
-        }
-        default:
-            panic("INITIALIZER_LIST not yet implemented for lhs type %d", type->kind);
-        }
-
+    case INITIALIZER_LIST:
+        run_list(type,name,offset,initializer);
         break;
-    }
-    case INITIALIZER_STRING: {
-        assert( type->kind == TYPE_ARRAY && type->array.size );
-        assert( initializer->value.value->kind == EXPR_STRING_LITERAL );
-        Smop str = expression(initializer->value.value);
-        Smop to;
-        if( !name.empty() )
-            to = Code::Adr(types[ptr],name,offset);
-        else
-            to = Code::Reg(types[ptr],Code::RFP, offset);
-        e->Copy(to, str, Code::Imm(types[ptr],type->array.size));
-
-        // not necessary e->Require(str.address);
+    case INITIALIZER_STRING:
+        run_string(type,name,offset,initializer);
         break;
-    }
     case INITIALIZER_DESIGNATOR:
         panic("INITIALIZER_DESIGNATOR not yet implemented");
         break;

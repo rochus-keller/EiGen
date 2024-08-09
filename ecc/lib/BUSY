@@ -348,7 +348,7 @@ let test2 ! : Executable {
     .deps += [ libm libc ]
     .configs += config;
     .sources += [
-        ../testcases/lacc89/vararg-float.c
+        ../testcases/lacc89/assignment-type.c
         ../../runtime/runtime.c
         ]
 }

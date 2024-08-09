@@ -537,7 +537,7 @@ void add_predefined_macros(void)
 	define_pragma_macro();
 
     add_define("__ECS2_C__", "1", false);
-    add_define("__STACK_ALIGNMENT__", "4", false); // TODO
+    add_define_int("__STACK_ALIGNMENT__", target_data[target.target].stack_align);
 
 	/* Add target specific defines */
     add_target_macros();

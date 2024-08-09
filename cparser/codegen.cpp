@@ -386,8 +386,13 @@ static Smop lvalue(expression_t * expr) {
             return Code::Adr(types[ptr],file_hash() + buf );
         }else
         {
-            run_initializer(skip_typeref(expr->compound_literal.type), "",
-                            expr->compound_literal.id, expr->compound_literal.initializer);
+            type_t* type = skip_typeref(expr->compound_literal.type);
+
+            // make sure the whole area is zero in case the initializer doesn't
+            Smop lhs (Code::Reg(types[ptr],Code::RFP,expr->compound_literal.id));
+            e->Fill(lhs,Code::Imm(types[ptr],get_ctype_size(type)), Code::Imm(types[u1],0));
+
+            run_initializer(type, "", expr->compound_literal.id, expr->compound_literal.initializer);
             return (Code::Reg(types[ptr],Code::RFP, expr->compound_literal.id));
         }
     }
@@ -1176,8 +1181,15 @@ static void statement(statement_t *const stmt)
             if( decl->kind == ENTITY_VARIABLE && decl->variable.is_local && decl->variable.initializer )
             {
                 loc(stmt->base.pos);
-                run_initializer(skip_typeref(decl->declaration.type), std::string(),
-                                decl->variable.offset, decl->variable.initializer);
+                type_t* type = skip_typeref(decl->declaration.type);
+                // If a partial initializer list is given, the standard requires
+                // that unspecified elements are set to 0. Here, we simply
+                // zero-initialize the entire memory region of a variable before
+                // initializing it with user-supplied values.
+                Smop lhs (Code::Reg(types[ptr],Code::RFP,decl->variable.offset));
+                e->Fill(lhs,Code::Imm(types[ptr],get_ctype_size(type)), Code::Imm(types[u1],0));
+
+                run_initializer(type, std::string(), decl->variable.offset, decl->variable.initializer);
             }
             if( decl == stmt->declaration.declarations_end )
                 break;
@@ -1537,8 +1549,10 @@ static void print_member(entity_t* m)
             pat |=  1;
         }
         pat <<= m->compound_member.bit_offset;
-        // Code::Type t = getCodeType(m->compound_member.base.type);
-        e->DeclareField(name,m->compound_member.offset,Code::Imm(types[ptr],pat));
+        if( (m->compound_member.bit_size + m->compound_member.bit_offset) > 32 )
+            e->DeclareField(name,m->compound_member.offset,Code::UImm(types[u8],pat));
+        else
+            e->DeclareField(name,m->compound_member.offset,Code::UImm(types[u4],pat));
     }else
         e->DeclareField(name,m->compound_member.offset,Code::Imm(types[ptr],0));
     e->Locate(m->base.pos.input_name,toPos(m->base.pos.lineno,m->base.pos.colno));
@@ -1936,8 +1950,7 @@ static void run_string(type_t* type, const std::string& name, int offset, initia
         to = Code::Adr(types[ptr],name,offset);
     else
         to = Code::Reg(types[ptr],Code::RFP, offset);
-    e->Copy(to, str, Code::Imm(types[ptr],type->array.size));
-    // not necessary e->Require(str.address);
+    e->Copy(to, str, Code::Imm(types[ptr],initializer->value.value->string_literal.value->size));
 }
 
 static void run_list_compound_init(type_t* type, const std::string& name, int& offset, initializer_t *list, int& lIdx);
@@ -2117,7 +2130,6 @@ static void initialize_variable(entity_t * entity)
         // we already called e->Begin(Code::Section::Data
         // just reserve space here and initialize it using an .initdata section (TODO: consider constant
         const std::string name = rename(entity);
-        // e->Reserve(get_ctype_size(entity->variable.base.type));
 
         type_t* type = skip_typeref(entity->declaration.type);
 #if 1
@@ -2137,8 +2149,10 @@ static void initialize_variable(entity_t * entity)
             return;
         }else
 #endif
+            // initialize the whole area with zeros
             for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
                 e->Define(Code::Imm(types[s1],0));
+
         e->Require(name + "##init");
 
         // .initdata name
@@ -2306,7 +2320,8 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
                  false // replaceable
                  );
         assert(expr->compound_literal.initializer);
-        e->Reserve(get_ctype_size(expr->compound_literal.type));
+        for( int i = 0; i < get_ctype_size(expr->compound_literal.type); i++ )
+            e->Define(Code::Imm(types[s1],0)); // zero all in case the initializer doesn't
         e->Require(name + "##init");
 
         // .initdata name
@@ -2339,7 +2354,8 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
             if( str[j] == '\n' || str[j] == '\r' )
                 str[j] = ' ';
         }
-        e->Comment(str.c_str());
+        const std::string cmt = "\"" + str + "\"";
+        e->Comment(cmt.c_str());
         for( int j = 0; j <= str.size(); j++ )
             e->Define(Code::Imm(types[s1],(*i).second[j]));
     }

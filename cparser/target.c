@@ -101,9 +101,9 @@ target.target = NoTarget;
 
 bool target_setup(void)
 {
-    target.biggest_alignment     = 8;
+    target.biggest_alignment     = 8; // not actually used
     target.user_label_prefix     = '.';
-    target.byte_order_big_endian = 1;
+    target.byte_order_big_endian = 0; // controls bitfield alignment
     target.name = target_data[target.target].name;
     return 1;
 }

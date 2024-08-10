@@ -1,6 +1,6 @@
 let config : Config {
     if target_toolchain == `gcc {
-        .lib_names += [ "m" "stdc++" ]
+        .lib_names += [ "m" "stdc++" "gc" ]
         .ldflags += "-shared-libgcc"
         .cflags += ["-std=c99" ]
     }else if target_toolchain == `msvc {

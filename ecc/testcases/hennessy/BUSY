@@ -1,0 +1,60 @@
+let config : Config {
+    if target_toolchain == `gcc {
+        .lib_names += [ "m" "stdc++" "gc" ]
+        .ldflags += "-shared-libgcc"
+        .cflags += ["-std=c99" ]
+    }else if target_toolchain == `msvc {
+        # nothing to do
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+let hennessy ! : Executable {
+    .configs += config;
+    .defines += "OBX_USE_BOEHM_GC"
+
+    .sources += [
+        ./Bubble.c
+        ./Files.c
+        ./In.c
+        ./Input.c
+        ./Intmm.c
+        ./Main.c
+        ./Math.c
+        ./MathL.c
+        ./Mm.c
+        ./OBX.Main.c
+        ./OBX.Runtime.c
+        ./Oscar.c
+        ./Out.c
+        ./Perm.c
+        ./Queens.c
+        ./Quick.c
+        ./Strings.c
+        ./Towers.c
+        ./Trees.c
+        ./Util.c
+        ./XYplane.c
+        ./Bubble.h
+        ./Files.h
+        ./In.h
+        ./Intmm.h
+        ./Input.h
+        ./Main.h
+        ./Math.h
+        ./MathL.h
+        ./Mm.h
+        ./OBX.Runtime.h
+        ./Oscar.h
+        ./Out.h
+        ./Perm.h
+        ./Queens.h
+        ./Quick.h
+        ./Strings.h
+        ./Towers.h
+        ./Trees.h
+        ./Util.h
+        ./XYplane.h
+    ]
+}

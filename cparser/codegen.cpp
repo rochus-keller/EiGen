@@ -609,41 +609,58 @@ static void fetch_bitfield(expression_t const *const expr, Smop& val)
     }
 }
 
+static void store_bitfield_imp(entity_t* mem, const Smop& lhs, Smop& rhs, const position_t& pos)
+{
+    loc(pos);
+
+    const Code::Type rty = rhs.type;
+
+    // If the lhs is a bitfield, we need to read the current value
+    // from memory and merge it with a new value.
+    assert(mem->kind == ENTITY_COMPOUND_MEMBER);
+
+    const Code::Type mty = getCodeType(mem->compound_member.base.type);
+
+    Smop rdi = e->Convert(rty,rhs);
+    rdi = e->And(rdi, Code::Imm(rty,(1LL << mem->compound_member.bit_size) - 1));
+    rdi = e->Convert(mty,rdi);
+    rdi = e->ShiftLeft(rdi, Code::Imm(mty,mem->compound_member.bit_offset));
+
+    rhs = e->Move(e->MakeMemory(mty,lhs));
+
+    const uint64_t mask = ((1LL << mem->compound_member.bit_size) - 1) << mem->compound_member.bit_offset;
+    Smop r9;
+    if( mty.model == Code::Type::Signed ) { // renders false results: is_type_signed(mem->compound_member.base.type)) {
+        if( mty.size == 1 )
+            r9 = Code::Imm(mty, ~(char)mask);
+        else if( mty.size == 2 )
+            r9 = Code::Imm(mty, ~(short)mask);
+        else if( mty.size == 4 )
+            r9 = Code::Imm(mty, ~(int)mask);
+        else
+            r9 = Code::Imm(mty, ~(int64_t)mask);
+    }else {
+        if( mty.size == 1 )
+            r9 = Code::UImm(mty, ~(unsigned char)mask);
+        else if( mty.size == 2 )
+            r9 = Code::UImm(mty, ~(unsigned short)mask);
+        else if( mty.size == 4 )
+            r9 = Code::UImm(mty, ~(unsigned int)mask);
+        else
+            r9 = Code::UImm(mty, ~mask);
+    }
+    rhs = e->And(e->Convert(mty,rhs), r9);
+    rhs = e->Or(rhs, rdi);
+
+    store(mem->compound_member.base.type, lhs, rhs, pos);
+}
+
 static int store_bitfield(expression_t const*const expr, const Smop& lhs, Smop& rhs)
 {
     if (expr->kind == EXPR_SELECT &&
             expr->select.compound_entry->compound_member.bitfield) {
 
-        loc(expr->base.pos);
-
-        const Code::Type rty = rhs.type;
-
-        // If the lhs is a bitfield, we need to read the current value
-        // from memory and merge it with a new value.
-        entity_t* mem = expr->select.compound_entry;
-        assert(mem->kind == ENTITY_COMPOUND_MEMBER);
-
-        const Code::Type mty = getCodeType(mem->compound_member.base.type);
-
-        Smop rdi = e->Convert(rty,rhs);
-        rdi = e->And(rdi, Code::Imm(rty,(1L << mem->compound_member.bit_size) - 1));
-        rdi = e->Convert(mty,rdi);
-        rdi = e->ShiftLeft(rdi, Code::Imm(mty,mem->compound_member.bit_offset));
-
-        rhs = e->Move(e->MakeMemory(mty,lhs));
-
-        const uint64_t mask = ((1L << mem->compound_member.bit_size) - 1) << mem->compound_member.bit_offset;
-        Smop r9;
-        if( mty.model == Code::Type::Signed ) { // renders false results: is_type_signed(mem->compound_member.base.type)) {
-            r9 = Code::Imm(mty, ~mask);
-        }else {
-            const uint64_t mask2 = (((uint64_t(1) << ((get_ctype_size(mem->compound_member.base.type)-1)*8)) - 1) << 8) | 255;
-            r9 = Code::UImm(mty, ~mask & mask2);
-        }
-        rhs = e->And(e->Convert(mty,rhs), r9);
-        rhs = e->Or(rhs, rdi);
-
-        store(mem->compound_member.base.type, lhs, rhs, expr->base.pos);
+        store_bitfield_imp(expr->select.compound_entry, lhs, rhs, expr->base.pos);
         return 1;
     }else
         return 0;
@@ -2039,8 +2056,17 @@ static void run_list_compound_init(type_t* type, const std::string& name, int& o
             }else if( is_type_compound(mt) )
             {
                 run_list_compound_init(mt,name, off, list, lIdx);
-            }else
+            }else if( mem->compound_member.bitfield )
             {
+                Smop rhs = expression(cur->value.value);
+                Smop lhs;
+                if( !name.empty())
+                    lhs = Code::Adr(types[ptr],name, off);
+                else
+                    lhs = Code::Reg(types[ptr],Code::RFP, off);
+                store_bitfield_imp(mem, lhs, rhs, cur->base.pos);
+                lIdx++;
+            }else{
                 run_initializer(mt, name, off, cur);
                 lIdx++;
             }

@@ -66,7 +66,6 @@ static struct timespec start;
 #endif
 #endif
 
-
 int32_t Input$Time()
 {
 #if !defined __ECS_C__ && !defined __ECS2_C__

@@ -722,13 +722,13 @@ static Smop gen_expr(Node *node) {
             const Code::Type mty = getCodeType(mem->ty);
 
             Smop rdi = e->Convert(rty,rhs); // mov %s %s, %s $0
-            rdi = e->And(rdi, Code::Imm(rty,(1L << mem->bit_width) - 1)); // and  %s %s, %s %s,  %s %ld
+            rdi = e->And(rdi, Code::Imm(rty,(1LL << mem->bit_width) - 1)); // and  %s %s, %s %s,  %s %ld
             rdi = e->Convert(mty,rdi);
             rdi = e->ShiftLeft(rdi, Code::Imm(mty,mem->bit_offset)); // lsh %s %s, %s %s, %s %d
 
             rhs = e->Move(e->MakeMemory(mty,lhs)); // mov ptr $0, ptr [$sp]
 
-            const uint64_t mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
+            const uint64_t mask = ((1LL << mem->bit_width) - 1) << mem->bit_offset;
             Smop r9;
             if( mem->ty->is_unsigned ) {
                 const uint64_t mask2 = (((uint64_t(1) << ((mem->ty->size-1)*8)) - 1) << 8) | 255;

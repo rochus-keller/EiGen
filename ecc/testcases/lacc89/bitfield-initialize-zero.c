@@ -13,12 +13,12 @@ struct fields foo(void) {
 }
 
 struct fields bar(void) {
-	struct fields t = {87};
+    struct fields t = {87};
 	return t;
 }
 
 int main(void) {
-	struct fields u = foo(), v = bar();
+    struct fields u = foo(), v = bar();
 
 	return printf("{%d, %d, %d, %d}, {%d, %d, %d, %d}\n",
 		u.a, u.b, u.c, u.d, v.a, v.b, v.c, v.d);

@@ -1,10 +1,16 @@
 #include "tv.h"
 #include "irmode.h"
+#include "target.h"
+
 #include <inttypes.h>
 #include <alloca.h>
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
+#include <ctype.h>
+#include <stdbool.h>
+
+static bool do_check_mode_compat = false;
 
 struct ir_tarval {
     ir_mode      *mode;    /**< the mode of the stored value */
@@ -41,7 +47,7 @@ ir_tarval *const tarval_bad = &bad;
 
 int tarval_get_wrap_on_overflow()
 {
-    return 0;
+    return !do_check_mode_compat;
 }
 
 static ir_tarval* new_float(double d, ir_mode* m) {
@@ -67,7 +73,7 @@ static ir_tarval* new_unsigned(uint64_t u, ir_mode* m) {
 
 void tarval_set_wrap_on_overflow(int wrap_on_overflow)
 {
-    // TODO
+    do_check_mode_compat = !wrap_on_overflow;
 }
 
 ir_tarval *tarval_neg(const ir_tarval *a)
@@ -136,17 +142,139 @@ int get_tarval_highest_bit(const ir_tarval *tv)
     return 3;
 }
 
+static bool startswith(char *p, char *q) {
+  return strncmp(p, q, strlen(q)) == 0;
+}
+
+static ir_tarval * convert_to_int(char* str, int len) {
+  char *p = str;
+
+  // Read a binary, octal, decimal or hexadecimal number.
+  int base = 10;
+  if ( p[0] == '0' && ( p[1] == 'x' || p[1] == 'X') && isxdigit(p[2])) {
+    p += 2;
+    base = 16;
+  } else if (p[0] == '0' && ( p[1] == 'b' || p[1] == 'B') && (p[2] == '0' || p[2] == '1')) {
+    p += 2;
+    base = 2;
+  } else if (*p == '0') {
+    base = 8;
+  }
+
+  int64_t val = strtoull(p, &p, base);
+
+  // Read U, L or LL suffixes.
+  bool l = false;
+  bool u = false;
+
+  char tmp[3] = "xy";
+  tmp[0] = tolower(p[0]);
+  tmp[1] = tolower(p[1]);
+
+  if (startswith(p, "LLU") || startswith(p, "LLu") ||
+      startswith(p, "llU") || startswith(p, "llu") ||
+      startswith(p, "ULL") || startswith(p, "Ull") ||
+      startswith(p, "uLL") || startswith(p, "ull")) {
+    p += 3;
+    l = u = true;
+  } else if (startswith(tmp, "lu") || startswith(tmp, "ul")) {
+    p += 2;
+    l = u = true;
+  } else if (startswith(tmp, "LL") || startswith(tmp, "ll")) {
+    p += 2;
+    l = true;
+  } else if (*p == 'L' || *p == 'l') {
+    p++;
+    l = true;
+  } else if (*p == 'U' || *p == 'u') {
+    p++;
+    u = true;
+  }
+
+  if (p != str + len)
+    return tarval_bad;
+
+  // Infer a type.
+  ir_mode* ty = 0;
+  if (base == 10) {
+    if (l && u)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG,false);
+    else if (l)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG,true);
+    else if (u)
+      ty = (val >> 32) ? ir_platform_type_mode(IR_TYPE_LONG_LONG,false) : ir_platform_type_mode(IR_TYPE_INT,false);
+    else
+      ty = (val >> 31) ? ir_platform_type_mode(IR_TYPE_LONG_LONG,true) : ir_platform_type_mode(IR_TYPE_INT,true);
+  } else {
+    if (l && u)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG,false);
+    else if (l)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG, !(val >> 63));
+    else if (u)
+      ty = (val >> 32) ? ir_platform_type_mode(IR_TYPE_LONG_LONG,false) : ir_platform_type_mode(IR_TYPE_INT,false);
+    else if (val >> 63)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG,false);
+    else if (val >> 32)
+      ty = ir_platform_type_mode(IR_TYPE_LONG_LONG,true);
+    else if (val >> 31)
+      ty = ir_platform_type_mode(IR_TYPE_INT,false);
+    else
+      ty = ir_platform_type_mode(IR_TYPE_INT,true);
+  }
+
+  return new_signed(val, ty);
+}
+
+static ir_tarval * convert_to_number(char* str, int len) {
+  // Try to parse as an integer constant.
+    ir_tarval * res = convert_to_int(str,len);
+  if (res != tarval_bad)
+    return res;
+
+  // If it's not an integer, it must be a floating point constant.
+  char *end;
+  long double val = strtold(str, &end);
+
+  ir_mode* ty;
+  if (*end == 'f' || *end == 'F') {
+    ty = ir_platform_type_mode(IR_TYPE_FLOAT,true);
+    end++;
+  } else if (*end == 'l' || *end == 'L') {
+    ty = ir_platform_type_mode(IR_TYPE_LONG_DOUBLE,true);
+    end++;
+  } else {
+    ty = ir_platform_type_mode(IR_TYPE_DOUBLE,true);
+  }
+
+  if (str + len != end)
+      return tarval_bad;
+
+  return new_float(val, ty);
+}
+
+// this is not only to convert from string to any number, but it is supposed to
+// check whether the read number fits the given mode, and return bad otherwise
 ir_tarval *new_tarval_from_str(const char *str, size_t len, ir_mode *mode)
 {
-    if( mode_is_float(mode) )
-        return new_float(strtod(str,0), mode);
-    if( mode_is_signed(mode) ) {
-        if( get_mode_size_bytes(mode) <= 4 )
-            return new_signed(strtol(str,0,0), mode);
+    if( do_check_mode_compat )
+    {
+        ir_tarval * res = convert_to_number(str,len);
+        if( res->mode == mode )
+            return res;
         else
-            return new_signed(strtoll(str,0,0), mode);
+            return tarval_bad;
     }else
-        return new_unsigned(strtoull(str,0,0), mode);
+    {
+        if( mode_is_float(mode) )
+            return new_float(strtod(str,0), mode);
+        if( mode_is_signed(mode) ) {
+            if( get_mode_size_bytes(mode) <= 4 )
+                return new_signed(strtol(str,0,0), mode);
+            else
+                return new_signed(strtoll(str,0,0), mode);
+        }else
+            return new_unsigned(strtoull(str,0,0), mode);
+    }
 }
 
 ir_tarval *new_tarval_from_long(long l, ir_mode *mode)

@@ -5651,7 +5651,7 @@ static bool try_create_integer(literal_expression_t *literal, type_t *type)
 
 	ir_mode    *const mode = atomic_modes[akind];
 	char const *const str  = literal->value->begin;
-	ir_tarval  *const tv   = new_tarval_from_str(str, literal->suffix - str, mode);
+    ir_tarval  *const tv   = new_tarval_from_str(str, literal->value->size, mode); // before: literal->suffix - str
 	if (tv == tarval_bad)
 		return false;
 

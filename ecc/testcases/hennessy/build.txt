@@ -1,0 +1,11 @@
+on Linux or Windows with GCC/MinGW or CLANG:
+cc -O2 --std=c99 *.c -lm
+or on Windows with MSVC:
+cl /O2 /MD /Fe:OBX.Main.exe *.c
+or with Boehm-Demers-Weiser GC:
+cc -O2 --std=c99 *.c -lm -DOBX_USE_BOEHM_GC -lgc
+or on Windows with MSVC:
+cl /O2 /MD /Fe:OBX.Main.exe /DOBX_USE_BOEHM_GC /Iinclude *.c gcmt-dll.lib
+if on Unix/Linux/macOS dynamic libraries should be loaded add -DOBX_USE_DYN_LOAD -ldl
+full build command for GCC/MinGW or CLANG:
+cc -O2 --std=c99 *.c -lm -DOBX_USE_BOEHM_GC -lgc -DOBX_USE_DYN_LOAD -ldl

@@ -46,7 +46,10 @@ void Quick$Quicksort(struct OBX$Array$1 a, int32_t l, int32_t r) {
     w = 0;
     i = l;
     j = r;
-    x = (*($t0 = (&a),&((int32_t *)$t0->$a)[OBX$Div32((l + r),2)]));
+    //x = ((int32_t *)a.$a)[OBX$Div32((l + r),2)]; // ok
+    x = (*($t0 = (&a),&((int32_t *)$t0->$a)[OBX$Div32((l + r),2)])); // orig, crash
+    //$t0 = (&a); x = ((int32_t *)$t0->$a)[OBX$Div32((l + r),2)]; // crash
+    //$t0 = (&a); int32_t idx = OBX$Div32((l + r),2); x = ((int32_t *)$t0->$a)[idx]; // ok
     do {
         while(1) {
             if( ((*($t0 = (&a),&((int32_t *)$t0->$a)[i])) < x) ) {

@@ -18,7 +18,13 @@ struct fields bar(void) {
 }
 
 int main(void) {
+#if 1
     struct fields u = foo(), v = bar();
+#else
+    struct fields u, v;
+    u = foo();
+    v = bar();
+#endif
 
 	return printf("{%d, %d, %d, %d}, {%d, %d, %d, %d}\n",
 		u.a, u.b, u.c, u.d, v.a, v.b, v.c, v.d);

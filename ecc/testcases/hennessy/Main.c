@@ -38,19 +38,15 @@ void Main$init$(void) {
     Trees$init$();
     Oscar$init$();
     OBX$PrintA(1,(const char*)((const struct OBX$Array$1){15,0,OBX$FromUtf("******** start",15,0)}).$a);
-#if 0
     Main$Time((const struct OBX$Array$1){5,0,OBX$FromUtf("Perm",5,0)}, Perm$Run);
     Main$Time((const struct OBX$Array$1){7,0,OBX$FromUtf("Towers",7,0)}, Towers$Run);
     Main$Time((const struct OBX$Array$1){7,0,OBX$FromUtf("Queens",7,0)}, Queens$Run);
     Main$Time((const struct OBX$Array$1){6,0,OBX$FromUtf("Intmm",6,0)}, Intmm$Run);
     Main$Time((const struct OBX$Array$1){3,0,OBX$FromUtf("Mm",3,0)}, Mm$Run);
-#endif
     Main$Time((const struct OBX$Array$1){6,0,OBX$FromUtf("Quick",6,0)}, Quick$Run); // causes crash, the others work
-#if 0
     Main$Time((const struct OBX$Array$1){7,0,OBX$FromUtf("Bubble",7,0)}, Bubble$Run);
     Main$Time((const struct OBX$Array$1){6,0,OBX$FromUtf("Trees",6,0)}, Trees$Run);
     Main$Time((const struct OBX$Array$1){4,0,OBX$FromUtf("FFT",4,0)}, Oscar$Run);
-#endif
     OBX$PrintA(1,(const char*)((const struct OBX$Array$1){14,0,OBX$FromUtf("******** done",14,0)}).$a);
 }
 OBX$Cmd Main$cmd$(const char* name) {

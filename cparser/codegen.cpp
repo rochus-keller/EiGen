@@ -331,6 +331,29 @@ static Smop var_address(entity_t* var)
 static Smop expression(expression_t * expr);
 static void run_initializer(type_t* type, const std::string& name, int offset, initializer_t *initializer);
 
+static void Fill(type_t* type, const Smop& lhs)
+{
+    const int len = get_ctype_size(type);
+    switch( len )
+    {
+    case 1:
+        e->Move(e->MakeMemory(types[u1],lhs),Code::UImm(types[u1],0));
+        break;
+    case 2:
+        e->Move(e->MakeMemory(types[u2],lhs),Code::UImm(types[u2],0));
+        break;
+    case 4:
+        e->Move(e->MakeMemory(types[u4],lhs),Code::UImm(types[u4],0));
+        break;
+    case 8:
+        e->Move(e->MakeMemory(types[u8],lhs),Code::UImm(types[u8],0));
+        break;
+    default:
+        e->Fill(lhs,Code::Imm(types[ptr],get_ctype_size(type)), Code::Imm(types[u1],0));
+        break;
+    }
+}
+
 // Compute the absolute address of a given node.
 // It's an error if a given node does not reside in memory.
 static Smop lvalue(expression_t * expr) {
@@ -344,7 +367,9 @@ static Smop lvalue(expression_t * expr) {
     }
     case EXPR_ARRAY_ACCESS:  {
         Smop arr = expression(expr->array_access.array_ref);
+        e->SaveRegister(arr);
         Smop idx = expression(expr->array_access.index);
+        e->RestoreRegister(arr);
         type_t    *const elem_type = skip_typeref(expr->base.type);
         idx = e->Multiply(idx, Code::Imm(idx.type,get_ctype_size(elem_type)));
         loc(expr->base.pos);
@@ -390,7 +415,7 @@ static Smop lvalue(expression_t * expr) {
 
             // make sure the whole area is zero in case the initializer doesn't
             Smop lhs (Code::Reg(types[ptr],Code::RFP,expr->compound_literal.id));
-            e->Fill(lhs,Code::Imm(types[ptr],get_ctype_size(type)), Code::Imm(types[u1],0));
+            Fill(type,lhs);
 
             run_initializer(type, "", expr->compound_literal.id, expr->compound_literal.initializer);
             return (Code::Reg(types[ptr],Code::RFP, expr->compound_literal.id));
@@ -850,6 +875,7 @@ static Smop expression(expression_t * expr)
         Label lfalse = e->CreateLabel();
         loc(expr->base.pos);
         e->BranchEqual(lfalse,Code::Imm(type,0),e->Convert(type,lhs));
+        lhs = Smop(); // release lhs
         Smop rhs = expression(expr->binary.right);
         type = getCodeType(expr->binary.right->base.type);
         loc(expr->base.pos);
@@ -863,6 +889,7 @@ static Smop expression(expression_t * expr)
         Label ltrue = e->CreateLabel();
         loc(expr->base.pos);
         e->BranchNotEqual(ltrue,Code::Imm(type,0),e->Convert(type,lhs));
+        lhs = Smop(); // release lhs
         Smop rhs = expression(expr->binary.right);
         type = getCodeType(expr->binary.right->base.type);
         loc(expr->base.pos);
@@ -907,6 +934,7 @@ static Smop expression(expression_t * expr)
         Label lend = e->CreateLabel();
         loc(expr->base.pos);
         e->BranchEqual(lelse,Code::Imm(type,0),e->Convert(type,cond));
+        cond = Smop(); // release cond
         Smop res;
         Smop lhs = expression(expr->conditional.true_expression);
         // apparently C allows x ? (void)a : (void)b or mixed
@@ -1204,7 +1232,7 @@ static void statement(statement_t *const stmt)
                 // zero-initialize the entire memory region of a variable before
                 // initializing it with user-supplied values.
                 Smop lhs (Code::Reg(types[ptr],Code::RFP,decl->variable.offset));
-                e->Fill(lhs,Code::Imm(types[ptr],get_ctype_size(type)), Code::Imm(types[u1],0));
+                Fill(type,lhs);
 
                 run_initializer(type, std::string(), decl->variable.offset, decl->variable.initializer);
             }
@@ -1925,12 +1953,20 @@ static int get_idx_of_member(compound_t* compound, entity_t* m)
     return -1;
 }
 
-static Smop to(Code::Type type, const std::string& name, int offset)
+static Smop makeLhsMem(Code::Type type, const std::string& name, int offset)
 {
     if( !name.empty() )
         return Code::Mem(type,name,offset);
     else
         return e->MakeMemory(type, Code::Reg(types[ptr],Code::RFP, offset));
+}
+
+static inline Smop makeLhsAdr(const std::string& name, int offset)
+{
+    if( !name.empty())
+        return Code::Adr(types[ptr],name, offset);
+    else
+        return Code::Reg(types[ptr],Code::RFP, offset);
 }
 
 static void run_value(type_t* type, const std::string& name, int offset, initializer_t *initializer)
@@ -1940,17 +1976,17 @@ static void run_value(type_t* type, const std::string& name, int offset, initial
     if( type->kind == TYPE_ATOMIC || type->kind == TYPE_POINTER || type->kind == TYPE_ENUM ) {
         // NOTE char str[] = "..."; is handled in INITIALIZER_STRING
         Smop v = expression(initializer->value.value);
-        e->Move(to(v.type,name,offset), v);
+        e->Move(makeLhsMem(v.type,name,offset), v);
     }else if( type->kind == TYPE_COMPOUND_UNION ) {
         std::pair<entity_t*,int> mem = find_member_by_name(type->compound.compound,0);
         assert(mem.first && mem.first->kind == ENTITY_COMPOUND_MEMBER);
         Smop v = expression(initializer->value.value);
-        e->Move(to(v.type,name,offset + mem.first->compound_member.offset + mem.second), v);
+        e->Move(makeLhsMem(v.type,name,offset + mem.first->compound_member.offset + mem.second), v);
     }else if( type->kind == TYPE_COMPOUND_STRUCT ) {
         // a single expression that has compatible structure or union type, e.g. *struct_ptr
         Smop rhs = expression(initializer->value.value);
 
-        store(type, to(rhs.type,name,offset), rhs, initializer->base.pos);
+        store(type, makeLhsAdr(name,offset), rhs, initializer->base.pos);
         // instead of e->Move(to(v.type,name,offset), v);
     }else
         panic("INITIALIZER_VALUE for given type not yet implemented: %d", type->kind);
@@ -2059,12 +2095,7 @@ static void run_list_compound_init(type_t* type, const std::string& name, int& o
             }else if( mem->compound_member.bitfield )
             {
                 Smop rhs = expression(cur->value.value);
-                Smop lhs;
-                if( !name.empty())
-                    lhs = Code::Adr(types[ptr],name, off);
-                else
-                    lhs = Code::Reg(types[ptr],Code::RFP, off);
-                store_bitfield_imp(mem, lhs, rhs, cur->base.pos);
+                store_bitfield_imp(mem, makeLhsAdr(name, off), rhs, cur->base.pos);
                 lIdx++;
             }else{
                 run_initializer(mt, name, off, cur);

@@ -28,7 +28,7 @@
 #include <stdarg.h>
 #ifdef OBX_USE_BOEHM_GC
 // #include <gc/gc.h>
-extern void GC_free(void *);
+extern void GC_init(void);
 extern void * GC_malloc(size_t /* size_in_bytes */);
 
 #if defined __ECS_C__ || defined __ECS2_C__
@@ -36,7 +36,7 @@ extern void * GC_malloc(size_t /* size_in_bytes */);
 
 LIBRARY(libgc, "libgc.so");
 FUNCTION(libgc, GC_malloc, 1);
-FUNCTION(libgc, GC_free, 1);
+FUNCTION(libgc, GC_init, 1);
 
 #endif
 
@@ -125,6 +125,8 @@ int OBX$StrOp( const struct OBX$Array$1* lhs, int lwide, const struct OBX$Array$
     {
         const char* ls = lhs->$a;
         const char* rs = rhs->$a;
+        if( ls == 0 || rs == 0 )
+            return 0;
         switch(op)
         {
         case 1: // ==
@@ -849,6 +851,9 @@ static void fetchAppPath( const char* path )
 
 void OBX$InitApp(int argc, char **argv)
 {
+#ifdef OBX_USE_BOEHM_GC
+    GC_init();
+#endif
 	if( argc > 0 )
 		fetchAppPath(argv[0]);
 	else
@@ -892,7 +897,7 @@ static ATTRIBUTE_TLS struct OBX$Jump* jumpStack = 0;
 
 struct OBX$Jump* OBX$PushJump()
 {
-	struct OBX$Jump* j = OBX$Alloc( sizeof(struct OBX$Jump) );
+    struct OBX$Jump* j = malloc( sizeof(struct OBX$Jump) );
 	assert( j != 0 );
 	j->inst = 0;
 	if( jumpStack )
@@ -914,11 +919,7 @@ void OBX$PopJump()
 	{
 		struct OBX$Jump* j = jumpStack;
 		jumpStack = j->prev;
-#ifdef OBX_USE_BOEHM_GC
-        GC_free(j);
-#else
      	free(j);
-#endif
 	}
 }
 

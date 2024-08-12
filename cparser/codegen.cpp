@@ -1212,6 +1212,23 @@ static void copy_struct_mem(const Smop& reg) {
             reg,Code::Imm(types[ptr],get_ctype_size(return_type)));
 }
 
+static void initialize_local_variable(entity_t* decl, const position_t& pos)
+{
+    if( decl->kind == ENTITY_VARIABLE && decl->variable.is_local && decl->variable.initializer )
+    {
+        loc(pos);
+        type_t* type = skip_typeref(decl->declaration.type);
+        // If a partial initializer list is given, the standard requires
+        // that unspecified elements are set to 0. Here, we simply
+        // zero-initialize the entire memory region of a variable before
+        // initializing it with user-supplied values.
+        Smop lhs (Code::Reg(types[ptr],Code::RFP,decl->variable.offset));
+        Fill(type,lhs);
+
+        run_initializer(type, std::string(), decl->variable.offset, decl->variable.initializer);
+    }
+}
+
 static void statement(statement_t *const stmt)
 {
     switch (stmt->kind) {
@@ -1223,19 +1240,7 @@ static void statement(statement_t *const stmt)
     case STATEMENT_DECLARATION:
         for( entity_t* decl = stmt->declaration.declarations_begin; decl; decl = decl->base.next )
         {
-            if( decl->kind == ENTITY_VARIABLE && decl->variable.is_local && decl->variable.initializer )
-            {
-                loc(stmt->base.pos);
-                type_t* type = skip_typeref(decl->declaration.type);
-                // If a partial initializer list is given, the standard requires
-                // that unspecified elements are set to 0. Here, we simply
-                // zero-initialize the entire memory region of a variable before
-                // initializing it with user-supplied values.
-                Smop lhs (Code::Reg(types[ptr],Code::RFP,decl->variable.offset));
-                Fill(type,lhs);
-
-                run_initializer(type, std::string(), decl->variable.offset, decl->variable.initializer);
-            }
+            initialize_local_variable(decl,stmt->base.pos);
             if( decl == stmt->declaration.declarations_end )
                 break;
         }
@@ -1324,6 +1329,11 @@ static void statement(statement_t *const stmt)
         return;
     }
     case STATEMENT_FOR: {
+        for( entity_t* decl = stmt->fors.scope.first_entity; decl; decl = decl->base.next ) {
+            initialize_local_variable(decl,stmt->base.pos);
+            if( decl == stmt->declaration.declarations_end )
+                break;
+        }
         if (stmt->fors.initialisation)
             expression(stmt->fors.initialisation);
         Label lbegin = e->CreateLabel();
@@ -2172,7 +2182,7 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
     }
 }
 
-static void initialize_variable(entity_t * entity)
+static void initialize_global_variable(entity_t * entity)
 {
     assert(entity->variable.initializer);
     if( entity->variable.is_local )
@@ -2259,7 +2269,7 @@ static void allocate_variable(entity_t* entity)
             print_type_decl(entity->declaration.type, false);
         }
 #endif
-        initialize_variable(entity);
+        initialize_global_variable(entity);
     }else
     {
         if( entity->variable.base.storage_class == STORAGE_CLASS_STATIC || !entity->variable.is_local )

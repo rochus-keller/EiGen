@@ -127,13 +127,3 @@ let sources ! : SourceSet {
     .include_dirs += .
 }
 
-let cparser ! : Executable {
-    .configs += config;
-    .deps += [ sources ]
-    .sources += [
-        ./main.c
-        ./ast2ir.c
-        ./ast2ir.h
-    ]
-    .include_dirs += .
-}

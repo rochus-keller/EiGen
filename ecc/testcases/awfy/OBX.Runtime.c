@@ -31,7 +31,7 @@
 extern void GC_free(void *);
 extern void * GC_malloc(size_t /* size_in_bytes */);
 
-#ifdef __ECS_C__
+#if defined __ECS_C__ || defined __ECS2_C__
 #include <eigen/lib_adapter.h>
 
 LIBRARY(libgc, "libgc.so");

@@ -1,6 +1,6 @@
 # Author: Rochus Keller, 2024
 
-flags="-g -w"
+flags=" -w -DOBX_USE_BOEHM_GC"
 
 for t in *.c
 do

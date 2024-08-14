@@ -1,0 +1,44 @@
+let config : Config {
+    if target_toolchain == `gcc {
+        .lib_names += [ "m" "stdc++" ]
+        .ldflags += "-shared-libgcc"
+    }else if target_toolchain == `msvc {
+        # nothing to do
+    }else {
+        error("target toolchain not supported")
+    }
+}
+
+let picoc ! : Executable {
+    .configs += config;
+
+    .sources += [
+        ./clibrary.c
+        ./ctype.c
+        ./debug.c
+        ./errno.c
+        ./expression.c
+        ./heap.c
+        ./include.c
+        ./lex.c
+        ./library_msvc.c
+        ./library_unix.c
+        ./math.c
+        ./parse.c
+        ./picoc.c
+        ./platform.c
+        ./platform_msvc.c
+        ./platform_unix.c
+        ./stdbool.c
+        ./stdio.c
+        ./stdlib.c
+        ./string.c
+        ./table.c
+        ./time.c
+        ./type.c
+        ./variable.c
+        ./interpreter.h
+        ./picoc.h
+        ./platform.h
+    ]
+}

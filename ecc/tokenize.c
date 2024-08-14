@@ -477,7 +477,7 @@ static void convert_pp_number(Token *tok) {
 
   // If it's not an integer, it must be a floating point constant.
   char *end;
-  long double val = strtold(tok->loc, &end);
+  double val = strtod(tok->loc, &end); // original strtold and long double
 
   Type *ty;
   if (*end == 'f' || *end == 'F') {

@@ -12,4 +12,4 @@ do
     ./compiler $t -g -S -w -I../include 
 done
 
-
+./compiler  ../../runtime/runtime.c -g -S -w -I../include 

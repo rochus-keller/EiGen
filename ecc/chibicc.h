@@ -185,7 +185,6 @@ struct Obj {
 // Global variable can be initialized either by a constant expression
 // or a pointer to another global variable. This struct represents the
 // latter.
-typedef struct Relocation Relocation;
 struct Relocation {
   Relocation *next;
   int offset;

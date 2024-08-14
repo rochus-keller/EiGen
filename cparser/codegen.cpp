@@ -311,6 +311,13 @@ static void loc( const position_t& pos, bool force = false )
     }
 }
 
+static bool empty_initializer(initializer_t *initializer)
+{
+    if( initializer && initializer->kind == INITIALIZER_LIST && initializer->list.len == 0 )
+        return true;
+    return false;
+}
+
 static Smop var_address(entity_t* var)
 {
     // Local variable
@@ -470,7 +477,7 @@ static void cast(type_t *from, type_t *to, Smop& reg) {
 
     if (to->kind == TYPE_ATOMIC && to->atomic.akind == ATOMIC_TYPE_BOOL) {
         Label label = e->CreateLabel();
-        e->BranchNotEqual(label,Code::Imm(fromType,0),reg);
+        e->BranchNotEqual(label,Code::Imm(reg.type,0),reg);
         reg = e->Set (label, Code::Imm(toType,0), Code::Imm(toType,1));
         return;
     }
@@ -2220,21 +2227,24 @@ static void initialize_global_variable(entity_t * entity)
             for( int i = 0; i < get_ctype_size(entity->variable.base.type); i++ )
                 e->Define(Code::Imm(types[s1],0));
 
-        e->Require(name + "##init");
-
-        // .initdata name
-        e->Begin(Code::Section::InitData, name + "##init",
-                 0,
-                 true, // required
-                 true, // duplicable
-                 false // replaceable
-                 );
-        if( target.debug_info )
+        if( !empty_initializer(entity->variable.initializer) )
         {
-            e->Locate(entity->base.pos.input_name,toPos(entity->base.pos.lineno,entity->base.pos.colno));
-            e->DeclareVoid();
+            e->Require(name + "##init");
+
+            // .initdata name
+            e->Begin(Code::Section::InitData, name + "##init",
+                     0,
+                     true, // required
+                     true, // duplicable
+                     false // replaceable
+                     );
+            if( target.debug_info )
+            {
+                e->Locate(entity->base.pos.input_name,toPos(entity->base.pos.lineno,entity->base.pos.colno));
+                e->DeclareVoid();
+            }
+            run_initializer(type, name, 0, entity->variable.initializer);
         }
-        run_initializer(type, name, 0, entity->variable.initializer);
     }
 }
 
@@ -2365,7 +2375,7 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
     e = &emitter.ctx;
     current_translation_unit = unit;
     current_source_file = source_file;
-    //to_declare.clear();
+    to_declare.clear();
     string_decls.clear();
     compound_literal_decls.clear();
     static_locals.clear();
@@ -2389,22 +2399,44 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
         assert(expr->compound_literal.initializer);
         for( int i = 0; i < get_ctype_size(expr->compound_literal.type); i++ )
             e->Define(Code::Imm(types[s1],0)); // zero all in case the initializer doesn't
-        e->Require(name + "##init");
 
-        // .initdata name
-        e->Begin(Code::Section::InitData, name + "##init",
-                 0,
-                 true, // required
-                 true, // duplicable
-                 false // replaceable
-                 );
-        if(target.debug_info) {
-            e->Locate(expr->compound_literal.initializer->base.pos.input_name,
-                      toPos(expr->compound_literal.initializer->base.pos.lineno,
-                            expr->compound_literal.initializer->base.pos.colno));
-            e->DeclareVoid();
+        if( !empty_initializer(expr->compound_literal.initializer) )
+        {
+            e->Require(name + "##init");
+            // .initdata name
+            e->Begin(Code::Section::InitData, name + "##init",
+                     0,
+                     true, // required
+                     true, // duplicable
+                     false // replaceable
+                     );
+            if(target.debug_info) {
+                e->Locate(expr->compound_literal.initializer->base.pos.input_name,
+                          toPos(expr->compound_literal.initializer->base.pos.lineno,
+                                expr->compound_literal.initializer->base.pos.colno));
+                e->DeclareVoid();
+            }
+            run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
         }
-        run_initializer(skip_typeref(expr->compound_literal.type), name, 0, expr->compound_literal.initializer);
+    }
+
+    for( auto i = static_locals.begin(); i != static_locals.end(); ++i )
+    {
+        entity_t* var = (*i);
+        allocate_variable(var);
+    }
+
+    for( statement_t *stat = unit->global_asm; stat; stat = stat->base.next)
+    {
+        try {
+
+            if( stat->asms.is_target ){
+                // pass-through to machine code generator
+                e->BeginAssembly();
+                e->Assemble(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
+            }else
+                e->AssembleCode(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
+        }catch(...) {}
     }
 
     for( auto i = string_decls.begin(); i != string_decls.end(); ++i )
@@ -2425,25 +2457,6 @@ void translation_unit_to_ir(translation_unit_t *unit, FILE* cod_out, const char*
         e->Comment(cmt.c_str());
         for( int j = 0; j <= str.size(); j++ )
             e->Define(Code::Imm(types[s1],(*i).second[j]));
-    }
-
-    for( auto i = static_locals.begin(); i != static_locals.end(); ++i )
-    {
-        entity_t* var = (*i);
-        allocate_variable(var);
-    }
-
-    for( statement_t *stat = unit->global_asm; stat; stat = stat->base.next)
-    {
-        try {
-
-            if( stat->asms.is_target ){
-                // pass-through to machine code generator
-                e->BeginAssembly();
-                e->Assemble(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
-            }else
-                e->AssembleCode(source_file,stat->base.pos.lineno,stat->asms.asm_text->begin);
-        }catch(...) {}
     }
 
     if( target.debug_info )

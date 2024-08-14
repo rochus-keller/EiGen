@@ -1,5 +1,4 @@
 #include "chibicc.h"
-#include <sys/stat.h>
 
 void strarray_push(StringArray *arr, char *s) {
   if (!arr->data) {
@@ -68,12 +67,6 @@ char *mystrdup( const char *src)
     return res;
 }
 
-// Returns true if a given file exists.
-bool file_exists(char *path) {
-  struct stat st;
-  return !stat(path, &st);
-}
-
 char *rebase_file(const char* newBase, const char* filename)
 {
     char *slash = strrchr(newBase, '/');
@@ -93,3 +86,22 @@ char *rebase_file(const char* newBase, const char* filename)
     res[newPathLen-1] = 0;
     return res;
 }
+
+#if defined __ECS_C__ || defined __ECS2_C__
+bool file_exists(char *path) {
+    FILE* f = fopen(path,"r");
+    const int res = f != NULL;
+    if( f )
+        fclose(f);
+    return res;
+}
+#else
+#include <sys/stat.h>
+
+// Returns true if a given file exists.
+bool file_exists(char *path) {
+  struct stat st;
+  return !stat(path, &st);
+}
+#endif
+

@@ -36,6 +36,7 @@ extern "C" {
 #include "libfirm/tv.h"
 #include "constfold.h"
 #include "types.h"
+#include "diagnostic.h"
 }
 
 // TODO
@@ -341,6 +342,8 @@ static void run_initializer(type_t* type, const std::string& name, int offset, i
 static void Fill(type_t* type, const Smop& lhs)
 {
     const int len = get_ctype_size(type);
+    if( len == 0 )
+        panic("calling Fill with len=0");
     switch( len )
     {
     case 1:
@@ -537,47 +540,50 @@ static int scale_for_pointer_arith(expression_kind_t op, Smop& lhs, type_t* lhsT
 
 static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs, int baseTypeSize)
 {
+    Smop lhs2 = lhs;
+    if( target_data[target.target].architecture == Amd32 && lhs2.type.size == 8 &&
+            ( lhs2.type.model == Code::Type::Signed || lhs2.type.model == Code::Type::Unsigned ) &&
+            lhs2.model == Code::Operand::Memory )
+        // TODO: work-around add issue with 64 bit numbers on 32 bit systems
+        // see https://software.openbrace.org/issues/663
+       lhs2 = e->Move(lhs2);
+
     switch (op) {
     case EXPR_BINARY_ADD:
     case EXPR_BINARY_ADD_ASSIGN:
-        if( target_data[target.target].architecture == Amd32 ) // TODO: work-around add issue with 64 bit numbers on 32 bit systems
-        {
-            Smop tmp = e->Move(lhs);
-            return e->Add(tmp,rhs);
-        }else
-            return e->Add(lhs,rhs);
+        return e->Add(lhs2,rhs);
     case EXPR_BINARY_SUB:
     case EXPR_BINARY_SUB_ASSIGN: {
-        Smop res = e->Subtract(lhs,rhs);
+        Smop res = e->Subtract(lhs2,rhs);
         if( baseTypeSize )
             res = e->Divide(res, Code::Imm(types[ptr],baseTypeSize));
         return res;
     }
     case EXPR_BINARY_MUL:
     case EXPR_BINARY_MUL_ASSIGN:
-        return e->Multiply(lhs,rhs);
+        return e->Multiply(lhs2,rhs);
     case EXPR_BINARY_DIV:
     case EXPR_BINARY_DIV_ASSIGN:
         if( rhs.model == Code::Operand::Immediate && rhs.type.model == Code::Type::Float && rhs.fimm == 0.0 ) {
-            if( lhs.model == Code::Operand::Immediate && lhs.type.model == Code::Type::Float && lhs.fimm == 0.0)
-                return Code::FImm(lhs.type,NAN);
+            if( lhs2.model == Code::Operand::Immediate && lhs2.type.model == Code::Type::Float && lhs2.fimm == 0.0)
+                return Code::FImm(lhs2.type,NAN);
             else
-                return Code::FImm(lhs.type,HUGE_VALF);
+                return Code::FImm(lhs2.type,HUGE_VALF);
         }
         else
-            return e->Divide(lhs,rhs);
+            return e->Divide(lhs2,rhs);
     case EXPR_BINARY_MOD:
     case EXPR_BINARY_MOD_ASSIGN:
-        return e->Modulo(lhs,rhs);
+        return e->Modulo(lhs2,rhs);
     case EXPR_BINARY_BITWISE_AND:
     case EXPR_BINARY_BITWISE_AND_ASSIGN:
-        return e->And(lhs,rhs);
+        return e->And(lhs2,rhs);
     case EXPR_BINARY_BITWISE_OR:
     case EXPR_BINARY_BITWISE_OR_ASSIGN:
-        return e->Or(lhs,rhs);
+        return e->Or(lhs2,rhs);
     case EXPR_BINARY_BITWISE_XOR:
     case EXPR_BINARY_BITWISE_XOR_ASSIGN:
-        return e->ExclusiveOr(lhs,rhs);
+        return e->ExclusiveOr(lhs2,rhs);
     case EXPR_BINARY_EQUAL:
     case EXPR_BINARY_GREATER:
     case EXPR_BINARY_GREATEREQUAL:
@@ -589,22 +595,22 @@ static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs, i
         switch(op)
         {
         case EXPR_BINARY_EQUAL:
-            e->BranchEqual(ltrue,lhs,rhs);
+            e->BranchEqual(ltrue,lhs2,rhs);
             break;
         case EXPR_BINARY_NOTEQUAL:
-            e->BranchNotEqual(ltrue,lhs,rhs);
+            e->BranchNotEqual(ltrue,lhs2,rhs);
             break;
         case EXPR_BINARY_LESS:
-            e->BranchLessThan(ltrue,lhs,rhs);
+            e->BranchLessThan(ltrue,lhs2,rhs);
             break;
         case EXPR_BINARY_LESSEQUAL:
-            e->BranchGreaterEqual(ltrue,rhs,lhs);
+            e->BranchGreaterEqual(ltrue,rhs,lhs2);
             break;
         case EXPR_BINARY_GREATER:
-            e->BranchLessThan(ltrue,rhs,lhs);
+            e->BranchLessThan(ltrue,rhs,lhs2);
             break;
         case EXPR_BINARY_GREATEREQUAL:
-            e->BranchGreaterEqual(ltrue,lhs,rhs);
+            e->BranchGreaterEqual(ltrue,lhs2,rhs);
             break;
         }
 
@@ -612,10 +618,10 @@ static Smop binary_ops(expression_kind_t op, const Smop& lhs, const Smop& rhs, i
     } break;
     case EXPR_BINARY_SHIFTLEFT:
     case EXPR_BINARY_SHIFTLEFT_ASSIGN:
-        return e->ShiftLeft(lhs,rhs);
+        return e->ShiftLeft(lhs2,rhs);
     case EXPR_BINARY_SHIFTRIGHT:
     case EXPR_BINARY_SHIFTRIGHT_ASSIGN:
-        return e->ShiftRight(lhs,rhs);
+        return e->ShiftRight(lhs2,rhs);
     }
     panic("expression not implemented");
 }
@@ -1472,6 +1478,10 @@ static void assign_local_variable_offsets2(entity_t *entity, entity_t * last, vo
         if ( entity->kind == ENTITY_VARIABLE && entity->variable.base.storage_class != STORAGE_CLASS_STATIC ) {
             type_t *type = skip_typeref(entity->declaration.type);
 
+            if( type->kind == TYPE_ARRAY && type->array.is_vla )
+            {
+                errorf(&entity->base.pos,"VLA not yet supported!");
+            }
             *bottom += get_ctype_size(type);
             *bottom = align_to(*bottom, get_ctype_alignment(type));
             entity->variable.offset = -(*bottom);
@@ -1736,11 +1746,12 @@ static void create_function(function_t * function)
 
     return_type = 0;
     func_name = ((entity_t*)function)->declaration.base.symbol;
+    const std::string name = rename((entity_t*)function);
 
     assign_lvar_offsets(function);
 
     // NOTE: static is not supported by ECS; therefore getName provides some unique mangling
-    e->Begin(Code::Section::Code, rename((entity_t*)function) );
+    e->Begin(Code::Section::Code, name );
 
     type_t* ft = function->base.type;
     assert(is_type_function(ft));

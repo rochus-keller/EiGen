@@ -18,7 +18,7 @@ void strarray_push(StringArray *arr, char *s) {
 
 // Takes a printf-style format string and returns a formatted string.
 char *format(char *fmt, ...) {
-  static const int buflen = 2048;
+  enum { buflen = 2048 };
   char buf[buflen];
 
   va_list ap;

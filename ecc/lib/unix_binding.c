@@ -46,12 +46,12 @@ char *sys_getcwd(char* buf, size_t size)
     return syscall(79,buf, size);
 }
 
-size_t sys_read(int fd, void* buf, size_t count)
+long sys_read(int fd, void* buf, size_t count)
 {
     return syscall(3,fd, buf,count);
 }
 
-size_t sys_write(int fd, const void* buf, size_t count)
+long sys_write(int fd, const void* buf, size_t count)
 {
     return syscall(4,fd, buf,count);
 }

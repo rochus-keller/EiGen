@@ -29,8 +29,8 @@ extern int sys_rename(const char *oldpath, const char *newpath);
 extern int sys_gettimeofday(struct timeval *restrict tv, void * restrict tz);
 extern int sys_unlink(const char *pathname);
 extern char *sys_getcwd(char* buf, size_t size);
-extern size_t sys_read(int fd, void* buf, size_t count);
-extern size_t sys_write(int fd, const void* buf, size_t count);
+extern long sys_read(int fd, void* buf, size_t count);
+extern long sys_write(int fd, const void* buf, size_t count);
 extern clock_t sys_times(struct tms *buf);
 extern long sys_lseek(int fd, long offset, int whence);
 extern void sys_exit(int status);
@@ -164,7 +164,7 @@ _PDCLIB_LOCAL int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream )
 _PDCLIB_LOCAL int _PDCLIB_fillbuffer( struct _PDCLIB_file_t * stream )
 {
     /* No need to handle buffers > INT_MAX, as PDCLib doesn't allow them */
-    size_t rc = sys_read( stream->handle, stream->buffer, stream->bufsize );
+    long rc = sys_read( stream->handle, stream->buffer, stream->bufsize );
 
     if ( rc > 0 )
     {

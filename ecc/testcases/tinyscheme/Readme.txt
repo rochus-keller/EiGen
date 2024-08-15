@@ -1,3 +1,10 @@
+This is a version of the TinyScheme interpreter, downloaded
+from https://sourceforge.net/projects/tinyscheme on 14.08.2024.
+
+Removed unix-specific stuff or replaced it by platform
+independent implementation.
+
+
                          LICENSE TERMS
 
 Copyright (c) 2000, Dimitrios Souflis

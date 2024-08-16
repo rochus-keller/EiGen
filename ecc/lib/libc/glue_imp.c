@@ -97,10 +97,18 @@ _PDCLIB_LOCAL _PDCLIB_fd_t _PDCLIB_open( const char * const filename, unsigned i
         rc = sys_open( filename, osmode );
     }
 
+#if 0
+    // RK: does not work
     if ( rc == _PDCLIB_NOHANDLE )
     {
         /* The 1:1 mapping in _PDCLIB_config.h ensures this works. */
-        *_PDCLIB_errno_func() = _PDCLIB_ENOTSUP; // TODO errno;
+        *_PDCLIB_errno_func() = _PDCLIB_ENOTSUP;
+    }else
+#endif
+    if( rc < 0 )
+    {
+        *_PDCLIB_errno_func() = rc;
+        rc = _PDCLIB_NOHANDLE;
     }
 
     return rc;
@@ -132,7 +140,7 @@ _PDCLIB_LOCAL int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream )
             /* The 1:1 mapping done in _PDCLIB_config.h ensures
                this works.
             */
-            *_PDCLIB_errno_func() = -1; // TODO errno;
+            *_PDCLIB_errno_func() = rc;
             /* Flag the stream */
             stream->status |= _PDCLIB_ERRORFLAG;
             /* Move unwritten remains to begin of buffer. */
@@ -483,16 +491,23 @@ void ( *signal( int sig, void ( *func )( int ) ) )( int )
 
 int system( const char * string )
 {
+    printf("WARNING: system() not yet implemented\n");
     return -1; // TODO
 }
 
 double strtod( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
 {
+    printf("WARNING: strtod() not yet implemented\n");
+    if( endptr )
+        *endptr = nptr;
     return 0.0; // TODO
 }
 
 float strtof( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
 {
+    printf("WARNING: strtof() not yet implemented\n");
+    if( endptr )
+        *endptr = nptr;
     return 0.0; // TODO
 }
 
@@ -514,6 +529,8 @@ char * getenv( const char * name )
 
         index++;
     }
+#else
+    printf("WARNING: getenv() not yet implemented\n");
 #endif
 
     return NULL;
@@ -594,7 +611,6 @@ struct _PDCLIB_file_t * stdin  = &_PDCLIB_sin;
 struct _PDCLIB_file_t * stdout = &_PDCLIB_sout;
 struct _PDCLIB_file_t * stderr = &_PDCLIB_serr;
 
-/* FIXME: This approach is a possible attack vector. */
 struct _PDCLIB_file_t * _PDCLIB_filelist = &_PDCLIB_sin;
 
 struct state _PDCLIB_lclmem;

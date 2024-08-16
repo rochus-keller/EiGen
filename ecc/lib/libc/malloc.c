@@ -72,114 +72,114 @@ void kandr_free(void *ptr);
 
 void *malloc(size_t nbytes) {
 
-  Header *currp;
-  Header *prevp;
-  unsigned nunits;
+    Header *currp;
+    Header *prevp;
+    unsigned nunits;
 
-  /* Calculate the number of memory units needed to provide at least nbytes of
-   * memory.
-   *
-   * Suppose that we need n >= 0 bytes and that the memory unit sizes are b > 0
-   * bytes.  Then n / b (using integer division) yields one less than the number
-   * of units needed to provide n bytes of memory, except in the case that n is
-   * a multiple of b; then it provides exactly the number of units needed.  It
-   * can be verified that (n - 1) / b provides one less than the number of units
-   * needed to provide n bytes of memory for all values of n > 0.  Thus ((n - 1)
-   * / b) + 1 provides exactly the number of units needed for n > 0.
-   *
-   * The extra sizeof(Header) in the numerator is to include the unit of memory
-   * needed for the header itself.
-   */
-  nunits = ((nbytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
+    /* Calculate the number of memory units needed to provide at least nbytes of
+    * memory.
+    *
+    * Suppose that we need n >= 0 bytes and that the memory unit sizes are b > 0
+    * bytes.  Then n / b (using integer division) yields one less than the number
+    * of units needed to provide n bytes of memory, except in the case that n is
+    * a multiple of b; then it provides exactly the number of units needed.  It
+    * can be verified that (n - 1) / b provides one less than the number of units
+    * needed to provide n bytes of memory for all values of n > 0.  Thus ((n - 1)
+    * / b) + 1 provides exactly the number of units needed for n > 0.
+    *
+    * The extra sizeof(Header) in the numerator is to include the unit of memory
+    * needed for the header itself.
+    */
+    nunits = ((nbytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
 
-  // case: no free list yet exists; we have to initialize.
-  if (freep == NULL) {
+    // case: no free list yet exists; we have to initialize.
+    if (freep == NULL) {
 
-    // Create degenerate free list; base points to itself and has size 0
-    base.s.next = &base;
-    base.s.size = 0;
+        // Create degenerate free list; base points to itself and has size 0
+        base.s.next = &base;
+        base.s.size = 0;
 
-    // Set free list starting point to base address
-    freep = &base;
-  }
+        // Set free list starting point to base address
+        freep = &base;
+    }
 
-  /* Initialize pointers to two consecutive blocks in the free list, which we
-   * call prevp (the previous block) and currp (the current block)
-   */
-  prevp = freep;
-  currp = prevp->s.next;
+    /* Initialize pointers to two consecutive blocks in the free list, which we
+    * call prevp (the previous block) and currp (the current block)
+    */
+    prevp = freep;
+    currp = prevp->s.next;
 
-  /* Step through the free list looking for a block of memory large enough to
-   * fit nunits units of memory into.  If the whole list is traversed without
-   * finding such a block, then morecore is called to request more memory from
-   * the OS.
-   */
-  for (; ; prevp = currp, currp = currp->s.next) {
+    /* Step through the free list looking for a block of memory large enough to
+    * fit nunits units of memory into.  If the whole list is traversed without
+    * finding such a block, then morecore is called to request more memory from
+    * the OS.
+    */
+    for (; ; prevp = currp, currp = currp->s.next) {
 
-    /* case: found a block of memory in free list large enough to fit nunits
-     * units of memory into.  Partition block if necessary, remove it from the
-     * free list, and return the address of the block (after moving past the
-     * header).
-     */
-    if (currp->s.size >= nunits) {
+        /* case: found a block of memory in free list large enough to fit nunits
+        * units of memory into.  Partition block if necessary, remove it from the
+        * free list, and return the address of the block (after moving past the
+        * header).
+        */
+        if (currp->s.size >= nunits) {
 
-      /* case: block is exactly the right size; remove the block from the free
-       * list by pointing the previous block to the next block.
-       */
-      if (currp->s.size == nunits) {
-    /* Note that this line wouldn't work as intended if we were down to only
-     * 1 block.  However, we would never make it here in that scenario
-     * because the block at &base has size 0 and thus the conditional will
-     * fail (note that nunits is always >= 1).  It is true that if the block
-     * at &base had combined with another block, then previous statement
-     * wouldn't apply - but presumably since base is a global variable and
-     * future blocks are allocated on the heap, we can be sure that they
-     * won't border each other.
-     */
-    prevp->s.next = currp->s.next;
-      }
-      /* case: block is larger than the amount of memory asked for; allocate
-       * tail end of the block to the user.
-       */
-      else {
-    // Changes the memory stored at currp to reflect the reduced block size
-    currp->s.size -= nunits;
-    // Find location at which to create the block header for the new block
-    currp += currp->s.size;
-    // Store the block size in the new header
-    currp->s.size = nunits;
-      }
+            /* case: block is exactly the right size; remove the block from the free
+            * list by pointing the previous block to the next block.
+            */
+            if (currp->s.size == nunits) {
+                 /* Note that this line wouldn't work as intended if we were down to only
+                 * 1 block.  However, we would never make it here in that scenario
+                 * because the block at &base has size 0 and thus the conditional will
+                 * fail (note that nunits is always >= 1).  It is true that if the block
+                 * at &base had combined with another block, then previous statement
+                 * wouldn't apply - but presumably since base is a global variable and
+                 * future blocks are allocated on the heap, we can be sure that they
+                 * won't border each other.
+                 */
+                prevp->s.next = currp->s.next;
+            }
+            /* case: block is larger than the amount of memory asked for; allocate
+            * tail end of the block to the user.
+            */
+            else {
+                // Changes the memory stored at currp to reflect the reduced block size
+                currp->s.size -= nunits;
+                // Find location at which to create the block header for the new block
+                currp += currp->s.size;
+                // Store the block size in the new header
+                currp->s.size = nunits;
+            }
 
-      /* Set global starting position to the previous pointer.  Next call to
-       * malloc will start either at the remaining part of the partitioned block
-       * if a partition occurred, or at the block after the selected block if
-       * not.
-       */
-      freep = prevp;
+            /* Set global starting position to the previous pointer.  Next call to
+            * malloc will start either at the remaining part of the partitioned block
+            * if a partition occurred, or at the block after the selected block if
+            * not.
+            */
+            freep = prevp;
 
-      /* Return the location of the start of the memory, i.e. after adding one
-       * so as to move past the header
-       */
-      return (void *) (currp + 1);
+            /* Return the location of the start of the memory, i.e. after adding one
+            * so as to move past the header
+            */
+            return (void *) (currp + 1);
 
-    } // end found a block of memory in free list case
+        } // end found a block of memory in free list case
 
-    /* case: we've wrapped around the free list without finding a block large
-     * enough to fit nunits units of memory into.  Call morecore to request that
-     * at least nunits units of memory are allocated.
-     */
-    if (currp == freep) {
-      /* morecore returns freep; the reason that we have to assign currp to it
-       * again (since we just tested that they are equal), is that there is a
-       * call to free inside of morecore that can potentially change the value
-       * of freep.  Thus we reassign it so that we can be assured that the newly
-       * added block is found before (currp == freep) again.
-       */
-      if ((currp = morecore(nunits)) == NULL) {
-    return NULL;
-      }
-    } // end wrapped around free list case
-  } // end step through free list looking for memory loop
+        /* case: we've wrapped around the free list without finding a block large
+         * enough to fit nunits units of memory into.  Call morecore to request that
+         * at least nunits units of memory are allocated.
+         */
+        if (currp == freep) {
+            /* morecore returns freep; the reason that we have to assign currp to it
+             * again (since we just tested that they are equal), is that there is a
+             * call to free inside of morecore that can potentially change the value
+             * of freep.  Thus we reassign it so that we can be assured that the newly
+             * added block is found before (currp == freep) again.
+             */
+            if ((currp = morecore(nunits)) == NULL) {
+                return NULL;
+            }
+        } // end wrapped around free list case
+    } // end step through free list looking for memory loop
 }
 
 static Header *morecore(unsigned nunits) {
@@ -329,7 +329,8 @@ void *realloc(void *ptr, size_t size)
 
     newptr = malloc(size);
     if (newptr) {
-        size_t old_size = *((size_t *) (ptr - sizeof(size_t)));
+        Header* header = (Header*)(ptr - sizeof(Header));
+        const size_t old_size = (header->s.size - 1)*sizeof(Header);
         memcpy(newptr, ptr, (old_size < size ? old_size : size));
         free(ptr);
     }

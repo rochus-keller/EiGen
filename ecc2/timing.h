@@ -11,7 +11,7 @@
 #define TIMING_H
 
 #include <stdio.h>
-#include <libfirm/timing.h>
+#include "libfirm/timing.h"
 
 void timer_init(void);
 void timer_register(ir_timer_t *timer, const char *description);

@@ -302,16 +302,16 @@ let linkmem : Executable {
     .defines += "MEMORYLINKFILEFORMAT"
 }
 
-############# cparser ################################
-submod cparser
+############# ECC2 ################################
+submod ecc2
 
 let compiler2 : Executable {
     .configs += config;
-    .deps += [ cparser.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
+    .deps += [ ecc2.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
     .sources += [
-        ./cparser/main.c
-        ./cparser/codegen.cpp
-        ./cparser/backend.cpp
+        ./ecc2/main.c
+        ./ecc2/codegen.cpp
+        ./ecc2/backend.cpp
         ./cdemitter.cpp
         ./cdemitter.hpp
         ./cdgenerator.cpp
@@ -346,7 +346,7 @@ let compiler : Executable {
         ./dbgdwarfconverter.cpp
         ./dbgdwarfconverter.hpp
         ]
-    .name = "compiler2"
+    .name = "compiler1"
     .defines += ["ECC_HAVE_BACKEND" "ECC_SHOW_RUN_FOR_SECS" ]
     #  ECC_SHOW_RUN_FOR_SECS "ECC_COMPILING_MESSAGE"
     .include_dirs += .

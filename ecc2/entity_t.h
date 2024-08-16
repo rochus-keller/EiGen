@@ -5,7 +5,7 @@
 #ifndef ENTITY_T_H
 #define ENTITY_T_H
 
-#include <libfirm/firm_types.h>
+#include "libfirm/firm_types.h"
 
 #include "util.h"
 #include "ast.h"

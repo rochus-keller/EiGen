@@ -6,7 +6,7 @@
 #define AST_T_H
 
 #include <assert.h>
-#include <libfirm/firm_types.h>
+#include "libfirm/firm_types.h"
 
 #include "obst.h"
 #include "ast.h"

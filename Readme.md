@@ -5,7 +5,7 @@ The original code is written in C++17 and doesn't compile with MSVC or old GCC v
 
 The contribution of this project is the migration of a subset of the ECS code base to a conservative C++11 dialect, so it compiles on old GCC versions as well as on MSVC.
 
-Yet another goal is to re-target an existing C compiler to generate ECS IR. The current approach uses the chibicc C compiler.
+Yet another goal is to re-target existing C compilers to generate ECS IR. The current approach uses chibicc and cparser.
 
 
 #### Status on April 7, 2024
@@ -65,6 +65,12 @@ While studying the changes of slimcc I figured out why chibicc wasn't able to pa
 Via the ECS dynamic library FFI feature I was able to integrate the Boehm GC_malloc/free and run the full awfy with the full number of runs. The full result table is [here](https://github.com/rochus-keller/Oberon/blob/master/testcases/Are-we-fast-yet/Are-we-fast-yet_results.ods). The previous run with the awfy subset was confirmed: the executable generated with ecc runs 3.5 times slower than the GCC no-opt executable, and 6.5 times slower than GCC -O2.
 
 Because of the slow performance I invested a week in cparser/libfirm which is [known to produce nearly as fast executables as GCC](https://github.com/vnmakarov/mir#current-c2mir-performance-data). I added the codebase (including the generated files) [to a separate branch](https://github.com/rochus-keller/EiGen/tree/firmc/cparser) and started to implement an Eigen backend for libfirm. I also run the awfy benchmark with cparser (original build), which surprisingly showed that the libfirm optimizer only increases performance by factor 1.3 (I would have expected at least factor 2, as is with GCC or Clang). Therefore I try to integrate Eigen directly with [cparser without libfirm](https://github.com/rochus-keller/EiGen/tree/cparser/cparser).
+
+#### Status on August 16, 2024
+
+I have spent four more weeks to implement and debug an Eigen backend for cparser. The code generator has similarities to the one I implemented for chibicc, but in contrast I have to generate code directly from the AST and to take care of many features that chibicc had implemented in the parser (such as struct/union returns. I also had to implement raw string literals and inline asm passthrough. 
+
+So far it passes the same tests as the chibicc version, but the generated code runs about twice as fast (see the ecc2/performance subdirectory). There are still many things to fix (e.g. the Awfy Json and CD benchmarks don't work yet). But since it runs decently stable and even improves on ECC, I merged it with master and rebranded it to ECC2. 
 
 #### Precompiled versions
 

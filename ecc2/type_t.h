@@ -6,7 +6,7 @@
 #define TYPE_T_H
 
 #include <assert.h>
-#include <libfirm/firm_types.h>
+#include "libfirm/firm_types.h"
 #include <stdbool.h>
 
 #include "util.h"

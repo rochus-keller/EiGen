@@ -1,7 +1,7 @@
 #ifndef CONSTFOLD_H
 #define CONSTFOLD_H
 
-#include <libfirm/firm_types.h>
+#include "libfirm/firm_types.h"
 #include "ast_t.h"
 #include "type.h"
 

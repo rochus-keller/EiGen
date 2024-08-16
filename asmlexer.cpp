@@ -175,7 +175,7 @@ void Lexer::ReadNumber (std::istream& stream, char character, Token& token)
         stream.putback (character),
         token.symbol = OctInteger,
         token.string.erase (0, 1);
-	else if (stream && character == '.')
+    else if (stream && character == '.' )
 	{
         do
             token.string.push_back (character);
@@ -190,6 +190,14 @@ void Lexer::ReadNumber (std::istream& stream, char character, Token& token)
 		}
 		token.symbol = Real;
 	}
+    else if( (character == '+' || character == '-') && !token.string.empty() &&
+             token.string[token.string.size()-1]=='e' )
+    {
+        token.string.push_back (character);
+        while (std::isdigit (stream.peek ()) && stream.get (character))
+            token.string.push_back (character);
+        token.symbol = Real;
+    }
     else
         stream.putback (character);
 }

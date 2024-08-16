@@ -495,22 +495,15 @@ int system( const char * string )
     return -1; // TODO
 }
 
-double strtod( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
+double atof(const char *nptr)
 {
-    printf("WARNING: strtod() not yet implemented\n");
-    if( endptr )
-        *endptr = nptr;
-    return 0.0; // TODO
+    return strtod(nptr, (char **) NULL);
 }
 
 float strtof( const char * _PDCLIB_restrict nptr, char ** _PDCLIB_restrict endptr )
 {
-    printf("WARNING: strtof() not yet implemented\n");
-    if( endptr )
-        *endptr = nptr;
-    return 0.0; // TODO
+    return strtod(nptr, endptr); // TODO
 }
-
 
 //extern char ** environ; // TODO
 

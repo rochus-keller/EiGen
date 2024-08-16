@@ -35,7 +35,6 @@ let libc : SourceSet {
         ./libc/strtok_s.c
         ./libc/strtok.c
         ./libc/strtoimax.c
-        ./libc/strtod.c
         ./libc/strstr.c
         ./libc/strspn.c
         ./libc/strrchr.c
@@ -82,7 +81,6 @@ let libc : SourceSet {
         ./libc/perror.c
         ./libc/_PDCLIB_strtox_prelim.c
         ./libc/_PDCLIB_strtox_main.c
-        ./libc/_PDCLIB_strtod_scan.c
         ./libc/_PDCLIB_seed.c
         ./libc/_PDCLIB_print_string.c
         ./libc/_PDCLIB_print_integer.c
@@ -216,8 +214,8 @@ let libc : SourceSet {
         ./libc/_PDCLIB_update_tzname_etc.c
         ./libc/_PDCLIB_load_lc_ctype.c
         ./libc/_PDCLIB_scan.c
-        ./libc/_PDCLIB_strtod_main.c
         ./libc/_PDCLIB_strtok.c
+        ./libc/strtod.c
     ]
     # headers:
     .sources += [

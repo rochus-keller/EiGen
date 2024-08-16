@@ -1,6 +1,6 @@
 # Author: Rochus Keller, 2024
 
-flags=" -w -DOBX_USE_BOEHM_GC" 
+flags="-g -w " 
 # apparently the debugger crashes on GC_ calls, so debug witout -DOBX_USE_BOEHM_GC
 
 for t in *.c

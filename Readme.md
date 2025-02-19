@@ -68,9 +68,11 @@ Because of the slow performance I invested a week in cparser/libfirm which is [k
 
 #### Status on August 16, 2024
 
-I have spent four more weeks to implement and debug an Eigen backend for cparser. The code generator has similarities to the one I implemented for chibicc, but in contrast I have to generate code directly from the AST and to take care of many features that chibicc had implemented in the parser (such as struct/union returns. I also had to implement raw string literals and inline asm passthrough. 
+I have spent four more weeks to implement and debug an Eigen backend for cparser. The code generator has similarities to the one I implemented for chibicc, but in contrast I have to generate code directly from the AST and to take care of many features that chibicc had implemented in the parser (such as struct/union returns). I also had to implement raw string literals and inline asm passthrough. 
 
 So far it passes the same tests as the chibicc version, but the generated code runs about twice as fast (see the ecc2/performance subdirectory). There are still many things to fix (e.g. the Awfy Json and CD benchmarks don't work yet). But since it runs decently stable and even improves on ECC, I merged it with master and rebranded it to ECC2. 
+
+Another notable mention: due to compiler and runtime library fixes, the Lua 5.1. VM now seems to work, but detailed tests are pending.
 
 #### Precompiled versions
 
@@ -92,6 +94,8 @@ This project uses a subset of the source code provided at https://software.openb
 made available under GPL v3 or later by its original author, Florian Negele.
 
 The chibicc C compiler provided at https://github.com/rui314/chibicc was made available by its author, Rui Ueyama, under an MIT licence.
+
+The cparser C frontend provided at https://github.com/libfirm/cparser under the GPL license.
 
 The C library was composed of parts from uClib-ng (see https://downloads.uclibc-ng.org/releases/1.0.49/) and PDCLib (see https://github.com/DevSolar/pdclib), with additions from https://github.com/mpaland/printf for floating point printing.
 

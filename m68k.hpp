@@ -29,9 +29,15 @@ namespace ECS
 	template <typename, typename> class Lookup;
 
 	using Byte = std::uint8_t;
-}
 
-namespace ECS::M68K
+    namespace Object
+    {
+        struct Patch;
+
+        using Offset = std::size_t;
+    }
+
+namespace M68K
 {
 	enum Register
 	{
@@ -59,164 +65,157 @@ namespace ECS::M68K
 	std::ostream& operator << (std::ostream&, const Instruction&);
 	std::ostream& operator << (std::ostream&, const Operand&);
 	std::ostream& operator << (std::ostream&, Register);
-}
 
-namespace ECS::Object
-{
-	struct Patch;
+    class Operand
+    {
+    public:
+        enum Size {None, Byte, Word, Long};
 
-	using Offset = std::size_t;
-}
+        Operand () = default;
+        Operand (M68K::Register);
+        Operand (M68K::Immediate);
+        Operand (M68K::Immediate, Size);
+        Operand (M68K::Immediate, M68K::Register);
+        Operand (M68K::Immediate, M68K::Register, M68K::Register, Size);
 
-class ECS::M68K::Operand
-{
-public:
-	enum Size {None, Byte, Word, Long};
+        Operand operator + () const;
+        Operand operator - () const;
+        Operand operator [] (M68K::Immediate) const;
 
-	Operand () = default;
-	Operand (M68K::Register);
-	Operand (M68K::Immediate);
-	Operand (M68K::Immediate, Size);
-	Operand (M68K::Immediate, M68K::Register);
-	Operand (M68K::Immediate, M68K::Register, M68K::Register, Size);
+    private:
+        enum Model {Empty, Immediate, Register, Memory, Increment, Decrement, Index, Absolute};
 
-	Operand operator + () const;
-	Operand operator - () const;
-	Operand operator [] (M68K::Immediate) const;
+        enum Modes {
+            DirectData = 0x1, DirectAddress = 0x2, IndirectAddress = 0x4, IncrementedAddress = 0x8, DecrementedAddress = 0x10, DisplacedAddress = 0x20, DisplacedProgramCounter = 0x40, AbsoluteAddress = 0x80, ImmediateData = 0x100,
+            All = DirectData | DirectAddress | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress | ImmediateData,
+            Data = DirectData | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress | ImmediateData,
+            Control = IndirectAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress,
+            Alterable = DirectData | DirectAddress | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
+            DataAlterable = DirectData | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
+            MemoryAlterable = IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
+        };
 
-private:
-	enum Model {Empty, Immediate, Register, Memory, Increment, Decrement, Index, Absolute};
+        enum Type {
+            #define TYPE(type) type,
+            #include "m68k.def"
+        };
 
-	enum Modes {
-		DirectData = 0x1, DirectAddress = 0x2, IndirectAddress = 0x4, IncrementedAddress = 0x8, DecrementedAddress = 0x10, DisplacedAddress = 0x20, DisplacedProgramCounter = 0x40, AbsoluteAddress = 0x80, ImmediateData = 0x100,
-		All = DirectData | DirectAddress | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress | ImmediateData,
-		Data = DirectData | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress | ImmediateData,
-		Control = IndirectAddress | DisplacedAddress | DisplacedProgramCounter | AbsoluteAddress,
-		Alterable = DirectData | DirectAddress | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
-		DataAlterable = DirectData | IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
-		MemoryAlterable = IndirectAddress | IncrementedAddress | DecrementedAddress | DisplacedAddress | AbsoluteAddress,
-	};
+        using BitPosition = unsigned;
 
-	enum Type {
-		#define TYPE(type) type,
-		#include "m68k.def"
-	};
+        Model model = Empty;
+        M68K::Immediate immediate;
+        M68K::Register register_, index;
+        Size size;
 
-	using BitPosition = unsigned;
+        Operand (Model, M68K::Register);
 
-	Model model = Empty;
-	M68K::Immediate immediate;
-	M68K::Register register_, index;
-	Size size;
+        std::size_t GetSize (Type) const;
+        bool IsCompatibleWith (Type) const;
+        Opcode Encode (Type, Span<ECS::Byte>) const;
+        bool Decode (Opcode, Type, Span<const ECS::Byte>);
+        void Adjust (Object::Patch&, Object::Offset) const;
 
-	Operand (Model, M68K::Register);
+        std::size_t GetEffectiveAddressSize (Size) const;
+        bool IsCompatibleWithEffectiveAddress (Size, Modes) const;
+        Opcode EncodeEffectiveAddress (Size, BitPosition, BitPosition, Span<ECS::Byte>) const;
+        bool DecodeEffectiveAddress (Size, Opcode, BitPosition, BitPosition, Span<const ECS::Byte>);
 
-	std::size_t GetSize (Type) const;
-	bool IsCompatibleWith (Type) const;
-	Opcode Encode (Type, Span<ECS::Byte>) const;
-	bool Decode (Opcode, Type, Span<const ECS::Byte>);
-	void Adjust (Object::Patch&, Object::Offset) const;
+        static const char*const registers[];
 
-	std::size_t GetEffectiveAddressSize (Size) const;
-	bool IsCompatibleWithEffectiveAddress (Size, Modes) const;
-	Opcode EncodeEffectiveAddress (Size, BitPosition, BitPosition, Span<ECS::Byte>) const;
-	bool DecodeEffectiveAddress (Size, Opcode, BitPosition, BitPosition, Span<const ECS::Byte>);
+        static void Encode (M68K::Immediate, Size, Span<ECS::Byte>);
+        static bool Decode (M68K::Immediate&, Size, Span<const ECS::Byte>);
 
-	static const char*const registers[];
+        friend class Instruction;
+        friend bool IsEmpty (const Operand&);
+        friend std::size_t GetSize (const Instruction&);
+        friend Instruction Optimize (const Instruction&);
+        friend M68K::Register GetRegister (const Operand&);
+        friend std::istream& operator >> (std::istream&, M68K::Register&);
+        friend std::ostream& operator << (std::ostream&, M68K::Register);
+        friend std::ostream& operator << (std::ostream&, const Operand&);
+    };
 
-	static void Encode (M68K::Immediate, Size, Span<ECS::Byte>);
-	static bool Decode (M68K::Immediate&, Size, Span<const ECS::Byte>);
+    class Instruction
+    {
+    public:
+        enum Mnemonic {
+            #define MNEM(name, mnem, ...) mnem,
+            #include "m68k.def"
+            Count,
+        };
 
-	friend class Instruction;
-	friend bool IsEmpty (const Operand&);
-	friend std::size_t GetSize (const Instruction&);
-	friend Instruction Optimize (const Instruction&);
-	friend M68K::Register GetRegister (const Operand&);
-	friend std::istream& operator >> (std::istream&, M68K::Register&);
-	friend std::ostream& operator << (std::ostream&, M68K::Register);
-	friend std::ostream& operator << (std::ostream&, const Operand&);
-};
+        Instruction () = default;
+        explicit Instruction (Span<const Byte>);
+        Instruction (Mnemonic, const Operand& = {}, const Operand& = {});
+        Instruction (Mnemonic, Operand::Size, const Operand& = {}, const Operand& = {});
 
-class ECS::M68K::Instruction
-{
-public:
-	enum Mnemonic {
-		#define MNEM(name, mnem, ...) mnem,
-		#include "m68k.def"
-		Count,
-	};
+        void Emit (Span<Byte>) const;
+        void Adjust (Object::Patch&) const;
 
-	Instruction () = default;
-	explicit Instruction (Span<const Byte>);
-	Instruction (Mnemonic, const Operand& = {}, const Operand& = {});
-	Instruction (Mnemonic, Operand::Size, const Operand& = {}, const Operand& = {});
+    private:
+        struct Entry;
 
-	void Emit (Span<Byte>) const;
-	void Adjust (Object::Patch&) const;
+        const Entry* entry = nullptr;
+        Operand operand1, operand2;
 
-private:
-	struct Entry;
+        static const Entry table[];
+        static const char*const mnemonics[];
+        static const Lookup<Entry, Mnemonic> first, last;
 
-	const Entry* entry = nullptr;
-	Operand operand1, operand2;
+        friend bool IsValid (const Instruction&);
+        friend std::size_t GetSize (const Instruction&);
+        friend Instruction Optimize (const Instruction&);
+        friend std::istream& operator >> (std::istream&, Mnemonic&);
+        friend std::ostream& operator << (std::ostream&, Mnemonic);
+        friend std::ostream& operator << (std::ostream&, const Instruction&);
+    };
 
-	static const Entry table[];
-	static const char*const mnemonics[];
-	static const Lookup<Entry, Mnemonic> first, last;
+        template <Instruction::Mnemonic> struct InstructionMnemonic;
 
-	friend bool IsValid (const Instruction&);
-	friend std::size_t GetSize (const Instruction&);
-	friend Instruction Optimize (const Instruction&);
-	friend std::istream& operator >> (std::istream&, Mnemonic&);
-	friend std::ostream& operator << (std::ostream&, Mnemonic);
-	friend std::ostream& operator << (std::ostream&, const Instruction&);
-};
+        #define MNEM(name, mnem, ...) using mnem = InstructionMnemonic<Instruction::mnem>;
+        #include "m68k.def"
 
-namespace ECS::M68K
-{
-	template <Instruction::Mnemonic> struct InstructionMnemonic;
+        std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
+        std::istream& operator >> (std::istream&, Operand::Size&);
+        std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
+        std::ostream& operator << (std::ostream&, Operand::Size);
 
-	#define MNEM(name, mnem, ...) using mnem = InstructionMnemonic<Instruction::mnem>;
-	#include "m68k.def"
+    template <Instruction::Mnemonic>
+    struct InstructionMnemonic : Instruction
+    {
+        explicit InstructionMnemonic (const Operand& = {}, const Operand& = {});
+        explicit InstructionMnemonic (Operand::Size, const Operand& = {}, const Operand& = {});
+    };
 
-	std::istream& operator >> (std::istream&, Instruction::Mnemonic&);
-	std::istream& operator >> (std::istream&, Operand::Size&);
-	std::ostream& operator << (std::ostream&, Instruction::Mnemonic);
-	std::ostream& operator << (std::ostream&, Operand::Size);
-}
+    inline bool IsEmpty (const Operand& operand)
+    {
+        return operand.model == Operand::Empty;
+    }
 
-template <ECS::M68K::Instruction::Mnemonic>
-struct ECS::M68K::InstructionMnemonic : Instruction
-{
-	explicit InstructionMnemonic (const Operand& = {}, const Operand& = {});
-	explicit InstructionMnemonic (Operand::Size, const Operand& = {}, const Operand& = {});
-};
+    inline bool IsValid (const Instruction& instruction)
+    {
+        return instruction.entry;
+    }
 
-inline bool ECS::M68K::IsEmpty (const Operand& operand)
-{
-	return operand.model == Operand::Empty;
-}
+    inline Instruction::Instruction (const Mnemonic mnemonic, const Operand& op1, const Operand& op2) :
+        Instruction {mnemonic, Operand::None, op1, op2}
+    {
+    }
 
-inline bool ECS::M68K::IsValid (const Instruction& instruction)
-{
-	return instruction.entry;
-}
+    template <Instruction::Mnemonic m>
+    inline InstructionMnemonic<m>::InstructionMnemonic (const Operand& op1, const Operand& op2) :
+        Instruction {m, op1, op2}
+    {
+    }
 
-inline ECS::M68K::Instruction::Instruction (const Mnemonic mnemonic, const Operand& op1, const Operand& op2) :
-	Instruction {mnemonic, Operand::None, op1, op2}
-{
-}
+    template <Instruction::Mnemonic m>
+    inline InstructionMnemonic<m>::InstructionMnemonic (const Operand::Size s, const Operand& op1, const Operand& op2) :
+        Instruction {m, s, op1, op2}
+    {
+    }
 
-template <ECS::M68K::Instruction::Mnemonic m>
-inline ECS::M68K::InstructionMnemonic<m>::InstructionMnemonic (const Operand& op1, const Operand& op2) :
-	Instruction {m, op1, op2}
-{
-}
+} // M68K
+} // ECS
 
-template <ECS::M68K::Instruction::Mnemonic m>
-inline ECS::M68K::InstructionMnemonic<m>::InstructionMnemonic (const Operand::Size s, const Operand& op1, const Operand& op2) :
-	Instruction {m, s, op1, op2}
-{
-}
 
 #endif // ECS_M68K_HEADER_INCLUDED

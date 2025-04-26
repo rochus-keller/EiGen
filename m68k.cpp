@@ -36,7 +36,7 @@ struct Instruction::Entry
 
 const char*const Operand::registers[] {"sp", "usp", "pc", "sr", "ccr"};
 
-constexpr Instruction::Entry Instruction::table[] {
+const Instruction::Entry Instruction::table[] = {
 	#define INSTR(mnem, size, code, mask, type1, type2) \
 		{M68K::Instruction::mnem, Operand::size, code, mask, Operand::type1, Operand::type2},
 	#include "m68k.def"
@@ -47,7 +47,7 @@ const char*const Instruction::mnemonics[] {
 	#include "m68k.def"
 };
 
-constexpr Lookup<Instruction::Entry, Instruction::Mnemonic> Instruction::first {table}, Instruction::last {table, 0};
+const Lookup<Instruction::Entry, Instruction::Mnemonic> Instruction::first {table}, Instruction::last {table, 0};
 
 Operand::Operand (const M68K::Immediate i) :
 	model {Immediate}, immediate {i}

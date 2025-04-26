@@ -123,6 +123,39 @@ let amd64asm : Executable {
     .defines += "AMD64ARCHITECTURE"
 }
 
+################ 68k ###################
+
+let m68k : SourceSet {
+    .configs += config;
+    .sources += [
+        ./m68k.cpp
+        ./m68k.hpp
+        ./m68kassembler.cpp
+        ./m68kassembler.hpp
+        ./m68kgenerator.cpp
+        ./m68kgenerator.hpp
+        ]
+}
+
+let cdm68k : Executable {
+    .configs += config;
+    .deps += [ common m68k ]
+    .sources += [
+        ./compiler.cpp
+        ]
+    .defines += [ "M68KBACKEND" "CODEFRONTEND" "DEBUGGINGINFORMATION" "ASSEMBLYLISTING" ]
+}
+
+let m68kasm : Executable {
+    .configs += config;
+    .deps += [ common m68k ]
+    .sources += [
+        ./assembler.cpp
+        ]
+    .defines += "M68KARCHITECTURE"
+}
+
+
 ################ ARM ###################
 
 let arm : SourceSet {
@@ -360,6 +393,7 @@ let compiler : Executable {
 let tools ! : Group {
     .deps += [ cdamd32 cdamd64 cdamd16 cdarma32 cdarma64 cdarmt32 cdarmt32fpe cdrun ]
     .deps += [ amd32asm amd16asm amd64asm arma32asm arma64asm armt32asm ]
+    .deps += [ m68kasm cdm68k ]
     .deps += [ linkbin linkmem ]
     .deps += [ compiler compiler2 ]
 }

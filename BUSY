@@ -340,7 +340,7 @@ submod ecc2
 
 let compiler2 : Executable {
     .configs += config;
-    .deps += [ ecc2.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
+    .deps += [ ecc2.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore ]
     .sources += [
         ./ecc2/main.c
         ./ecc2/codegen.cpp
@@ -364,7 +364,7 @@ submod ecc
 
 let compiler : Executable {
     .configs += config;
-    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 lcore ]
+    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore ]
     .sources += [
         ./ecc/backend.cpp
         ./ecc/main.c

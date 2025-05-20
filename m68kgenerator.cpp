@@ -112,7 +112,13 @@ private:
 
 Generator::Generator (Diagnostics& d, StringPool& sp, Charset& c) :
     Assembly::Generator(d, sp, assembler, "m68k", "M68000",
-        {{2, 1, 2}, {4, 2, 2}, {4, 2}, {4, 2}, {0, 2, 2}, true}, false), assembler(d, c)
+        {{2, 1, 2}, // Integer size 2, align 1 to 2
+         {4, 2, 2}, // Float size 4, align 2
+         {4, 2},    // Pointer size 4, align 2
+         {4, 2},    // Function dito
+         {0, 2, 2}, // Stack align 2
+         true       // CallStack
+         }, false), assembler(d, c)
 {
 }
 

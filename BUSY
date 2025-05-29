@@ -1,4 +1,4 @@
-let config : Config {
+let config* : Config {
     if target_toolchain == `gcc {
         .lib_names += [ "m" "stdc++" ]
         .ldflags += "-shared-libgcc"
@@ -10,7 +10,7 @@ let config : Config {
     }
 }
 
-let common : SourceSet {
+let common* : SourceSet {
     .configs += config;
     .sources += [
         ./object.cpp
@@ -57,7 +57,7 @@ let common : SourceSet {
 
 #################### AMD #########################
 
-let amd64 : SourceSet {
+let amd64* : SourceSet {
     .configs += config;
     .sources += [
         ./amd64.cpp
@@ -125,7 +125,7 @@ let amd64asm : Executable {
 
 ################ 68k ###################
 
-let m68k : SourceSet {
+let m68k* : SourceSet {
     .configs += config;
     .sources += [
         ./m68k.cpp
@@ -158,7 +158,7 @@ let m68kasm : Executable {
 
 ################ ARM ###################
 
-let arm : SourceSet {
+let arm* : SourceSet {
     .configs += config;
     .sources += [
         ./armgenerator.cpp
@@ -169,7 +169,7 @@ let arm : SourceSet {
         ]
 }
 
-let arm32 : SourceSet {
+let arm32* : SourceSet {
     .configs += config;
     .sources += [
         ./arma32assembler.cpp
@@ -179,7 +179,7 @@ let arm32 : SourceSet {
         ]
 }
 
-let arma32 : SourceSet {
+let arma32* : SourceSet {
     .configs += config;
     .sources += [
         ./arma32generator.cpp
@@ -205,7 +205,7 @@ let arma32asm : Executable {
     .defines += "ARMA32ARCHITECTURE"
 }
 
-let arma64 : SourceSet {
+let arma64* : SourceSet {
     .configs += config;
     .sources += [
         ./arma64generator.cpp
@@ -235,7 +235,7 @@ let arma64asm : Executable {
     .defines += "ARMA64ARCHITECTURE"
 }
 
-let armt32 : SourceSet {
+let armt32* : SourceSet {
     .configs += config;
     .sources += [
         ./armt32generator.cpp
@@ -287,7 +287,7 @@ let cdrun : Executable {
 
 ############# Linker #################################
 
-let lcore : SourceSet {
+let lcore* : SourceSet {
     .configs += config;
     .sources += [
         ./objlinker.cpp
@@ -298,7 +298,7 @@ let lcore : SourceSet {
     ]
 }
 
-let lcommon : SourceSet {
+let lcommon* : SourceSet {
     .configs += config;
     .sources += [
         # the only things we need from common
@@ -335,25 +335,41 @@ let linkmem : Executable {
     .defines += "MEMORYLINKFILEFORMAT"
 }
 
-############# ECC2 ################################
-submod ecc2
+############# Frontend #################################
 
-let compiler2 : Executable {
+let emitter* : SourceSet {
     .configs += config;
-    .deps += [ ecc2.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore ]
     .sources += [
-        ./ecc2/main.c
-        ./ecc2/codegen.cpp
-        ./ecc2/backend.cpp
         ./cdemitter.cpp
         ./cdemitter.hpp
         ./cdgenerator.cpp
         ./cdgenerator.hpp
+    ]
+}
+
+let dbgconv* : SourceSet {
+    .configs += config;
+    .sources += [
         ./dbgconverter.cpp
         ./dbgconverter.hpp
         ./dbgconvertercontext.hpp
         ./dbgdwarfconverter.cpp
         ./dbgdwarfconverter.hpp
+    ]
+}
+
+
+
+############# ECC2 ################################
+submod ecc2
+
+let compiler2 : Executable {
+    .configs += config;
+    .deps += [ ecc2.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore emitter dbgconv ]
+    .sources += [
+        ./ecc2/main.c
+        ./ecc2/codegen.cpp
+        ./ecc2/backend.cpp
     ]
     .name = "compiler"
     .include_dirs += [ . ./cparser ]
@@ -364,21 +380,12 @@ submod ecc
 
 let compiler : Executable {
     .configs += config;
-    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore ]
+    .deps += [ ecc.sources common amd64 arm arm32 arma32 arma64 armt32 m68k lcore emitter dbgconv ]
     .sources += [
         ./ecc/backend.cpp
         ./ecc/main.c
         ./ecc/codegen.cpp
-        ./cdemitter.cpp
-        ./cdemitter.hpp
-        ./cdgenerator.cpp
-        ./cdgenerator.hpp
-        ./dbgconverter.cpp
-        ./dbgconverter.hpp
-        ./dbgconvertercontext.hpp
-        ./dbgdwarfconverter.cpp
-        ./dbgdwarfconverter.hpp
-        ]
+    ]
     .name = "compiler1"
     .defines += ["ECC_HAVE_BACKEND" "ECC_SHOW_RUN_FOR_SECS" ]
     #  ECC_SHOW_RUN_FOR_SECS "ECC_COMPILING_MESSAGE"
@@ -386,7 +393,6 @@ let compiler : Executable {
 
     # cannot use name "ecc" because of collision with ecc subdir
 }
-
 
 ############# All tools ##############################
 

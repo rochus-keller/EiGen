@@ -766,19 +766,10 @@ bool build_firm_ir(compilation_env_t *env, compilation_unit_t *unit)
 
 static bool read_ir_file(compilation_env_t *env, compilation_unit_t *unit)
 {
-#if 0
-    // TODO RK
-	(void)env;
-	if (!open_input(unit))
-		return false;
-	if (ir_import_file(unit->input, unit->name)) {
-		position_t const pos = { unit->name, 0, 0, 0 };
-		errorf(&pos, "import of firm graph failed");
-		return false;
-	}
-	already_constructed_firm = true;
-	unit->type = COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION;
-#endif
+    unit->name = unit->name;
+    already_constructed_firm = true;
+    unit->type = COMPILATION_UNIT_INTERMEDIATE_REPRESENTATION;
+
 	return true;
 }
 

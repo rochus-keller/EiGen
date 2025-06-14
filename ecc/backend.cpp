@@ -105,6 +105,8 @@ static void generate_armt32fpe(const Assembly::Program& program, const char* out
     generate(program, generator, output);
 }
 
+#include "hostdetect.h"
+
 extern "C" {
 
 void run_codegen(const char *input, const char *output)
@@ -142,8 +144,6 @@ void run_codegen(const char *input, const char *output)
         error("error generating code for %s",base_file);
     }
 }
-
-#include "hostdetect.h"
 
 #if defined Q_OS_LINUX || defined Q_OS_UNIX
 #include <sys/stat.h>

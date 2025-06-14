@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <sys/times.h>
 
+// NOTE: this file is only used for test purpose when the library is compiled with
+// gcc; otherwise the sys_* functions defined here are declared in the ECS runtime obf
+
 #if !defined __ECS_C__ && !defined __ECS2_C__
 
 void sys_exit(int status)

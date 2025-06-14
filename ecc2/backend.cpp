@@ -109,11 +109,12 @@ static void generate_armt32fpe(const Assembly::Program& program, const char* out
     generate(program, generator, output);
 }
 
+#include "hostdetect.h"
+
 extern "C" {
 #include "target.h"
 #include "panic.h"
 #include "driver_t.h"
-#include "hostdetect.h"
 
 int run_codegen(const char *input, const char *output, bool final)
 {
